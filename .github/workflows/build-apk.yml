@@ -32,17 +32,29 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Install Capacitor and asset tools
+      - name: Install Capacitor, native printer and build tools
         run: |
           npm init -y
-          npm install @capacitor/core@7 @capacitor/android@7
+          npm install @capacitor/core@7 @capacitor/android@7 @capgo/capacitor-printer@7 esbuild@0.25
           npm install --save-dev @capacitor/cli@7 @capacitor/assets
 
-      - name: Prepare app and icon
+      - name: Prepare app and bundle native printer
         run: |
           mkdir -p www resources
           cp index.html www/index.html
           cp Mobile_Tech_Room_icon.png resources/icon.png
+          node <<'NODE'
+          const fs = require('fs');
+          const file = 'www/index.html';
+          let html = fs.readFileSync(file, 'utf8');
+          const match = html.match(/<script type="module">([\s\S]*?)<\/script>/i);
+          if (!match) throw new Error('Could not find the app module script in index.html');
+          fs.writeFileSync('www/app.js', match[1]);
+          html = html.replace(match[0], '<script type="module" src="./app.bundle.js"></script>');
+          fs.writeFileSync(file, html);
+          NODE
+          npx esbuild www/app.js --bundle --format=esm --platform=browser --target=es2020 '--external:https://*' --outfile=www/app.bundle.js
+          rm www/app.js
 
       - name: Create Android project
         run: |
@@ -50,12 +62,10 @@ jobs:
           npx cap add android
 
       - name: Generate Android app icon
-        run: |
-          npx capacitor-assets generate --android
+        run: npx capacitor-assets generate --android
 
-      - name: Synchronize Android project
-        run: |
-          npx cap sync android
+      - name: Synchronize native plugins
+        run: npx cap sync android
 
       - name: Build APK
         working-directory: android
