@@ -297,15 +297,26 @@ ${isInstructor()?`
 `;
 }
 
+
 async function loadCourses(){
-let q;
-if(isStaff()){
-q=collection(db,"courses");
-}else{
-q=query(collection(db,"courses"),where("status","==","published"));
-}
-const snap=await getDocs(q);
-courses=snap.docs.map(d=>({id:d.id,...d.data()}));
+  let q;
+
+  if(isAdmin()){
+    q=collection(db,"courses");
+  }else if(isInstructor()){
+    q=query(
+      collection(db,"courses"),
+      where("createdBy","==",currentUser.uid)
+    );
+  }else{
+    q=query(
+      collection(db,"courses"),
+      where("status","==","published")
+    );
+  }
+
+  const snap=await getDocs(q);
+  courses=snap.docs.map(d=>({id:d.id,...d.data()}));
 }
 
 async function renderCourses(){
