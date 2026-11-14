@@ -235,7 +235,7 @@ article img{max-width:100%;height:auto}article table{width:100%;border-collapse:
 </style></head><body>
 <div class="toolbar"><button type="button" onclick="window.print()">⬇ Save / Print PDF</button><button type="button" class="close" onclick="window.close()">Close</button></div>
 <main class="sheet"><header class="brand"><div class="brand-name">MOBILE TECH ROOM</div><div class="brand-tag">LEARN • REPAIR • INNOVATE</div></header>
-<p class="kicker">COURSE LESSON</p><h1>${safe(cleanTitle)}</h1><article>${content}</article>
+<p class="kicker">MOBILE TECH LESSON</p><h1>${safe(cleanTitle)}</h1><article>${content}</article>
 <footer class="footer">
 <div class="footer-item contacts" aria-label="WhatsApp and call numbers">
 <svg viewBox="0 0 24 24" aria-label="WhatsApp" role="img"><path d="M20.5 11.7a8.4 8.4 0 0 1-12.4 7.4L3 20.3l1.3-4.9A8.4 8.4 0 1 1 20.5 11.7Z"/><path d="M8.2 7.8c.2-.4.4-.4.7-.4h.5c.2 0 .4.1.5.4l.8 1.8c.1.2.1.4-.1.6l-.6.7c-.2.2-.2.4-.1.6.6 1 1.4 1.8 2.5 2.4.2.1.4.1.6-.1l.8-.9c.2-.2.4-.2.6-.1l1.7.8c.3.1.4.3.4.5 0 .4-.2 1.1-.7 1.5-.5.5-1.2.7-2 .6-1.1-.2-2.5-.8-4-2.2-1.3-1.2-2.2-2.7-2.4-3.8-.2-.9.1-1.8.8-2.4Z"/></svg>
@@ -379,9 +379,9 @@ page.innerHTML=`<div class="panel">Unable to load account: ${safe(e.message)}</d
 
 function buildNavigation(){
 let tabs=[];
-if(isAdmin())tabs=["dashboard","students","courses","instructors"];
-else if(isInstructor())tabs=["dashboard","courses"];
-else if(isStudent())tabs=["dashboard","courses"];
+if(isAdmin())tabs=["dashboard","students","lessons","instructors"];
+else if(isInstructor())tabs=["dashboard","lessons"];
+else if(isStudent())tabs=["dashboard","lessons"];
 
 $("navigation").innerHTML=tabs.map(t=>
 `<button class="${currentTab===t?"active":"secondary"}" data-tab="${t}">${t[0].toUpperCase()+t.slice(1)}</button>`
@@ -400,7 +400,7 @@ $("appMessage").innerHTML="";
 selectedCourse=null;
 
 if(tab==="dashboard")await renderDashboard();
-if(tab==="courses")await renderCourses();
+if(tab==="lessons")await renderCourses();
 if(tab==="students"&&isAdmin())await renderUsers("student");
 if(tab==="instructors"&&isAdmin())await renderUsers("instructor");
 }
@@ -431,13 +431,13 @@ async function renderDashboard(){
         {value:students.length,label:"Registered students"},
         {value:pending.length,label:"Pending approvals"},
         {value:instructors.length,label:"Active instructors"},
-        {value:courseSnap.size,label:"Total courses"}
+        {value:courseSnap.size,label:"Lesson topics"}
       ];
       quickActions=`
         <button data-dashboard-tab="students">Manage Students</button>
-        <button data-dashboard-tab="courses">Manage Courses</button>
+        <button data-dashboard-tab="lessons">Manage Lessons</button>
         <button data-dashboard-tab="instructors">Manage Instructors</button>`;
-      tip="Keep student approvals and instructor accounts up to date, and review course content before publishing.";
+      tip="Keep student approvals and instructor accounts up to date, and review lesson topics before publishing.";
     }else if(isInstructor()){
       await loadCourses();
       const lessonCounts=await Promise.all(courses.map(async course=>{
@@ -451,11 +451,11 @@ async function renderDashboard(){
       const lessonCount=lessonCounts.reduce((sum,count)=>sum+count,0);
       const published=courses.filter(c=>c.status==="published").length;
       stats=[
-        {value:courses.length,label:"My courses"},
-        {value:published,label:"Published courses"},
+        {value:courses.length,label:"My lesson topics"},
+        {value:published,label:"Published lesson topics"},
         {value:lessonCount,label:"Lessons created"}
       ];
-      quickActions=`<button data-dashboard-tab="courses">Open My Courses</button>`;
+      quickActions=`<button data-dashboard-tab="lessons">Open My Lessons</button>`;
       tip="Build clear, practical lessons. Use headings, examples and step-by-step explanations to help students learn phone technology.";
     }else if(isStudent()){
       const [courseSnap,enrollmentSnap]=await Promise.all([
@@ -469,11 +469,11 @@ async function renderDashboard(){
         return course.accessType!=="paid"||activeCourseIds.has(d.id);
       });
       stats=[
-        {value:courseSnap.size,label:"Published courses"},
-        {value:availableCourses.length,label:"Courses available to you"},
-        {value:activeEnrollments.length,label:"Active paid-course access"}
+        {value:courseSnap.size,label:"Published lesson topics"},
+        {value:availableCourses.length,label:"Lesson topics available to you"},
+        {value:activeEnrollments.length,label:"Active paid-lesson access"}
       ];
-      quickActions=`<button data-dashboard-tab="courses">Explore Courses</button>`;
+      quickActions=`<button data-dashboard-tab="lessons">Explore Lessons</button>`;
       tip="Start with the fundamentals, follow each lesson in order and practise safely on suitable devices.";
     }
   }catch(error){
@@ -541,35 +541,35 @@ async function loadCourses(){
 }
 
 async function renderCourses(){
-page.innerHTML="<div class='panel'>Loading courses...</div>";
+page.innerHTML="<div class='panel'>Loading lessons...</div>";
 try{
 await loadCourses();
-let html=`<div class="panel"><h2>Courses</h2>
-<p class="muted">Explore mobile software and phone technician training.</p>`;
+let html=`<div class="panel"><h2>Lessons</h2>
+<p class="muted">Explore mobile software and phone technician lessons.</p>`;
 
 if(isStaff()){
 html+=`
-<h3>Create New Course</h3>
+<h3>Create a Lesson Topic</h3>
 <form id="courseForm">
-<input id="courseTitle" placeholder="Course title" required>
-<input id="courseCategory" placeholder="Category (e.g. Android, iPhone, Flashing)" required>
-<textarea id="courseDescription" placeholder="Course description" required></textarea>
+<input id="courseTitle" placeholder="Lesson topic name" required>
+<input id="courseCategory" placeholder="Subject area (e.g. Android, iPhone, Flashing)" required>
+<textarea id="courseDescription" placeholder="Describe what these lessons cover" required></textarea>
 <select id="courseAccess">
-<option value="free">Free Course</option>
-<option value="paid">Paid Course</option>
+<option value="free">Free Lessons</option>
+<option value="paid">Paid Lessons</option>
 </select>
-<input id="coursePrice" type="number" min="0" placeholder="Course price (optional)">
+<input id="coursePrice" type="number" min="0" placeholder="Lesson access price (optional)">
 <select id="courseStatus">
 <option value="draft">Save as Draft</option>
-<option value="published">Publish Course</option>
+<option value="published">Publish Lessons</option>
 </select>
-<button type="submit">Create Course</button>
+<button type="submit">Create Topic</button>
 </form><hr>`;
 }
 html+="</div>";
 
 if(!courses.length){
-html+=`<div class="panel"><p>No courses available yet.</p></div>`;
+html+=`<div class="panel"><p>No lesson topics available yet.</p></div>`;
 }
 
 for(const c of courses){
@@ -581,9 +581,9 @@ html+=`
 <span class="tag">${safe(c.status||"draft")}</span>
 <p>${safe(c.description)}</p>
 ${c.accessType==="paid"?`<p>Price: ${safe(c.price||0)}</p>`:""}
-<p class="muted">Course ID: ${safe(c.id)}</p>
+<p class="muted">Topic ID: ${safe(c.id)}</p>
 <div class="actions">
-<button data-action="open-course" data-id="${safe(c.id)}">Open Lessons</button>
+<button data-action="open-course" data-id="${safe(c.id)}">Open Topic</button>
 ${isAdmin()?`
 <button class="secondary" data-action="edit-course" data-id="${safe(c.id)}">Edit</button>
 <button class="danger" data-action="delete-course" data-id="${safe(c.id)}">Delete</button>`:""}
@@ -595,7 +595,7 @@ page.innerHTML=html;
 const form=$("courseForm");
 if(form)form.onsubmit=createCourse;
 }catch(e){
-page.innerHTML=`<div class="panel error">Could not load courses: ${safe(e.message)}</div>`;
+page.innerHTML=`<div class="panel error">Could not load lessons: ${safe(e.message)}</div>`;
 }
 }
 
@@ -612,14 +612,14 @@ status:$("courseStatus").value,
 createdBy:currentUser.uid,
 createdAt:serverTimestamp()
 });
-appMessage("Course created successfully.");
+appMessage("Lesson topic created successfully.");
 await renderCourses();
-}catch(e){appMessage("Could not create course: "+e.message,"error")}
+}catch(e){appMessage("Could not create lesson topic: "+e.message,"error")}
 }
 
 async function openCourse(id){
 selectedCourse=courses.find(c=>c.id===id);
-if(!selectedCourse){appMessage("Course not found.","error");return}
+if(!selectedCourse){appMessage("Lesson topic not found.","error");return}
 
 if(isStudent()){
 if(selectedCourse.accessType==="paid"){
@@ -627,9 +627,9 @@ const enrollment=await getDoc(doc(db,"users",currentUser.uid,"enrollments",id));
 if(!enrollment.exists()||enrollment.data().status!=="active"){
 page.innerHTML=`<div class="panel">
 <h2>${safe(selectedCourse.title)}</h2>
-<p>This is a paid course. You do not currently have access.</p>
-<p class="muted">Contact the administrator to arrange payment and course access.</p>
-<button class="secondary" data-action="back-courses">Back to Courses</button>
+<p>These lessons require paid access. You do not currently have access.</p>
+<p class="muted">Contact the administrator to arrange payment and lesson access.</p>
+<button class="secondary" data-action="back-courses">Back to Lessons</button>
 </div>`;
 return;
 }
@@ -646,7 +646,7 @@ const snap=await getDocs(collection(db,"courses",courseId,"lessons"));
 const lessons=snap.docs.map(d=>({id:d.id,...d.data()}));
 let html=`
 <div class="panel">
-<button class="secondary" data-action="back-courses">Back to Courses</button>
+<button class="secondary" data-action="back-courses">Back to Lessons</button>
 <h2>${safe(selectedCourse.title)}</h2>
 <p>${safe(selectedCourse.description)}</p>
 </div>`;
@@ -657,6 +657,10 @@ html+=`
 <h3>Add New Lesson</h3>
 <form id="lessonForm">
 <input id="lessonTitle" placeholder="Lesson title" required>
+<label class="muted" for="lessonTopic">Topic</label>
+<input id="lessonTopic" placeholder="Enter the topic (e.g. Android Basics)" required>
+<label class="muted" for="lessonSection">Section</label>
+<input id="lessonSection" placeholder="Enter the section (e.g. Introduction, Tools, Practical Steps)" required>
 <select id="lessonType">
 <option value="written">Written Lesson</option>
 <option value="video">Video Link</option>
@@ -688,6 +692,8 @@ lessons.forEach((l,i)=>{
 html+=`
 <div class="card">
 <h3>${i+1}. ${safe(l.title)}</h3>
+${l.topic?`<p><strong>Topic:</strong> ${safe(l.topic)}</p>`:""}
+${l.section?`<p><strong>Section:</strong> ${safe(l.section)}</p>`:""}
 <span class="tag">${safe(l.type||"written")}</span>
 <div class="lesson-body">${formatLessonContent(l.content||"")}</div>
 ${(l.type||"written")==="written"?`<button type="button" class="secondary" data-action="download-lesson-pdf"><span>⬇ Download PDF</span></button>`:""}
@@ -722,6 +728,8 @@ appMessage("Please enter a valid HTTPS media link.","error");return;
 }
 await addDoc(collection(db,"courses",courseId,"lessons"),{
 title:$("lessonTitle").value.trim(),
+topic:$("lessonTopic").value.trim(),
+section:$("lessonSection").value.trim(),
 type:$("lessonType").value,
 content:$("lessonContent").innerHTML.trim(),
 mediaUrl:url,
@@ -739,39 +747,39 @@ page.innerHTML=`<div class="panel error">Could not load lessons: ${safe(e.messag
 
 async function editCourse(id){
 if(!isAdmin()){
-appMessage("Only the administrator can edit courses.","error");
+appMessage("Only the administrator can edit lesson topics.","error");
 return;
 }
 const c=courses.find(x=>x.id===id);
 if(!c)return;
-const title=prompt("Course title:",c.title);
+const title=prompt("Lesson topic name:",c.title);
 if(title===null)return;
-const description=prompt("Course description:",c.description||"");
+const description=prompt("Describe what these lessons cover:",c.description||"");
 if(description===null)return;
 try{
 await updateDoc(doc(db,"courses",id),{
 title:title.trim(),description:description.trim()
 });
-appMessage("Course updated.");
+appMessage("Lesson topic updated.");
 await renderCourses();
 }catch(e){appMessage(e.message,"error")}
 }
 
 async function deleteCourse(id){
 if(!isAdmin()){
-appMessage("Only the administrator can delete courses.","error");
+appMessage("Only the administrator can delete lesson topics.","error");
 return;
 }
-if(!confirm("Delete this course and its lessons?"))return;
+if(!confirm("Delete this lesson topic and all its lessons?"))return;
 try{
 const lessons=await getDocs(collection(db,"courses",id,"lessons"));
 for(const l of lessons.docs){
 await deleteDoc(doc(db,"courses",id,"lessons",l.id));
 }
 await deleteDoc(doc(db,"courses",id));
-appMessage("Course deleted.");
+appMessage("Lesson topic deleted.");
 await renderCourses();
-}catch(e){appMessage("Could not delete course: "+e.message,"error")}
+}catch(e){appMessage("Could not delete lesson topic: "+e.message,"error")}
 }
 
 async function editLesson(id){
@@ -786,10 +794,14 @@ if(!snap.exists())return;
 const l=snap.data();
 const title=prompt("Lesson title:",l.title);
 if(title===null)return;
-const content=prompt("Lesson content:",l.content||"");
+const topic=prompt("Topic:",l.topic||"");
+if(topic===null)return;
+const section=prompt("Section:",l.section||"");
+if(section===null)return;
+const content=prompt("Lesson content (plain text):",l.content||"");
 if(content===null)return;
 try{
-await updateDoc(ref,{title:title.trim(),content:content.trim()});
+await updateDoc(ref,{title:title.trim(),topic:topic.trim(),section:section.trim(),content:content.trim()});
 appMessage("Lesson updated.");
 await renderLessons(courseId);
 }catch(e){appMessage(e.message,"error")}
@@ -835,7 +847,7 @@ ${u.status!=="blocked"?
 `<button class="danger" data-action="block-user" data-id="${safe(u.id)}">Block</button>`:
 `<button data-action="unblock-user" data-id="${safe(u.id)}">Restore</button>`}
 ${role==="student"&&u.status==="approved"?
-`<button class="secondary" data-action="manage-enrollments" data-id="${safe(u.id)}">Manage Course Access</button>
+`<button class="secondary" data-action="manage-enrollments" data-id="${safe(u.id)}">Manage Lesson Access</button>
 <button class="secondary" data-action="promote-user" data-id="${safe(u.id)}">Make Instructor</button>`:""}
 ${role==="instructor"?
 `<button class="secondary" data-action="demote-user" data-id="${safe(u.id)}">Return to Student</button>`:""}
@@ -852,7 +864,7 @@ async function manageStudentEnrollments(studentId){
   if(!isAdmin())return;
   const student=users.find(u=>u.id===studentId);
   if(!student){appMessage("Student account not found.","error");return;}
-  page.innerHTML="<div class='panel'>Loading paid course access...</div>";
+  page.innerHTML="<div class='panel'>Loading paid lesson access...</div>";
   try{
     const courseSnap=await getDocs(collection(db,"courses"));
     const paidCourses=courseSnap.docs.map(d=>({id:d.id,...d.data()}))
@@ -861,12 +873,12 @@ async function manageStudentEnrollments(studentId){
     const enrollmentMap=new Map(enrollmentSnap.docs.map(d=>[d.id,d.data()]));
     let html=`<div class="panel">
       <button class="secondary" data-action="back-students">Back to Students</button>
-      <h2>Paid Course Access</h2>
+      <h2>Paid Lesson Access</h2>
       <p><strong>${safe(student.fullName||"Student")}</strong></p>
       <p class="muted">${safe(student.email||"")}</p>
-      <p class="muted">Grant or revoke access to published paid courses.</p>
+      <p class="muted">Grant or revoke access to published paid lesson topics.</p>
     </div>`;
-    if(!paidCourses.length)html+=`<div class="panel">There are no published paid courses.</div>`;
+    if(!paidCourses.length)html+=`<div class="panel">There are no published paid lesson topics.</div>`;
     for(const course of paidCourses){
       const active=enrollmentMap.get(course.id)?.status==="active";
       html+=`<div class="card">
@@ -880,33 +892,33 @@ async function manageStudentEnrollments(studentId){
       </div>`;
     }
     page.innerHTML=html;
-  }catch(e){page.innerHTML=`<div class="panel error">Could not load course access: ${safe(e.message)}</div>`;}
+  }catch(e){page.innerHTML=`<div class="panel error">Could not load lesson access: ${safe(e.message)}</div>`;}
 }
 
 async function grantEnrollment(studentId,courseId){
   if(!isAdmin())return;
-  if(!confirm("Grant this student access to the selected paid course?"))return;
+  if(!confirm("Grant this student access to the selected paid lessons?"))return;
   try{
     const courseSnap=await getDoc(doc(db,"courses",courseId));
-    if(!courseSnap.exists())throw new Error("Course not found.");
+    if(!courseSnap.exists())throw new Error("Lesson topic not found.");
     const course=courseSnap.data();
     if(course.accessType!=="paid"||course.status!=="published")
-      throw new Error("Only published paid courses can be enrolled.");
+      throw new Error("Only published paid lesson topics can be enrolled.");
     await setDoc(doc(db,"users",studentId,"enrollments",courseId),{
       status:"active",courseId:courseId,courseTitle:course.title||"",
       grantedBy:currentUser.uid,grantedAt:serverTimestamp()
     });
-    appMessage("Paid course access granted.");
+    appMessage("Paid lesson access granted.");
     await manageStudentEnrollments(studentId);
   }catch(e){appMessage("Could not grant access: "+e.message,"error");}
 }
 
 async function revokeEnrollment(studentId,courseId){
   if(!isAdmin())return;
-  if(!confirm("Revoke this student's access to the course?"))return;
+  if(!confirm("Revoke this student's access to these lessons?"))return;
   try{
     await deleteDoc(doc(db,"users",studentId,"enrollments",courseId));
-    appMessage("Course access revoked.");
+    appMessage("Lesson access revoked.");
     await manageStudentEnrollments(studentId);
   }catch(e){appMessage("Could not revoke access: "+e.message,"error");}
 }
