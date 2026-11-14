@@ -48,6 +48,21 @@ nav button.active{background:#fff;color:#172943}
 .hidden{display:none!important}
 #message{padding:10px;text-align:center;line-height:1.5}
 .actions{display:flex;flex-wrap:wrap;gap:4px}
+
+/* Dashboard refresh */
+.dashboard-hero{background:linear-gradient(135deg,#193b59,#126b70);border:1px solid #3b8e91;border-radius:16px;padding:22px;margin-bottom:15px}
+.dashboard-hero h2{font-size:clamp(22px,5vw,30px);margin:0 0 8px;color:#fff}
+.dashboard-hero p{margin:5px 0;color:#d8f5f1;line-height:1.55}
+.dashboard-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:12px 0 16px}
+.dashboard-stat{background:#203954;border:1px solid #405675;border-radius:12px;padding:15px;min-width:0}
+.dashboard-stat strong{display:block;color:#45d6c5;font-size:27px;line-height:1.2;margin-bottom:6px}
+.dashboard-stat span{font-size:12px;color:#c3d2e2;line-height:1.4}
+.dashboard-section-title{margin:20px 0 10px}
+.dashboard-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:9px}
+.dashboard-actions button{margin:0;min-height:48px}
+.dashboard-account p{overflow-wrap:anywhere;margin:9px 0}
+.dashboard-tip{border-left:4px solid #45d6c5}
+@media(max-width:420px){.dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-stat{padding:12px}.dashboard-stat strong{font-size:23px}}
 a{color:#45d6c5;overflow-wrap:anywhere}
 footer{text-align:center;color:#8193aa;padding:25px;font-size:12px}
 hr{border:0;border-top:1px solid #405675;margin:15px 0}
@@ -384,38 +399,123 @@ buildNavigation();
 $("appMessage").innerHTML="";
 selectedCourse=null;
 
-if(tab==="dashboard")renderDashboard();
+if(tab==="dashboard")await renderDashboard();
 if(tab==="courses")await renderCourses();
 if(tab==="students"&&isAdmin())await renderUsers("student");
 if(tab==="instructors"&&isAdmin())await renderUsers("instructor");
 }
 
-function renderDashboard(){
-page.innerHTML=`
-<div class="panel">
-<h2>Learning Dashboard</h2>
-<p>Welcome to Mobile Tech Room.</p>
-<p class="muted">Your mobile technology learning centre.</p>
-</div>
-<div class="panel">
-<h3>Your Account</h3>
-<p>Name: ${safe(profile.fullName)}</p>
-<p>Email: ${safe(profile.email)}</p>
-<p>Role: <span class="tag">${safe(profile.role)}</span></p>
-<p>Status: <span class="tag">${safe(profile.status)}</span></p>
-</div>
-${isAdmin()?`
-<div class="panel">
-<h3>Owner Control Centre</h3>
-<p>You have full administrative access.</p>
-<p class="muted">Use Students to approve learners and Instructors to manage teaching staff.</p>
-</div>`:""}
-${isInstructor()?`
-<div class="panel">
-<h3>Instructor Area</h3>
-<p>You can create courses and manage lessons.</p>
-</div>`:""}
-`;
+async function renderDashboard(){
+  page.innerHTML=`<div class="panel">Loading your dashboard...</div>`;
+
+  const name=profile?.fullName||currentUser?.displayName||currentUser?.email||"Learner";
+  const email=profile?.email||currentUser?.email||"Not available";
+  const role=(profile?.role||"student").toLowerCase();
+  const status=(profile?.status||"pending").toLowerCase();
+
+  let stats=[];
+  let quickActions="";
+  let tip="Keep learning consistently. Practise each topic and review your lessons regularly.";
+
+  try{
+    if(isAdmin()){
+      const [userSnap,courseSnap]=await Promise.all([
+        getDocs(collection(db,"users")),
+        getDocs(collection(db,"courses"))
+      ]);
+      const allUsers=userSnap.docs.map(d=>d.data());
+      const students=allUsers.filter(u=>u.role==="student");
+      const pending=students.filter(u=>u.status!=="approved");
+      const instructors=allUsers.filter(u=>u.role==="instructor"&&u.status==="approved");
+      stats=[
+        {value:students.length,label:"Registered students"},
+        {value:pending.length,label:"Pending approvals"},
+        {value:instructors.length,label:"Active instructors"},
+        {value:courseSnap.size,label:"Total courses"}
+      ];
+      quickActions=`
+        <button data-dashboard-tab="students">Manage Students</button>
+        <button data-dashboard-tab="courses">Manage Courses</button>
+        <button data-dashboard-tab="instructors">Manage Instructors</button>`;
+      tip="Keep student approvals and instructor accounts up to date, and review course content before publishing.";
+    }else if(isInstructor()){
+      await loadCourses();
+      const lessonCounts=await Promise.all(courses.map(async course=>{
+        try{
+          const snap=await getDocs(collection(db,"courses",course.id,"lessons"));
+          return snap.size;
+        }catch(error){
+          return 0;
+        }
+      }));
+      const lessonCount=lessonCounts.reduce((sum,count)=>sum+count,0);
+      const published=courses.filter(c=>c.status==="published").length;
+      stats=[
+        {value:courses.length,label:"My courses"},
+        {value:published,label:"Published courses"},
+        {value:lessonCount,label:"Lessons created"}
+      ];
+      quickActions=`<button data-dashboard-tab="courses">Open My Courses</button>`;
+      tip="Build clear, practical lessons. Use headings, examples and step-by-step explanations to help students learn phone technology.";
+    }else if(isStudent()){
+      const [courseSnap,enrollmentSnap]=await Promise.all([
+        getDocs(query(collection(db,"courses"),where("status","==","published"))),
+        getDocs(collection(db,"users",currentUser.uid,"enrollments"))
+      ]);
+      const activeEnrollments=enrollmentSnap.docs.filter(d=>d.data().status==="active");
+      const activeCourseIds=new Set(activeEnrollments.map(d=>d.id));
+      const availableCourses=courseSnap.docs.filter(d=>{
+        const course=d.data();
+        return course.accessType!=="paid"||activeCourseIds.has(d.id);
+      });
+      stats=[
+        {value:courseSnap.size,label:"Published courses"},
+        {value:availableCourses.length,label:"Courses available to you"},
+        {value:activeEnrollments.length,label:"Active paid-course access"}
+      ];
+      quickActions=`<button data-dashboard-tab="courses">Explore Courses</button>`;
+      tip="Start with the fundamentals, follow each lesson in order and practise safely on suitable devices.";
+    }
+  }catch(error){
+    stats=[];
+    appMessage("Some dashboard statistics could not be loaded: "+error.message,"error");
+  }
+
+  const statCards=stats.map(item=>`
+    <div class="dashboard-stat">
+      <strong>${safe(item.value)}</strong>
+      <span>${safe(item.label)}</span>
+    </div>`).join("");
+
+  page.innerHTML=`
+    <section class="dashboard-hero">
+      <h2>Welcome, ${safe(name)}!</h2>
+      <p><strong>Learn. Repair. Innovate.</strong></p>
+      <p>Your Mobile Tech Room learning and management centre.</p>
+    </section>
+
+    ${stats.length?`
+      <h3 class="dashboard-section-title">Your Overview</h3>
+      <div class="dashboard-stats">${statCards}</div>
+    `:`<div class="panel"><p class="muted">Dashboard statistics are temporarily unavailable. You can still use the navigation above.</p></div>`}
+
+    <section class="panel">
+      <h3 class="dashboard-section-title">Quick Actions</h3>
+      <div class="dashboard-actions">${quickActions}</div>
+    </section>
+
+    <section class="panel dashboard-account">
+      <h3>Account Information</h3>
+      <p><strong>Name:</strong> ${safe(name)}</p>
+      <p><strong>Email:</strong> ${safe(email)}</p>
+      <p><strong>Role:</strong> <span class="tag">${safe(role.toUpperCase())}</span></p>
+      <p><strong>Account status:</strong> <span class="tag">${safe(status.toUpperCase())}</span></p>
+    </section>
+
+    <section class="panel dashboard-tip">
+      <h3>Learning Tip</h3>
+      <p>${safe(tip)}</p>
+    </section>`;
 }
 
 
@@ -820,6 +920,11 @@ await renderUsers(currentTab==="students"?"student":"instructor");
 }
 
 document.addEventListener("click",async e=>{
+const dashboardButton=e.target.closest("[data-dashboard-tab]");
+if(dashboardButton){
+showTab(dashboardButton.dataset.dashboardTab);
+return;
+}
 const b=e.target.closest("[data-action]");
 if(!b)return;
 const action=b.dataset.action;
