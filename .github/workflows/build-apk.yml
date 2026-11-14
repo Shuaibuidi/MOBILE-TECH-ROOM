@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - 'index.html'
+      - 'Mobile_Tech_Room_icon.png'
       - '.github/workflows/build-apk.yml'
 
 permissions:
@@ -31,21 +32,29 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Install Capacitor
+      - name: Install Capacitor and asset tools
         run: |
           npm init -y
           npm install @capacitor/core@7 @capacitor/android@7
-          npm install --save-dev @capacitor/cli@7
+          npm install --save-dev @capacitor/cli@7 @capacitor/assets
 
-      - name: Prepare app files
+      - name: Prepare app and icon
         run: |
-          mkdir -p www
+          mkdir -p www resources
           cp index.html www/index.html
+          cp Mobile_Tech_Room_icon.png resources/icon.png
 
       - name: Create Android project
         run: |
           npx cap init "Mobile Tech Room" "com.shuaibuidi.mobiletechroom" --web-dir www
           npx cap add android
+
+      - name: Generate Android app icon
+        run: |
+          npx capacitor-assets generate --android
+
+      - name: Synchronize Android project
+        run: |
           npx cap sync android
 
       - name: Build APK
