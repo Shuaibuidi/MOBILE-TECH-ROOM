@@ -8,7 +8,7 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#101c32;color:#fff;font-family:Arial,sans-serif}
-header{background:#172943;padding:23px 17px 17px;text-align:center;border-bottom:1px solid #30445f}
+header{position:sticky;top:0;z-index:1000;background:#172943;padding:23px 17px 17px;text-align:center;border-bottom:1px solid #30445f}
 header h1{margin:0;color:#45d6c5;font-size:23px}
 header p{margin:6px 0 0;color:#b9c8d9;font-size:13px}
 main{max-width:950px;margin:auto;padding:16px}
@@ -26,7 +26,7 @@ textarea{min-height:100px;resize:vertical}
 .lesson-body h2{font-size:24px;color:#0e7490}
 .lesson-body h3{font-size:19px;color:#7c3aed}
 .lesson-body ul,.lesson-body ol{padding-left:26px}
-@media print{body{background:#fff;color:#111}}
+@media print{body{background:#fff;color:#111}header{position:static}}
 .lesson-editor{min-height:180px;padding:14px;background:#fff;color:#202938;border:2px solid #45d6c5;border-radius:9px;outline:none;line-height:1.65;overflow-wrap:anywhere}
 .lesson-editor:empty:before{content:attr(data-placeholder);color:#778399}
 .lesson-editor h1,.lesson-editor h2,.lesson-editor h3{margin:12px 0;color:#176b9a}
