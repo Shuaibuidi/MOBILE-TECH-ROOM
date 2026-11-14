@@ -2,217 +2,623 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#101c32">
 <title>Mobile Tech Room</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#101c32;color:#fff;min-height:100vh}
-header{padding:22px 18px;text-align:center;background:#172943;border-bottom:1px solid #30445f}
-header h1{margin:0;color:#45d6c5;font-size:25px}
-header p{color:#bdc9d9;margin:8px 0 0;font-size:13px}
-main{width:92%;max-width:440px;margin:35px auto}
-.panel{background:#192d49;padding:24px;border-radius:16px;border:1px solid #30445f}
-h2{margin-top:0;text-align:center}
-p.info{color:#bdc9d9;text-align:center;font-size:14px;line-height:1.5}
-input{width:100%;padding:14px;margin:8px 0;border:1px solid #405675;border-radius:9px;background:#101c32;color:white;font-size:16px}
-button{width:100%;padding:14px;margin-top:12px;border:0;border-radius:9px;background:#45d6c5;color:#102239;font-weight:bold;font-size:15px}
+body{margin:0;background:#101c32;color:#fff;font-family:Arial,sans-serif}
+header{background:#172943;padding:17px;text-align:center;border-bottom:1px solid #30445f}
+header h1{margin:0;color:#45d6c5;font-size:23px}
+header p{margin:6px 0 0;color:#b9c8d9;font-size:13px}
+main{max-width:950px;margin:auto;padding:16px}
+.panel{background:#192d49;border:1px solid #30445f;border-radius:13px;padding:17px;margin-bottom:15px}
+h2,h3{margin-top:0}
+input,textarea,select{width:100%;padding:12px;margin:7px 0;background:#101c32;color:white;border:1px solid #405675;border-radius:8px;font-size:15px}
+textarea{min-height:100px;resize:vertical}
+button{padding:11px 15px;border:0;border-radius:8px;background:#45d6c5;color:#102239;font-weight:bold;margin:4px 3px;cursor:pointer}
 button.secondary{background:#30445f;color:white}
+button.danger{background:#a83d4c;color:white}
 button:disabled{opacity:.5}
-.small{text-align:center;color:#bdc9d9;font-size:13px;margin-top:18px}
-a{color:#45d6c5;cursor:pointer}
-#message{padding:10px;text-align:center;font-size:14px;line-height:1.5}
-.hidden{display:none}
-footer{text-align:center;color:#8496ad;font-size:12px;padding:20px}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+nav button{flex:1;min-width:105px}
+nav button.active{background:#fff;color:#172943}
+.card{background:#203954;border:1px solid #405675;border-radius:10px;padding:14px;margin:10px 0}
+.muted{color:#b9c8d9;font-size:13px;line-height:1.5}
+.tag{display:inline-block;padding:5px 8px;border-radius:6px;background:#30445f;color:#c8f5ed;font-size:12px;margin:3px}
+.success{color:#45d6c5}
+.warning{color:#ffd477}
+.error{color:#ff9b9b}
+.hidden{display:none!important}
+#message{padding:10px;text-align:center;line-height:1.5}
+.actions{display:flex;flex-wrap:wrap;gap:4px}
+a{color:#45d6c5;overflow-wrap:anywhere}
+footer{text-align:center;color:#8193aa;padding:25px;font-size:12px}
+hr{border:0;border-top:1px solid #405675;margin:15px 0}
 </style>
 </head>
 <body>
+
 <header>
 <h1>Mobile Tech Room</h1>
 <p>Learn. Repair. Innovate.</p>
 </header>
 
 <main>
-<section class="panel" id="authPanel">
-<h2 id="formTitle">Student Login</h2>
-<p class="info" id="formInfo">Sign in to access your learning account.</p>
-
-<div id="nameField" class="hidden">
-<input id="fullName" type="text" placeholder="Full name">
+<section id="authPanel" class="panel">
+<h2 id="authTitle">Student Login</h2>
+<p class="muted" id="authDescription">Sign in to your learning account.</p>
+<div id="registerFields" class="hidden">
+<input id="registerName" placeholder="Full name">
 </div>
-
-<input id="email" type="email" placeholder="Email address" autocomplete="email">
-<input id="password" type="password" placeholder="Password" autocomplete="current-password">
-
-<button id="mainButton">Login</button>
-<button id="resetButton" class="secondary">Forgot Password?</button>
-
-<p class="small" id="switchText">
-Don't have an account? <a id="switchButton">Register here</a>
-</p>
+<input id="email" type="email" placeholder="Email address">
+<input id="password" type="password" placeholder="Password (minimum 6 characters)">
+<button id="authButton">Login</button>
+<button id="forgotButton" class="secondary">Forgot Password?</button>
+<p class="muted" id="switchText">No account? <a href="#" id="switchButton">Register here</a></p>
 <div id="message"></div>
 </section>
 
-<section class="panel hidden" id="statusPanel">
-<h2>Welcome to Mobile Tech Room</h2>
-<p class="info" id="welcomeText"></p>
-<button id="logoutButton">Logout</button>
+<section id="appPanel" class="hidden">
+<div class="panel">
+<h2 id="welcomeTitle">Welcome</h2>
+<p class="muted" id="accountInfo"></p>
+<button id="logoutButton" class="secondary">Logout</button>
+</div>
+
+<nav id="navigation"></nav>
+<div id="page"></div>
+<div id="appMessage"></div>
 </section>
 </main>
 
 <footer>Mobile Tech Room · Learn mobile technology skills</footer>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import {initializeApp} from
+"https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 
 import {
- getAuth,
- createUserWithEmailAndPassword,
- signInWithEmailAndPassword,
- sendPasswordResetEmail,
- onAuthStateChanged,
- signOut,
- updateProfile
+getAuth,createUserWithEmailAndPassword,
+signInWithEmailAndPassword,sendPasswordResetEmail,
+onAuthStateChanged,signOut,updateProfile
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 import {
- getFirestore,
- doc,
- setDoc,
- getDoc,
- serverTimestamp
+getFirestore,doc,getDoc,setDoc,collection,
+getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,
+query,where
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-const firebaseConfig = {
- apiKey: "AIzaSyAFP-RfZWPKPcHU9NqtTzX1b8HvVVzkb3Y",
- authDomain: "mobile-tech-room.firebaseapp.com",
- projectId: "mobile-tech-room",
- storageBucket: "mobile-tech-room.firebasestorage.app",
- messagingSenderId: "620229324084",
- appId: "1:620229324084:web:6bbd02c0c58a2547dfc961",
- measurementId: "G-WY4T9JMB97"
+const firebaseConfig={
+apiKey:"AIzaSyAFP-RfZWPKPcHU9NqtTzX1b8HvVVzkb3Y",
+authDomain:"mobile-tech-room.firebaseapp.com",
+projectId:"mobile-tech-room",
+storageBucket:"mobile-tech-room.firebasestorage.app",
+messagingSenderId:"620229324084",
+appId:"1:620229324084:web:6bbd02c0c58a2547dfc961",
+measurementId:"G-WY4T9JMB97"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
 
-let registerMode = false;
+let currentUser=null;
+let profile=null;
+let registerMode=false;
+let currentTab="dashboard";
+let selectedCourse=null;
+let courses=[];
+let users=[];
 
-const $ = id => document.getElementById(id);
-const message = text => $("message").textContent = text;
+const $=id=>document.getElementById(id);
+const page=$("page");
 
-function showRegister(){
- registerMode = !registerMode;
- $("nameField").classList.toggle("hidden",!registerMode);
- $("formTitle").textContent = registerMode ? "Create Student Account" : "Student Login";
- $("formInfo").textContent = registerMode
-  ? "Register to request access to Mobile Tech Room."
-  : "Sign in to access your learning account.";
- $("mainButton").textContent = registerMode ? "Register Account" : "Login";
- $("resetButton").classList.toggle("hidden",registerMode);
- $("switchText").innerHTML = registerMode
-  ? 'Already registered? <a id="switchButton">Login here</a>'
-  : 'Don\'t have an account? <a id="switchButton">Register here</a>';
- $("switchButton").addEventListener("click",showRegister);
- message("");
+function safe(value){
+return String(value??"").replace(/[&<>"']/g,c=>({
+"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
 }
 
-$("switchButton").addEventListener("click",showRegister);
+function appMessage(text,type="success"){
+$("appMessage").innerHTML=`<p class="${type}">${safe(text)}</p>`;
+}
 
-$("mainButton").addEventListener("click",async()=>{
- const email = $("email").value.trim();
- const password = $("password").value;
- const name = $("fullName").value.trim();
+function isAdmin(){return profile?.role==="admin"&&profile?.status==="approved"}
+function isInstructor(){return profile?.role==="instructor"&&profile?.status==="approved"}
+function isStaff(){return isAdmin()||isInstructor()}
+function isStudent(){return profile?.role==="student"&&profile?.status==="approved"}
 
- if(!email || !password){
-  message("Please enter your email and password.");
-  return;
- }
- if(registerMode && !name){
-  message("Please enter your full name.");
-  return;
- }
- if(password.length < 6){
-  message("Password must contain at least 6 characters.");
-  return;
- }
+function authMessage(text){$("message").textContent=text}
 
- $("mainButton").disabled = true;
- message("Please wait...");
+function switchAuth(){
+registerMode=!registerMode;
+$("registerFields").classList.toggle("hidden",!registerMode);
+$("authTitle").textContent=registerMode?"Create Student Account":"Student Login";
+$("authDescription").textContent=registerMode?
+"Register to request access to Mobile Tech Room.":
+"Sign in to your learning account.";
+$("authButton").textContent=registerMode?"Register Account":"Login";
+$("forgotButton").classList.toggle("hidden",registerMode);
+$("switchText").innerHTML=registerMode?
+'Already registered? <a href="#" id="switchButton">Login here</a>':
+'No account? <a href="#" id="switchButton">Register here</a>';
+authMessage("");
+}
 
- try{
-  if(registerMode){
-   const result = await createUserWithEmailAndPassword(auth,email,password);
-   await updateProfile(result.user,{displayName:name});
+$("switchButton").onclick=e=>{e.preventDefault();switchAuth()};
 
-   await setDoc(doc(db,"users",result.user.uid),{
-    fullName:name,
-    email:email,
-    role:"student",
-    status:"pending",
-    createdAt:serverTimestamp()
-   });
+$("authButton").onclick=async()=>{
+const email=$("email").value.trim();
+const password=$("password").value;
+const name=$("registerName").value.trim();
 
-   message("Registration submitted. Your account is waiting for administrator approval.");
-  }else{
-   await signInWithEmailAndPassword(auth,email,password);
-  }
- }catch(error){
-  const errors = {
-   "auth/email-already-in-use":"This email is already registered.",
-   "auth/invalid-email":"Please enter a valid email address.",
-   "auth/weak-password":"Choose a stronger password.",
-   "auth/invalid-credential":"Incorrect email or password.",
-   "permission-denied":"Database permissions are not ready yet. Please contact the administrator."
-  };
-  message(errors[error.code] || error.message);
- }finally{
-  $("mainButton").disabled = false;
- }
+if(!email||!password){authMessage("Enter your email and password.");return}
+if(password.length<6){authMessage("Password must have at least 6 characters.");return}
+if(registerMode&&!name){authMessage("Enter your full name.");return}
+
+$("authButton").disabled=true;
+authMessage("Please wait...");
+
+try{
+if(registerMode){
+const result=await createUserWithEmailAndPassword(auth,email,password);
+await updateProfile(result.user,{displayName:name});
+await setDoc(doc(db,"users",result.user.uid),{
+fullName:name,email:email,role:"student",
+status:"pending",createdAt:serverTimestamp()
 });
+authMessage("Registration successful. Your account is waiting for approval.");
+}else{
+await signInWithEmailAndPassword(auth,email,password);
+}
+}catch(error){
+const errors={
+"auth/email-already-in-use":"This email is already registered.",
+"auth/invalid-email":"Invalid email address.",
+"auth/invalid-credential":"Incorrect email or password.",
+"permission-denied":"Firebase permissions need checking."
+};
+authMessage(errors[error.code]||error.message);
+}finally{$("authButton").disabled=false}
+};
 
-$("resetButton").addEventListener("click",async()=>{
- const email = $("email").value.trim();
- if(!email){message("Enter your email address first.");return;}
- try{
-  await sendPasswordResetEmail(auth,email);
-  message("Password reset email sent. Check your inbox.");
- }catch(error){message(error.message);}
-});
+$("forgotButton").onclick=async()=>{
+const email=$("email").value.trim();
+if(!email){authMessage("Enter your email address first.");return}
+try{
+await sendPasswordResetEmail(auth,email);
+authMessage("Password reset email sent. Check your inbox.");
+}catch(e){authMessage(e.message)}
+};
 
-$("logoutButton").addEventListener("click",()=>signOut(auth));
+$("logoutButton").onclick=()=>signOut(auth);
 
 onAuthStateChanged(auth,async user=>{
- if(!user){
-  $("authPanel").classList.remove("hidden");
-  $("statusPanel").classList.add("hidden");
-  return;
- }
+currentUser=user;
+if(!user){
+profile=null;
+$("authPanel").classList.remove("hidden");
+$("appPanel").classList.add("hidden");
+return;
+}
 
- $("authPanel").classList.add("hidden");
- $("statusPanel").classList.remove("hidden");
- $("welcomeText").textContent = "Checking your account status...";
+try{
+const snap=await getDoc(doc(db,"users",user.uid));
+if(!snap.exists()){
+await signOut(auth);
+authMessage("Account profile not found.");
+return;
+}
+profile=snap.data();
 
- try{
-  const snap = await getDoc(doc(db,"users",user.uid));
-  if(!snap.exists()){
-   $("welcomeText").textContent = "Your account profile could not be found. Please contact the administrator.";
-   return;
-  }
+if(profile.status==="blocked"){
+await signOut(auth);
+authMessage("Your account has been blocked. Contact the administrator.");
+return;
+}
 
-  const data = snap.data();
+$("authPanel").classList.add("hidden");
+$("appPanel").classList.remove("hidden");
+$("welcomeTitle").textContent="Welcome, "+(profile.fullName||user.email);
+$("accountInfo").textContent=
+(profile.role||"student").toUpperCase()+" · "+(profile.status||"pending").toUpperCase();
 
-  if(data.status === "approved"){
-   $("welcomeText").textContent = "Your account is approved. The learning centre will be available here as we build the next stage.";
-  }else if(data.status === "blocked"){
-   $("welcomeText").textContent = "Your account has been blocked. Please contact the administrator.";
-  }else{
-   $("welcomeText").textContent = "Your registration is awaiting administrator approval. Please check again later.";
-  }
- }catch(error){
-  $("welcomeText").textContent = "Could not check your account status. Database permissions may need configuration.";
- }
+if(profile.status!=="approved"){
+page.innerHTML=`<div class="panel">
+<h2>Account Pending Approval</h2>
+<p>Your registration is waiting for administrator approval.</p>
+<p class="muted">Please return later or contact the administrator.</p>
+</div>`;
+$("navigation").innerHTML="";
+return;
+}
+buildNavigation();
+await showTab("dashboard");
+}catch(e){
+page.innerHTML=`<div class="panel">Unable to load account: ${safe(e.message)}</div>`;
+}
+});
+
+function buildNavigation(){
+let tabs=[];
+if(isAdmin())tabs=["dashboard","students","courses","instructors"];
+else if(isInstructor())tabs=["dashboard","courses"];
+else if(isStudent())tabs=["dashboard","courses"];
+
+$("navigation").innerHTML=tabs.map(t=>
+`<button class="${currentTab===t?"active":"secondary"}" data-tab="${t}">${t[0].toUpperCase()+t.slice(1)}</button>`
+).join("");
+}
+
+$("navigation").onclick=e=>{
+const b=e.target.closest("[data-tab]");
+if(b)showTab(b.dataset.tab);
+};
+
+async function showTab(tab){
+currentTab=tab;
+buildNavigation();
+$("appMessage").innerHTML="";
+selectedCourse=null;
+
+if(tab==="dashboard")renderDashboard();
+if(tab==="courses")await renderCourses();
+if(tab==="students"&&isAdmin())await renderUsers("student");
+if(tab==="instructors"&&isAdmin())await renderUsers("instructor");
+}
+
+function renderDashboard(){
+page.innerHTML=`
+<div class="panel">
+<h2>Learning Dashboard</h2>
+<p>Welcome to Mobile Tech Room.</p>
+<p class="muted">Your mobile technology learning centre.</p>
+</div>
+<div class="panel">
+<h3>Your Account</h3>
+<p>Name: ${safe(profile.fullName)}</p>
+<p>Email: ${safe(profile.email)}</p>
+<p>Role: <span class="tag">${safe(profile.role)}</span></p>
+<p>Status: <span class="tag">${safe(profile.status)}</span></p>
+</div>
+${isAdmin()?`
+<div class="panel">
+<h3>Owner Control Centre</h3>
+<p>You have full administrative access.</p>
+<p class="muted">Use Students to approve learners and Instructors to manage teaching staff.</p>
+</div>`:""}
+${isInstructor()?`
+<div class="panel">
+<h3>Instructor Area</h3>
+<p>You can create courses and manage lessons.</p>
+</div>`:""}
+`;
+}
+
+async function loadCourses(){
+let q;
+if(isStaff()){
+q=collection(db,"courses");
+}else{
+q=query(collection(db,"courses"),where("status","==","published"));
+}
+const snap=await getDocs(q);
+courses=snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+async function renderCourses(){
+page.innerHTML="<div class='panel'>Loading courses...</div>";
+try{
+await loadCourses();
+let html=`<div class="panel"><h2>Courses</h2>
+<p class="muted">Explore mobile software and phone technician training.</p>`;
+
+if(isStaff()){
+html+=`
+<h3>Create New Course</h3>
+<form id="courseForm">
+<input id="courseTitle" placeholder="Course title" required>
+<input id="courseCategory" placeholder="Category (e.g. Android, iPhone, Flashing)" required>
+<textarea id="courseDescription" placeholder="Course description" required></textarea>
+<select id="courseAccess">
+<option value="free">Free Course</option>
+<option value="paid">Paid Course</option>
+</select>
+<input id="coursePrice" type="number" min="0" placeholder="Course price (optional)">
+<select id="courseStatus">
+<option value="draft">Save as Draft</option>
+<option value="published">Publish Course</option>
+</select>
+<button type="submit">Create Course</button>
+</form><hr>`;
+}
+html+="</div>";
+
+if(!courses.length){
+html+=`<div class="panel"><p>No courses available yet.</p></div>`;
+}
+
+for(const c of courses){
+html+=`
+<div class="card">
+<h3>${safe(c.title)}</h3>
+<span class="tag">${safe(c.category)}</span>
+<span class="tag">${safe(c.accessType||"free")}</span>
+<span class="tag">${safe(c.status||"draft")}</span>
+<p>${safe(c.description)}</p>
+${c.accessType==="paid"?`<p>Price: ${safe(c.price||0)}</p>`:""}
+<p class="muted">Course ID: ${safe(c.id)}</p>
+<div class="actions">
+<button data-action="open-course" data-id="${safe(c.id)}">Open Lessons</button>
+${isStaff()?`
+<button class="secondary" data-action="edit-course" data-id="${safe(c.id)}">Edit</button>
+<button class="danger" data-action="delete-course" data-id="${safe(c.id)}">Delete</button>`:""}
+</div>
+</div>`;
+}
+page.innerHTML=html;
+
+const form=$("courseForm");
+if(form)form.onsubmit=createCourse;
+}catch(e){
+page.innerHTML=`<div class="panel error">Could not load courses: ${safe(e.message)}</div>`;
+}
+}
+
+async function createCourse(e){
+e.preventDefault();
+try{
+await addDoc(collection(db,"courses"),{
+title:$("courseTitle").value.trim(),
+category:$("courseCategory").value.trim(),
+description:$("courseDescription").value.trim(),
+accessType:$("courseAccess").value,
+price:Number($("coursePrice").value||0),
+status:$("courseStatus").value,
+createdBy:currentUser.uid,
+createdAt:serverTimestamp()
+});
+appMessage("Course created successfully.");
+await renderCourses();
+}catch(e){appMessage("Could not create course: "+e.message,"error")}
+}
+
+async function openCourse(id){
+selectedCourse=courses.find(c=>c.id===id);
+if(!selectedCourse){appMessage("Course not found.","error");return}
+
+if(isStudent()){
+if(selectedCourse.accessType==="paid"){
+const enrollment=await getDoc(doc(db,"users",currentUser.uid,"enrollments",id));
+if(!enrollment.exists()||enrollment.data().status!=="active"){
+page.innerHTML=`<div class="panel">
+<h2>${safe(selectedCourse.title)}</h2>
+<p>This is a paid course. You do not currently have access.</p>
+<p class="muted">Contact the administrator to arrange payment and course access.</p>
+<button class="secondary" data-action="back-courses">Back to Courses</button>
+</div>`;
+return;
+}
+}
+}
+
+await renderLessons(id);
+}
+
+async function renderLessons(courseId){
+page.innerHTML="<div class='panel'>Loading lessons...</div>";
+try{
+const snap=await getDocs(collection(db,"courses",courseId,"lessons"));
+const lessons=snap.docs.map(d=>({id:d.id,...d.data()}));
+let html=`
+<div class="panel">
+<button class="secondary" data-action="back-courses">Back to Courses</button>
+<h2>${safe(selectedCourse.title)}</h2>
+<p>${safe(selectedCourse.description)}</p>
+</div>`;
+
+if(isStaff()){
+html+=`
+<div class="panel">
+<h3>Add New Lesson</h3>
+<form id="lessonForm">
+<input id="lessonTitle" placeholder="Lesson title" required>
+<select id="lessonType">
+<option value="written">Written Lesson</option>
+<option value="video">Video Link</option>
+<option value="audio">Audio Link</option>
+<option value="pdf">PDF Link</option>
+<option value="image">Image Link</option>
+</select>
+<textarea id="lessonContent" placeholder="Write lesson content or instructions"></textarea>
+<input id="lessonUrl" type="url" placeholder="Optional external media URL (https://...)">
+<button type="submit">Save Lesson</button>
+</form>
+</div>`;
+}
+
+if(!lessons.length)html+=`<div class="panel">No lessons have been added yet.</div>`;
+
+lessons.forEach((l,i)=>{
+html+=`
+<div class="card">
+<h3>${i+1}. ${safe(l.title)}</h3>
+<span class="tag">${safe(l.type||"written")}</span>
+<p>${safe(l.content||"")}</p>
+${l.mediaUrl?`<p><a href="${safe(l.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open learning material</a></p>`:""}
+${isStaff()?`
+<div class="actions">
+<button class="secondary" data-action="edit-lesson" data-id="${safe(l.id)}">Edit</button>
+<button class="danger" data-action="delete-lesson" data-id="${safe(l.id)}">Delete</button>
+</div>`:""}
+</div>`;
+});
+
+page.innerHTML=html;
+const form=$("lessonForm");
+if(form)form.onsubmit=async e=>{
+e.preventDefault();
+try{
+const url=$("lessonUrl").value.trim();
+if(url&&!/^https:\/\/.+/i.test(url)){
+appMessage("Please enter a valid HTTPS media link.","error");return;
+}
+await addDoc(collection(db,"courses",courseId,"lessons"),{
+title:$("lessonTitle").value.trim(),
+type:$("lessonType").value,
+content:$("lessonContent").value.trim(),
+mediaUrl:url,
+createdBy:currentUser.uid,
+createdAt:serverTimestamp()
+});
+appMessage("Lesson saved successfully.");
+await renderLessons(courseId);
+}catch(e){appMessage("Could not save lesson: "+e.message,"error")}
+};
+}catch(e){
+page.innerHTML=`<div class="panel error">Could not load lessons: ${safe(e.message)}</div>`;
+}
+}
+
+async function editCourse(id){
+const c=courses.find(x=>x.id===id);
+if(!c)return;
+const title=prompt("Course title:",c.title);
+if(title===null)return;
+const description=prompt("Course description:",c.description||"");
+if(description===null)return;
+try{
+await updateDoc(doc(db,"courses",id),{
+title:title.trim(),description:description.trim()
+});
+appMessage("Course updated.");
+await renderCourses();
+}catch(e){appMessage(e.message,"error")}
+}
+
+async function deleteCourse(id){
+if(!confirm("Delete this course and its lessons?"))return;
+try{
+const lessons=await getDocs(collection(db,"courses",id,"lessons"));
+for(const l of lessons.docs){
+await deleteDoc(doc(db,"courses",id,"lessons",l.id));
+}
+await deleteDoc(doc(db,"courses",id));
+appMessage("Course deleted.");
+await renderCourses();
+}catch(e){appMessage("Could not delete course: "+e.message,"error")}
+}
+
+async function editLesson(id){
+const courseId=selectedCourse.id;
+const ref=doc(db,"courses",courseId,"lessons",id);
+const snap=await getDoc(ref);
+if(!snap.exists())return;
+const l=snap.data();
+const title=prompt("Lesson title:",l.title);
+if(title===null)return;
+const content=prompt("Lesson content:",l.content||"");
+if(content===null)return;
+try{
+await updateDoc(ref,{title:title.trim(),content:content.trim()});
+appMessage("Lesson updated.");
+await renderLessons(courseId);
+}catch(e){appMessage(e.message,"error")}
+}
+
+async function deleteLesson(id){
+if(!confirm("Delete this lesson?"))return;
+try{
+await deleteDoc(doc(db,"courses",selectedCourse.id,"lessons",id));
+appMessage("Lesson deleted.");
+await renderLessons(selectedCourse.id);
+}catch(e){appMessage(e.message,"error")}
+}
+
+async function renderUsers(role){
+page.innerHTML="<div class='panel'>Loading accounts...</div>";
+try{
+const snap=await getDocs(collection(db,"users"));
+users=snap.docs.map(d=>({id:d.id,...d.data()}))
+.filter(u=>u.role===role);
+let html=`<div class="panel">
+<h2>${role==="student"?"Student Management":"Instructor Management"}</h2>
+<p class="muted">Manage account permissions and access.</p>
+</div>`;
+
+if(!users.length)html+=`<div class="panel">No ${role} accounts found.</div>`;
+
+users.forEach(u=>{
+html+=`
+<div class="card">
+<h3>${safe(u.fullName||"Unnamed account")}</h3>
+<p>${safe(u.email)}</p>
+<span class="tag">${safe(u.role)}</span>
+<span class="tag">${safe(u.status)}</span>
+<div class="actions">
+${role==="student"&&u.status!=="approved"?
+`<button data-action="approve-user" data-id="${safe(u.id)}">Approve</button>`:""}
+${u.status!=="blocked"?
+`<button class="danger" data-action="block-user" data-id="${safe(u.id)}">Block</button>`:
+`<button data-action="unblock-user" data-id="${safe(u.id)}">Restore</button>`}
+${role==="student"&&u.status==="approved"?
+`<button class="secondary" data-action="promote-user" data-id="${safe(u.id)}">Make Instructor</button>`:""}
+${role==="instructor"?
+`<button class="secondary" data-action="demote-user" data-id="${safe(u.id)}">Return to Student</button>`:""}
+</div>
+</div>`;
+});
+page.innerHTML=html;
+}catch(e){
+page.innerHTML=`<div class="panel error">Could not load accounts: ${safe(e.message)}</div>`;
+}
+}
+
+async function changeUser(id,changes,success){
+try{
+await updateDoc(doc(db,"users",id),changes);
+appMessage(success);
+await renderUsers(currentTab==="students"?"student":"instructor");
+}catch(e){appMessage("Could not update account: "+e.message,"error")}
+}
+
+document.addEventListener("click",async e=>{
+const b=e.target.closest("[data-action]");
+if(!b)return;
+const action=b.dataset.action;
+const id=b.dataset.id;
+
+try{
+if(action==="open-course")await openCourse(id);
+if(action==="back-courses")await renderCourses();
+if(action==="edit-course")await editCourse(id);
+if(action==="delete-course")await deleteCourse(id);
+if(action==="edit-lesson")await editLesson(id);
+if(action==="delete-lesson")await deleteLesson(id);
+
+if(action==="approve-user"&&isAdmin())
+await changeUser(id,{status:"approved"},"Student approved.");
+
+if(action==="block-user"&&isAdmin()){
+if(confirm("Block this account?"))
+await changeUser(id,{status:"blocked"},"Account blocked.");
+}
+
+if(action==="unblock-user"&&isAdmin())
+await changeUser(id,{status:"approved"},"Account restored.");
+
+if(action==="promote-user"&&isAdmin()){
+if(confirm("Give this account instructor permissions?"))
+await changeUser(id,{role:"instructor",status:"approved"},"Instructor permissions granted.");
+}
+
+if(action==="demote-user"&&isAdmin()){
+if(confirm("Remove instructor permissions?"))
+await changeUser(id,{role:"student",status:"approved"},"Instructor permissions removed.");
+}
+}catch(error){appMessage(error.message,"error")}
 });
 </script>
 </body>
