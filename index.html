@@ -459,7 +459,7 @@ html+=`
 <span class="tag">${safe(l.type||"written")}</span>
 <p>${safe(l.content||"")}</p>
 ${l.mediaUrl?`<p><a href="${safe(l.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open learning material</a></p>`:""}
-${isStaff()?`
+${isAdmin()?`
 <div class="actions">
 <button class="secondary" data-action="edit-lesson" data-id="${safe(l.id)}">Edit</button>
 <button class="danger" data-action="delete-lesson" data-id="${safe(l.id)}">Delete</button>
@@ -523,6 +523,10 @@ await renderCourses();
 }
 
 async function editLesson(id){
+if(!isAdmin()){
+appMessage("Only the administrator can edit lessons.","error");
+return;
+}
 const courseId=selectedCourse.id;
 const ref=doc(db,"courses",courseId,"lessons",id);
 const snap=await getDoc(ref);
@@ -540,6 +544,10 @@ await renderLessons(courseId);
 }
 
 async function deleteLesson(id){
+if(!isAdmin()){
+appMessage("Only the administrator can delete lessons.","error");
+return;
+}
 if(!confirm("Delete this lesson?"))return;
 try{
 await deleteDoc(doc(db,"courses",selectedCourse.id,"lessons",id));
@@ -674,8 +682,8 @@ if(action==="open-course")await openCourse(id);
 if(action==="back-courses")await renderCourses();
 if(action==="edit-course")await editCourse(id);
 if(action==="delete-course")await deleteCourse(id);
-if(action==="edit-lesson")await editLesson(id);
-if(action==="delete-lesson")await deleteLesson(id);
+if(action==="edit-lesson"&&isAdmin())await editLesson(id);
+if(action==="delete-lesson"&&isAdmin())await deleteLesson(id);
 
 if(action==="approve-user"&&isAdmin())
 await changeUser(id,{status:"approved"},"Student approved.");
