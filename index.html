@@ -17,8 +17,16 @@ h2,h3{margin-top:0}
 input,textarea,select{width:100%;padding:12px;margin:7px 0;background:#101c32;color:white;border:1px solid #405675;border-radius:8px;font-size:15px}
 textarea{min-height:100px;resize:vertical}
 .editor-toolbar{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:10px 0}
-.editor-toolbar select,.editor-toolbar input{width:auto;margin:0;min-width:110px}
+.editor-toolbar select,.editor-toolbar input{width:auto;margin:0;min-width:105px;max-width:100%}
 .editor-toolbar input[type=color]{width:48px;height:42px;padding:4px}
+.editor-toolbar label{font-size:12px}
+.lesson-editor [style*="font-family"]{font-family:inherit}
+.lesson-body{background:#fff;color:#202938;border-radius:10px;padding:16px;margin-top:12px}
+.lesson-body h1{font-size:30px;color:#075985;border-bottom:3px solid #45d6c5;padding-bottom:8px}
+.lesson-body h2{font-size:24px;color:#0e7490}
+.lesson-body h3{font-size:19px;color:#7c3aed}
+.lesson-body ul,.lesson-body ol{padding-left:26px}
+@media print{body{background:#fff;color:#111}}
 .lesson-editor{min-height:180px;padding:14px;background:#fff;color:#202938;border:2px solid #45d6c5;border-radius:9px;outline:none;line-height:1.65;overflow-wrap:anywhere}
 .lesson-editor:empty:before{content:attr(data-placeholder);color:#778399}
 .lesson-editor h1,.lesson-editor h2,.lesson-editor h3{margin:12px 0;color:#176b9a}
@@ -131,10 +139,23 @@ return String(value??"").replace(/[&<>"']/g,c=>({
 
 function formatLessonContent(value){
   const raw=String(value||"");
-  // Preserve older plain-text lessons while safely rendering editor formatting.
-  if(!/[<](p|div|h1|h2|h3|strong|b|em|i|u|blockquote|ul|ol|li|span)(\s|>)/i.test(raw)) return safe(raw).replace(/\n/g,"<br>");
+  if(!/[<](p|div|h1|h2|h3|strong|b|em|i|u|blockquote|ul|ol|li|span|font)(\s|>)/i.test(raw)) return safe(raw).replace(/\n/g,"<br>");
   const doc=new DOMParser().parseFromString(raw,"text/html");
   const allowed=new Set(["P","DIV","H1","H2","H3","STRONG","B","EM","I","U","BLOCKQUOTE","UL","OL","LI","BR","SPAN"]);
+  const safeStyle=(el)=>{
+    const styles=[];
+    const color=el.style?.color||"";
+    const bg=el.style?.backgroundColor||"";
+    const family=el.style?.fontFamily||"";
+    const size=el.style?.fontSize||"";
+    const align=el.style?.textAlign||"";
+    if(/^(#[0-9a-f]{3,8}|rgb\([\d\s,%.]+\)|[a-z]{3,20})$/i.test(color))styles.push(`color:${color}`);
+    if(/^(#[0-9a-f]{3,8}|rgb\([\d\s,%.]+\)|[a-z]{3,20})$/i.test(bg))styles.push(`background-color:${bg}`);
+    if(/^[a-z ,'-]{2,60}$/i.test(family))styles.push(`font-family:${family}`);
+    if(/^([1-7]\d|[1-5]\d|6\d)px$/.test(size))styles.push(`font-size:${size}`);
+    if(["left","right","center","justify"].includes(align))styles.push(`text-align:${align}`);
+    return styles.length?` style="${safe(styles.join(";"))}"`:"";
+  };
   function clean(node){
     let out="";
     for(const child of node.childNodes){
@@ -142,19 +163,41 @@ function formatLessonContent(value){
       if(child.nodeType!==Node.ELEMENT_NODE)continue;
       const tag=child.tagName;
       if(tag==="FONT"){
+        const styles=[];
         const color=child.getAttribute("color")||"";
-        const style=/^#[0-9a-f]{6}$/i.test(color)?` style="color:${color}"`:"";
-        out+=`<span${style}>${clean(child)}</span>`;
+        const face=child.getAttribute("face")||"";
+        const sizes={"1":"12px","2":"14px","3":"16px","4":"18px","5":"24px","6":"32px","7":"40px"};
+        if(/^#[0-9a-f]{3,8}$/i.test(color))styles.push(`color:${color}`);
+        if(/^[a-z ,'-]{2,60}$/i.test(face))styles.push(`font-family:${face}`);
+        if(sizes[child.getAttribute("size")])styles.push(`font-size:${sizes[child.getAttribute("size")]}`);
+        out+=`<span${styles.length?` style="${safe(styles.join(";"))}"`:""}>${clean(child)}</span>`;
         continue;
       }
       if(!allowed.has(tag)){out+=clean(child);continue;}
-      let attrs="";
-      if(tag==="SPAN" && /^#[0-9a-f]{6}$/i.test(child.style.color||"")) attrs=` style="color:${child.style.color}"`;
-      out+=`<${tag.toLowerCase()}${attrs}>${clean(child)}</${tag.toLowerCase()}>`;
+      out+=`<${tag.toLowerCase()}${safeStyle(child)}>${clean(child)}</${tag.toLowerCase()}>`;
     }
     return out;
   }
   return clean(doc.body);
+}
+
+function downloadLessonPdf(button){
+  const card=button.closest(".card");
+  if(!card)return;
+  const title=card.querySelector("h3")?.textContent||"Lesson";
+  const content=card.querySelector(".lesson-body")?.innerHTML||"";
+  const printWindow=window.open("","_blank");
+  if(!printWindow){appMessage("Allow pop-ups in your browser to create the PDF.","error");return;}
+  printWindow.document.open();
+  printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${safe(title)}</title><style>
+  body{font-family:Arial,sans-serif;color:#202938;line-height:1.7;margin:32px;}
+  h1{font-size:30px;color:#075985;border-bottom:3px solid #0e9f8f;padding-bottom:10px;}
+  h2{font-size:24px;color:#0e7490;}h3{font-size:19px;color:#7c3aed;}
+  blockquote{border-left:4px solid #0e9f8f;padding:8px 14px;background:#f0fdfa;margin:12px 0;}
+  img{max-width:100%;}pre{white-space:pre-wrap;}
+  @page{size:auto;margin:18mm}
+  </style></head><body><h1>${safe(title.replace(/^\d+\.\s*/,""))}</h1><article>${content}</article><script>window.onload=()=>{window.focus();window.print();};<\/script></body></html>`);
+  printWindow.document.close();
 }
 
 function appMessage(text,type="success"){
@@ -481,16 +524,14 @@ html+=`
 </select>
 <label for="lessonStyle" class="muted">Choose text style</label>
 <div class="editor-toolbar">
-<select id="lessonStyle" aria-label="Text style">
-<option value="P">Normal text</option><option value="H1">Heading 1</option>
-<option value="H2">Heading 2</option><option value="H3">Heading 3</option>
-<option value="BLOCKQUOTE">Quote</option>
-</select>
-<button type="button" class="secondary" data-editor="bold"><b>B</b></button>
-<button type="button" class="secondary" data-editor="italic"><i>I</i></button>
-<button type="button" class="secondary" data-editor="underline"><u>U</u></button>
-<label class="muted" for="lessonTextColor">Text color</label>
-<input id="lessonTextColor" type="color" value="#202938" aria-label="Text color">
+<select id="lessonStyle" aria-label="Paragraph style"><option value="P">Normal paragraph</option><option value="H1">Title heading</option><option value="H2">Section heading</option><option value="H3">Small heading</option><option value="BLOCKQUOTE">Quote box</option></select>
+<select id="lessonFont" aria-label="Font family"><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option><option value="Verdana">Verdana</option><option value="Trebuchet MS">Trebuchet MS</option><option value="Courier New">Courier New</option><option value="Impact">Impact</option></select>
+<select id="lessonSize" aria-label="Font size"><option value="2">Small</option><option value="3" selected>Normal</option><option value="4">Large</option><option value="5">Extra large</option><option value="6">Huge</option></select>
+<button type="button" class="secondary" data-editor="bold"><b>B</b></button><button type="button" class="secondary" data-editor="italic"><i>I</i></button><button type="button" class="secondary" data-editor="underline"><u>U</u></button>
+<button type="button" class="secondary" data-editor="insertUnorderedList">• List</button>
+<button type="button" class="secondary" data-editor="justifyLeft">Left</button><button type="button" class="secondary" data-editor="justifyCenter">Center</button><button type="button" class="secondary" data-editor="justifyRight">Right</button>
+<label class="muted" for="lessonTextColor">Text</label><input id="lessonTextColor" type="color" value="#202938" aria-label="Text color">
+<label class="muted" for="lessonHighlight">Highlight</label><input id="lessonHighlight" type="color" value="#fff2a8" aria-label="Highlight color">
 </div>
 <div id="lessonContent" class="lesson-editor" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Write your lesson here..."></div>
 <input id="lessonUrl" type="url" placeholder="Optional external media URL (https://...)">
@@ -507,6 +548,7 @@ html+=`
 <h3>${i+1}. ${safe(l.title)}</h3>
 <span class="tag">${safe(l.type||"written")}</span>
 <div class="lesson-body">${formatLessonContent(l.content||"")}</div>
+${(l.type||"written")==="written"?`<button type="button" class="secondary" data-action="download-lesson-pdf"><span>⬇ Download PDF</span></button>`:""}
 ${l.mediaUrl?`<p><a href="${safe(l.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open learning material</a></p>`:""}
 ${isAdmin()?`
 <div class="actions">
@@ -522,8 +564,11 @@ const styleSelect=$("lessonStyle");
 const textColor=$("lessonTextColor");
 if(editor){
   styleSelect.onchange=()=>{editor.focus();document.execCommand("formatBlock",false,styleSelect.value);};
+  $("lessonFont").onchange=()=>{editor.focus();document.execCommand("fontName",false,$("lessonFont").value);};
+  $("lessonSize").onchange=()=>{editor.focus();document.execCommand("fontSize",false,$("lessonSize").value);};
   document.querySelectorAll("[data-editor]").forEach(btn=>btn.onclick=()=>{editor.focus();document.execCommand(btn.dataset.editor,false,null);});
   textColor.oninput=()=>{editor.focus();document.execCommand("foreColor",false,textColor.value);};
+  $("lessonHighlight").oninput=()=>{editor.focus();document.execCommand("hiliteColor",false,$("lessonHighlight").value);};
 }
 const form=$("lessonForm");
 if(form)form.onsubmit=async e=>{
@@ -739,6 +784,7 @@ const action=b.dataset.action;
 const id=b.dataset.id;
 
 try{
+if(action==="download-lesson-pdf"){downloadLessonPdf(b);return;}
 if(action==="open-course")await openCourse(id);
     if(action==="manage-enrollments"&&isAdmin())await manageStudentEnrollments(id);
     if(action==="back-students"&&isAdmin())await renderUsers("student");
