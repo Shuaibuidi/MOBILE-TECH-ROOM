@@ -575,7 +575,8 @@ ${u.status!=="blocked"?
 `<button class="danger" data-action="block-user" data-id="${safe(u.id)}">Block</button>`:
 `<button data-action="unblock-user" data-id="${safe(u.id)}">Restore</button>`}
 ${role==="student"&&u.status==="approved"?
-`<button class="secondary" data-action="promote-user" data-id="${safe(u.id)}">Make Instructor</button>`:""}
+`<button class="secondary" data-action="manage-enrollments" data-id="${safe(u.id)}">Manage Course Access</button>
+<button class="secondary" data-action="promote-user" data-id="${safe(u.id)}">Make Instructor</button>`:""}
 ${role==="instructor"?
 `<button class="secondary" data-action="demote-user" data-id="${safe(u.id)}">Return to Student</button>`:""}
 </div>
@@ -585,6 +586,69 @@ page.innerHTML=html;
 }catch(e){
 page.innerHTML=`<div class="panel error">Could not load accounts: ${safe(e.message)}</div>`;
 }
+}
+
+async function manageStudentEnrollments(studentId){
+  if(!isAdmin())return;
+  const student=users.find(u=>u.id===studentId);
+  if(!student){appMessage("Student account not found.","error");return;}
+  page.innerHTML="<div class='panel'>Loading paid course access...</div>";
+  try{
+    const courseSnap=await getDocs(collection(db,"courses"));
+    const paidCourses=courseSnap.docs.map(d=>({id:d.id,...d.data()}))
+      .filter(c=>c.accessType==="paid"&&c.status==="published");
+    const enrollmentSnap=await getDocs(collection(db,"users",studentId,"enrollments"));
+    const enrollmentMap=new Map(enrollmentSnap.docs.map(d=>[d.id,d.data()]));
+    let html=`<div class="panel">
+      <button class="secondary" data-action="back-students">Back to Students</button>
+      <h2>Paid Course Access</h2>
+      <p><strong>${safe(student.fullName||"Student")}</strong></p>
+      <p class="muted">${safe(student.email||"")}</p>
+      <p class="muted">Grant or revoke access to published paid courses.</p>
+    </div>`;
+    if(!paidCourses.length)html+=`<div class="panel">There are no published paid courses.</div>`;
+    for(const course of paidCourses){
+      const active=enrollmentMap.get(course.id)?.status==="active";
+      html+=`<div class="card">
+        <h3>${safe(course.title)}</h3>
+        <p>Price: ${safe(course.price??0)}</p>
+        <span class="tag">${active?"Access active":"No active access"}</span>
+        <div class="actions">${active
+          ? `<button class="danger" data-action="revoke-enrollment" data-student="${safe(studentId)}" data-course="${safe(course.id)}">Revoke Access</button>`
+          : `<button data-action="grant-enrollment" data-student="${safe(studentId)}" data-course="${safe(course.id)}">Grant Access</button>`}
+        </div>
+      </div>`;
+    }
+    page.innerHTML=html;
+  }catch(e){page.innerHTML=`<div class="panel error">Could not load course access: ${safe(e.message)}</div>`;}
+}
+
+async function grantEnrollment(studentId,courseId){
+  if(!isAdmin())return;
+  if(!confirm("Grant this student access to the selected paid course?"))return;
+  try{
+    const courseSnap=await getDoc(doc(db,"courses",courseId));
+    if(!courseSnap.exists())throw new Error("Course not found.");
+    const course=courseSnap.data();
+    if(course.accessType!=="paid"||course.status!=="published")
+      throw new Error("Only published paid courses can be enrolled.");
+    await setDoc(doc(db,"users",studentId,"enrollments",courseId),{
+      status:"active",courseId:courseId,courseTitle:course.title||"",
+      grantedBy:currentUser.uid,grantedAt:serverTimestamp()
+    });
+    appMessage("Paid course access granted.");
+    await manageStudentEnrollments(studentId);
+  }catch(e){appMessage("Could not grant access: "+e.message,"error");}
+}
+
+async function revokeEnrollment(studentId,courseId){
+  if(!isAdmin())return;
+  if(!confirm("Revoke this student's access to the course?"))return;
+  try{
+    await deleteDoc(doc(db,"users",studentId,"enrollments",courseId));
+    appMessage("Course access revoked.");
+    await manageStudentEnrollments(studentId);
+  }catch(e){appMessage("Could not revoke access: "+e.message,"error");}
 }
 
 async function changeUser(id,changes,success){
@@ -603,6 +667,10 @@ const id=b.dataset.id;
 
 try{
 if(action==="open-course")await openCourse(id);
+    if(action==="manage-enrollments"&&isAdmin())await manageStudentEnrollments(id);
+    if(action==="back-students"&&isAdmin())await renderUsers("student");
+    if(action==="grant-enrollment"&&isAdmin())await grantEnrollment(b.dataset.student,b.dataset.course);
+    if(action==="revoke-enrollment"&&isAdmin())await revokeEnrollment(b.dataset.student,b.dataset.course);
 if(action==="back-courses")await renderCourses();
 if(action==="edit-course")await editCourse(id);
 if(action==="delete-course")await deleteCourse(id);
