@@ -109,6 +109,7 @@ hr{border:0;border-top:1px solid #405675;margin:15px 0}
 import {initializeApp} from
 "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 
+
 import {
 getAuth,createUserWithEmailAndPassword,
 signInWithEmailAndPassword,sendPasswordResetEmail,
@@ -196,36 +197,12 @@ function formatLessonContent(value){
   return clean(doc.body);
 }
 
-function downloadLessonPdf(button){
+async function downloadLessonPdf(button){
   const card=button.closest(".card");
   if(!card)return;
   const title=card.querySelector("h3")?.textContent||"Lesson";
   const content=card.querySelector(".lesson-body")?.innerHTML||"";
   const cleanTitle=title.replace(/^\d+\.\s*/,"");
-
-  // Keep the PDF preview inside the app instead of opening a new browser tab.
-  document.getElementById("lessonPdfPreview")?.remove();
-  const overlay=document.createElement("div");
-  overlay.id="lessonPdfPreview";
-  overlay.style.cssText="position:fixed;inset:0;z-index:99999;background:#172b45;display:flex;flex-direction:column;padding:10px;gap:10px";
-
-  const toolbar=document.createElement("div");
-  toolbar.style.cssText="display:flex;gap:10px;justify-content:center;flex-wrap:wrap";
-  const printButton=document.createElement("button");
-  printButton.type="button";
-  printButton.textContent="⬇ Save / Print PDF";
-  printButton.style.cssText="border:0;border-radius:8px;padding:12px 18px;background:#087f78;color:white;font-size:15px;font-weight:700";
-  const closeButton=document.createElement("button");
-  closeButton.type="button";
-  closeButton.textContent="Close";
-  closeButton.style.cssText="border:0;border-radius:8px;padding:12px 18px;background:#536579;color:white;font-size:15px;font-weight:700";
-  toolbar.append(printButton,closeButton);
-
-  const frame=document.createElement("iframe");
-  frame.title="Lesson PDF preview";
-  frame.style.cssText="width:100%;flex:1;min-height:0;border:0;border-radius:8px;background:#fff";
-  overlay.append(toolbar,frame);
-  document.body.appendChild(overlay);
 
   const printHtml=`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -246,10 +223,45 @@ article img{max-width:100%;height:auto}article table{width:100%;border-collapse:
 @media print{html,body{background:#fff!important;padding:0!important;margin:0!important}.sheet{max-width:none;min-height:0;margin:0;padding:0;box-shadow:none}.brand,*{-webkit-print-color-adjust:exact;print-color-adjust:exact}h1,h2,h3,blockquote{break-after:avoid}p,li,table,img,blockquote{break-inside:avoid}}
 </style></head><body><main class="sheet"><header class="brand"><div class="brand-name">MOBILE TECH ROOM</div><div class="brand-tag">LEARN • REPAIR • INNOVATE</div></header>
 <p class="kicker">MOBILE TECH LESSON</p><h1>${safe(cleanTitle)}</h1><article>${content}</article></main></body></html>`;
+
+  // Capacitor Android: use the native Android Print Framework, not window.print().
+  if(window.location.hostname==="localhost" || window.location.protocol==="capacitor:" || window.Capacitor?.isNativePlatform?.()){
+    try{
+      const { Printer } = await import("@capgo/capacitor-printer");
+      await Printer.printHtml({html:printHtml});
+      appMessage("Android print screen opened. Choose ‘Save as PDF’ to save this lesson.","success");
+    }catch(error){
+      console.error("Native lesson PDF printing failed:",error);
+      appMessage("Could not open Android PDF printing. Please try again.","error");
+    }
+    return;
+  }
+
+  // Website fallback: show the print-ready lesson in an in-app preview.
+  document.getElementById("lessonPdfPreview")?.remove();
+  const overlay=document.createElement("div");
+  overlay.id="lessonPdfPreview";
+  overlay.style.cssText="position:fixed;inset:0;z-index:99999;background:#172b45;display:flex;flex-direction:column;padding:10px;gap:10px";
+  const toolbar=document.createElement("div");
+  toolbar.style.cssText="display:flex;gap:10px;justify-content:center;flex-wrap:wrap";
+  const printButton=document.createElement("button");
+  printButton.type="button";
+  printButton.textContent="⬇ Save / Print PDF";
+  printButton.style.cssText="border:0;border-radius:8px;padding:12px 18px;background:#087f78;color:white;font-size:15px;font-weight:700";
+  const closeButton=document.createElement("button");
+  closeButton.type="button";
+  closeButton.textContent="Close";
+  closeButton.style.cssText="border:0;border-radius:8px;padding:12px 18px;background:#536579;color:white;font-size:15px;font-weight:700";
+  toolbar.append(printButton,closeButton);
+  const frame=document.createElement("iframe");
+  frame.title="Lesson PDF preview";
+  frame.style.cssText="width:100%;flex:1;min-height:0;border:0;border-radius:8px;background:#fff";
+  overlay.append(toolbar,frame);
+  document.body.appendChild(overlay);
   frame.srcdoc=printHtml;
   printButton.addEventListener("click",()=>{
     try{frame.contentWindow.focus();frame.contentWindow.print();}
-    catch(error){appMessage("Could not open PDF printing. Try opening the app in Chrome and allow printing.","error");}
+    catch(error){appMessage("Could not open PDF printing. Please use Chrome to print this lesson.","error");}
   });
   closeButton.addEventListener("click",()=>overlay.remove());
 }
