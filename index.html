@@ -363,7 +363,7 @@ ${c.accessType==="paid"?`<p>Price: ${safe(c.price||0)}</p>`:""}
 <p class="muted">Course ID: ${safe(c.id)}</p>
 <div class="actions">
 <button data-action="open-course" data-id="${safe(c.id)}">Open Lessons</button>
-${isStaff()?`
+${isAdmin()?`
 <button class="secondary" data-action="edit-course" data-id="${safe(c.id)}">Edit</button>
 <button class="danger" data-action="delete-course" data-id="${safe(c.id)}">Delete</button>`:""}
 </div>
@@ -494,6 +494,10 @@ page.innerHTML=`<div class="panel error">Could not load lessons: ${safe(e.messag
 }
 
 async function editCourse(id){
+if(!isAdmin()){
+appMessage("Only the administrator can edit courses.","error");
+return;
+}
 const c=courses.find(x=>x.id===id);
 if(!c)return;
 const title=prompt("Course title:",c.title);
@@ -510,6 +514,10 @@ await renderCourses();
 }
 
 async function deleteCourse(id){
+if(!isAdmin()){
+appMessage("Only the administrator can delete courses.","error");
+return;
+}
 if(!confirm("Delete this course and its lessons?"))return;
 try{
 const lessons=await getDocs(collection(db,"courses",id,"lessons"));
@@ -680,8 +688,8 @@ if(action==="open-course")await openCourse(id);
     if(action==="grant-enrollment"&&isAdmin())await grantEnrollment(b.dataset.student,b.dataset.course);
     if(action==="revoke-enrollment"&&isAdmin())await revokeEnrollment(b.dataset.student,b.dataset.course);
 if(action==="back-courses")await renderCourses();
-if(action==="edit-course")await editCourse(id);
-if(action==="delete-course")await deleteCourse(id);
+if(action==="edit-course"&&isAdmin())await editCourse(id);
+if(action==="delete-course"&&isAdmin())await deleteCourse(id);
 if(action==="edit-lesson"&&isAdmin())await editLesson(id);
 if(action==="delete-lesson"&&isAdmin())await deleteLesson(id);
 
