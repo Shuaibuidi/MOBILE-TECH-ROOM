@@ -87,8 +87,8 @@ Deno.serve(async (req) => {
       return reply({ error: "A file and course ID are required." }, 400);
     }
 
-    if (file.size <= 0 || file.size > 25 * 1024 * 1024) {
-      return reply({ error: "File must be smaller than 25 MB." }, 400);
+    if (file.size <= 0 || file.size > 50 * 1024 * 1024) {
+      return reply({ error: "File must be 50 MB or smaller." }, 400);
     }
 
     // Audio formats are accepted for MP3, WAV, M4A, OGG, WebM and AAC lessons.
