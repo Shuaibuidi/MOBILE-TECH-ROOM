@@ -281,33 +281,6 @@ article img{max-width:100%;height:auto}article table{width:100%;border-collapse:
 @media print{html,body{background:#fff!important;padding:0!important;margin:0!important}.sheet{max-width:none;min-height:0;margin:0;padding:0;box-shadow:none}.brand,*{-webkit-print-color-adjust:exact;print-color-adjust:exact}h1,h2,h3,blockquote{break-after:avoid}p,li,table,img,blockquote{break-inside:avoid}}
 </style></head><body><main class="sheet"><header class="brand"><div class="brand-name">MOBILE TECH ROOM</div><div class="brand-tag">LEARN • REPAIR • INNOVATE</div></header>
 <p class="kicker">MOBILE TECH LESSON</p><h1>${safe(cleanTitle)}</h1><article>${content}</article></main>
-<script>
-/* Accent every all-capital word in visible app text, including dynamically rendered pages. */
-(()=>{
- const skip='SCRIPT,STYLE,TEXTAREA,INPUT,SELECT,OPTION,[contenteditable="true"],.lesson-editor';
- const accent=(root)=>{
-  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
-  const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
-  for(const node of nodes){
-   if(!node.nodeValue||!/[A-Z]{2,}/.test(node.nodeValue))continue;
-   const parent=node.parentElement;if(!parent||parent.closest(skip)||parent.classList.contains('uppercase-accent'))continue;
-   const parts=node.nodeValue.split(/([A-Z][A-Z0-9&-]{1,})/g);
-   if(parts.length<2)continue;
-   const frag=document.createDocumentFragment();
-   for(const part of parts){
-    if(/^[A-Z][A-Z0-9&-]{1,}$/.test(part)){
-     const span=document.createElement('span');span.className='uppercase-accent';span.textContent=part;frag.appendChild(span);
-    }else frag.appendChild(document.createTextNode(part));
-   }
-   node.parentNode.replaceChild(frag,node);
-  }
- };
- const run=()=>accent(document.body);
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
- new MutationObserver(()=>run()).observe(document.body,{childList:true,subtree:true});
-})();
-</script>
-
 </body></html>`;
 
   // Capacitor Android: use the native Android Print Framework, not window.print().
@@ -1164,6 +1137,34 @@ await changeUser(id,{role:"student",status:"approved"},"Instructor permissions r
 }
 }catch(error){appMessage(error.message,"error")}
 });
+
+/* Accent all-capital labels throughout the live app without changing form values. */
+(()=>{
+ const skip='SCRIPT,STYLE,TEXTAREA,INPUT,SELECT,OPTION,[contenteditable="true"]';
+ const accent=(root)=>{
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+  const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+  for(const node of nodes){
+   if(!node.nodeValue||!/[A-Z]{2,}/.test(node.nodeValue))continue;
+   const parent=node.parentElement;
+   if(!parent||parent.closest(skip)||parent.classList.contains('uppercase-accent'))continue;
+   const parts=node.nodeValue.split(/([A-Z][A-Z0-9&-]{1,})/g);
+   if(parts.length<2)continue;
+   const frag=document.createDocumentFragment();
+   for(const part of parts){
+    if(/^[A-Z][A-Z0-9&-]{1,}$/.test(part)){
+     const span=document.createElement('span');
+     span.className='uppercase-accent';span.textContent=part;frag.appendChild(span);
+    }else frag.appendChild(document.createTextNode(part));
+   }
+   node.parentNode.replaceChild(frag,node);
+  }
+ };
+ const run=()=>accent(document.body);
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
+ new MutationObserver(()=>run()).observe(document.body,{childList:true,subtree:true});
+})();
+
 </script>
 </body>
 </html>
