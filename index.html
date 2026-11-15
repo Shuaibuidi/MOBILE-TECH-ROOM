@@ -1053,7 +1053,7 @@ async function manageStudentEnrollments(studentId){
       </div>`;
     }
     page.innerHTML=html;
-  }catch(e){page.innerHTML=`<div class="panel error">Could not load lesson access: ${safe(e.message)}</div>`;}
+  }catch(e){page.innerHTML=`<div class="panel error">Could not load course access: ${safe(e.message)}</div>`;}
 }
 
 async function grantEnrollment(studentId,courseId){
@@ -1061,7 +1061,7 @@ async function grantEnrollment(studentId,courseId){
   if(!confirm("Grant this student full access to every lesson in the selected paid course?"))return;
   try{
     const courseSnap=await getDoc(doc(db,"courses",courseId));
-    if(!courseSnap.exists())throw new Error("Lesson topic not found.");
+    if(!courseSnap.exists())throw new Error("Course not found.");
     const course=courseSnap.data();
     if(course.accessType!=="paid"||course.status!=="published")
       throw new Error("Only published paid courses can be enrolled.");
