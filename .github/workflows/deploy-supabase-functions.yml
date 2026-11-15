@@ -23,6 +23,6 @@ jobs:
           version: latest
 
       - name: Deploy upload function
-        run: supabase functions deploy staff-media-upload --project-ref uikexwoduxluqxxowcdc
+       run: supabase functions deploy staff-media-upload --project-ref uikexwoduxluqxxowcdc --yes 
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
