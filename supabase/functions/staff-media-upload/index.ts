@@ -91,6 +91,7 @@ Deno.serve(async (req) => {
       return reply({ error: "File must be smaller than 25 MB." }, 400);
     }
 
+    // Audio formats are accepted for MP3, WAV, M4A, OGG, WebM and AAC lessons.
     const allowedTypes = [
       "image/jpeg",
       "image/png",
