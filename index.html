@@ -111,6 +111,7 @@ nav button.active{background:linear-gradient(110deg,#35d6c0,#73baff);color:#0820
 .muted{color:var(--muted)}
 .success{color:#55e0b4}.warning{color:#ffd27d}.error{color:#ff879b}
 a{color:#73c8ff;text-decoration:none}a:hover{text-decoration:underline;color:#a7e8ff}
+.whatsapp-link{display:inline-flex;align-items:center;justify-content:center;margin:10px 4px 10px 0;padding:12px 16px;border-radius:11px;background:linear-gradient(110deg,#25d366,#8be7a5);color:#062b19;font-weight:800;text-decoration:none;box-shadow:0 6px 16px #25d36630}.whatsapp-link:hover{color:#062b19;filter:brightness(1.06);text-decoration:none}
 .dashboard-hero{background:linear-gradient(120deg,#123d59,#126b70 52%,#354078);border:1px solid #3b9a9b;box-shadow:0 14px 30px #020b1745}
 .dashboard-stat strong{color:#51e0cc}
 .dashboard-stat span{color:#c7d8e9}
@@ -139,6 +140,7 @@ hr{border-top-color:#34516e}
 <p class="muted" id="authDescription">Sign in to your learning account.</p>
 <div id="registerFields" class="hidden">
 <input id="registerName" placeholder="Full name">
+<input id="registerPhone" type="tel" inputmode="tel" placeholder="Phone number (e.g. +265...)">
 </div>
 <input id="email" type="email" placeholder="Email address">
 <input id="password" type="password" placeholder="Password (minimum 6 characters)">
@@ -356,10 +358,12 @@ $("authButton").onclick=async()=>{
 const email=$("email").value.trim();
 const password=$("password").value;
 const name=$("registerName").value.trim();
+const phone=$("registerPhone")?.value.trim()||"";
 
 if(!email||!password){authMessage("Enter your email and password.");return}
 if(password.length<6){authMessage("Password must have at least 6 characters.");return}
 if(registerMode&&!name){authMessage("Enter your full name.");return}
+if(registerMode&&!phone){authMessage("Enter your WhatsApp or phone number.");return}
 
 $("authButton").disabled=true;
 authMessage("Please wait...");
@@ -369,7 +373,7 @@ if(registerMode){
 const result=await createUserWithEmailAndPassword(auth,email,password);
 await updateProfile(result.user,{displayName:name});
 await setDoc(doc(db,"users",result.user.uid),{
-fullName:name,email:email,role:"student",
+fullName:name,phone:phone,email:email,role:"student",
 status:"pending",createdAt:serverTimestamp()
 });
 authMessage("Registration successful. Your account is waiting for approval.");
@@ -433,6 +437,7 @@ page.innerHTML=`<div class="panel">
 <h2>Account Pending Approval</h2>
 <p>Your registration is waiting for administrator approval.</p>
 <p class="muted">Please return later or contact the administrator.</p>
+<a class="whatsapp-link" href="https://wa.me/265999290495?text=${encodeURIComponent("Hello Mobile Tech Room Admin, I have registered and would like my student account approved. Name: "+(profile.fullName||"")+" Email: "+(profile.email||user.email)+" Phone: "+(profile.phone||""))}" target="_blank" rel="noopener noreferrer">Chat with Admin on WhatsApp</a>
 </div>`;
 $("navigation").innerHTML="";
 return;
@@ -725,7 +730,8 @@ if(!enrollment.exists()||enrollment.data().status!=="active"){
 page.innerHTML=`<div class="panel">
 <h2>${safe(selectedCourse.title)}</h2>
 <p>These lessons require paid access. You do not currently have access.</p>
-<p class="muted">Contact the administrator to arrange payment and lesson access.</p>
+<p class="muted">Contact the administrator to request this course and receive payment instructions. Your access will be unlocked after the Admin verifies your payment.</p>
+<a class="whatsapp-link" href="https://wa.me/265999290495?text=${encodeURIComponent("Hello Mobile Tech Room Admin, I want to join this course.\nStudent name: "+(profile.fullName||currentUser.displayName||"")+"\nEmail: "+(profile.email||currentUser.email)+"\nPhone: "+(profile.phone||"Not provided")+"\nCourse: "+(selectedCourse.title||"")+"\nCourse price: MK "+(selectedCourse.price??"Please confirm")+"\nPlease guide me on payment.")}" target="_blank" rel="noopener noreferrer">Request This Course on WhatsApp</a>
 <button class="secondary" data-action="back-courses">Back to Lessons</button>
 </div>`;
 return;
@@ -977,6 +983,7 @@ html+=`
 <div class="card">
 <h3>${safe(u.fullName||"Unnamed account")}</h3>
 <p>${safe(u.email)}</p>
+${u.phone?`<p>Phone: ${safe(u.phone)}</p>`:""}
 <span class="tag">${safe(u.role)}</span>
 <span class="tag">${safe(u.status)}</span>
 <div class="actions">
