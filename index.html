@@ -199,6 +199,7 @@ const db=getFirestore(app);
 let currentUser=null;
 let profile=null;
 let registerMode=false;
+let registrationInProgress=false;
 let currentTab="dashboard";
 let selectedCourse=null;
 let courses=[];
@@ -370,13 +371,25 @@ authMessage("Please wait...");
 
 try{
 if(registerMode){
+registrationInProgress=true;
+try{
 const result=await createUserWithEmailAndPassword(auth,email,password);
 await updateProfile(result.user,{displayName:name});
-await setDoc(doc(db,"users",result.user.uid),{
+const profileRef=doc(db,"users",result.user.uid);
+await setDoc(profileRef,{
 fullName:name,phone:phone,email:email,role:"student",
 status:"pending",createdAt:serverTimestamp()
 });
+const savedProfile=await getDoc(profileRef);
+if(!savedProfile.exists())throw new Error("Your account was created, but its student profile could not be verified. Please contact the administrator.");
+await signOut(auth);
 authMessage("Registration successful. Your account is waiting for approval.");
+}catch(registrationError){
+if(auth.currentUser)await signOut(auth);
+throw registrationError;
+}finally{
+registrationInProgress=false;
+}
 }else{
 await signInWithEmailAndPassword(auth,email,password);
 }
@@ -404,6 +417,8 @@ $("logoutButton").onclick=()=>signOut(auth);
 
 onAuthStateChanged(auth,async user=>{
 currentUser=user;
+// A new account must finish writing its Firestore profile before auth-state checks run.
+if(registrationInProgress)return;
 if(!user){
 profile=null;
 $("authPanel").classList.remove("hidden");
