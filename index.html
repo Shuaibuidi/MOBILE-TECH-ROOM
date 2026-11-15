@@ -689,6 +689,10 @@ html+=`
 </div>
 <div id="lessonContent" class="lesson-editor" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Write your lesson here..."></div>
 <input id="lessonUrl" type="url" placeholder="Optional external media URL (https://...)">
+<label class="muted" for="lessonFile">Or choose an image/video file (maximum 25 MB)</label>
+<input id="lessonFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm">
+<button type="button" class="secondary" id="uploadLessonFile">Upload Selected File</button>
+<p id="uploadStatus" class="muted">Only approved administrators and instructors can upload.</p>
 <button type="submit">Save Lesson</button>
 </form>
 </div>`;
@@ -705,7 +709,7 @@ ${l.section?`<p><strong>Section:</strong> ${safe(l.section)}</p>`:""}
 <span class="tag">${safe(l.type||"written")}</span>
 <div class="lesson-body">${formatLessonContent(l.content||"")}</div>
 ${(l.type||"written")==="written"?`<button type="button" class="secondary" data-action="download-lesson-pdf"><span>⬇ Download PDF</span></button>`:""}
-${l.mediaUrl?`<p><a href="${safe(l.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open learning material</a></p>`:""}
+${l.mediaUrl?((l.type==="image")?`<p><img src="${safe(l.mediaUrl)}" alt="${safe(l.title)}" style="max-width:100%;height:auto;border-radius:10px"></p>`:(l.type==="video")?`<video controls playsinline preload="metadata" style="width:100%;max-height:420px;border-radius:10px" src="${safe(l.mediaUrl)}"></video>`:`<p><a href="${safe(l.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open learning material</a></p>`):""}
 ${isAdmin()?`
 <div class="actions">
 <button class="secondary" data-action="edit-lesson" data-id="${safe(l.id)}">Edit</button>
@@ -726,11 +730,35 @@ if(editor){
   textColor.oninput=()=>{editor.focus();document.execCommand("foreColor",false,textColor.value);};
   $("lessonHighlight").oninput=()=>{editor.focus();document.execCommand("hiliteColor",false,$("lessonHighlight").value);};
 }
+const uploadButton=$("uploadLessonFile");
+if(uploadButton)uploadButton.onclick=async()=>{
+  const file=$("lessonFile").files[0];
+  const status=$("uploadStatus");
+  if(!file){status.textContent="Please choose an image or video first.";return;}
+  const allowed=["image/jpeg","image/png","image/webp","image/gif","video/mp4","video/webm"];
+  if(!allowed.includes(file.type)){status.textContent="Choose JPG, PNG, WEBP, GIF, MP4 or WEBM.";return;}
+  if(file.size<=0||file.size>25*1024*1024){status.textContent="The file must be smaller than 25 MB.";return;}
+  uploadButton.disabled=true;status.textContent="Uploading file... Please wait.";
+  try{
+    const token=await currentUser.getIdToken();
+    const body=new FormData();body.append("file",file);body.append("courseId",courseId);
+    const response=await fetch("https://uikexwoduxluqxxowcdc.supabase.co/functions/v1/staff-media-upload",{
+      method:"POST",headers:{Authorization:"Bearer "+token},body
+    });
+    const result=await response.json();
+    if(!response.ok||!result.success)throw new Error(result.error||"Upload failed.");
+    $("lessonUrl").value=result.mediaUrl;
+    $("lessonType").value=file.type.startsWith("video/")?"video":"image";
+    status.textContent="Upload complete. Save Lesson to publish this material.";
+  }catch(error){status.textContent=error.message||"Upload failed. Please try again.";}
+  finally{uploadButton.disabled=false;}
+};
 const form=$("lessonForm");
 if(form)form.onsubmit=async e=>{
 e.preventDefault();
 try{
 const url=$("lessonUrl").value.trim();
+if($("lessonFile").files.length&&!url){appMessage("Please upload the selected file before saving the lesson.","error");return;}
 if(url&&!/^https:\/\/.+/i.test(url)){
 appMessage("Please enter a valid HTTPS media link.","error");return;
 }
