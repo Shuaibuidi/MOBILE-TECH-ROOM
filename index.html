@@ -71,6 +71,16 @@ hr{border:0;border-top:1px solid #405675;margin:15px 0}
 .lesson-item::marker{color:#45d6c5;font-weight:bold}
 .lesson-item h3{margin:0 0 10px;overflow-wrap:anywhere}
 .lesson-item .lesson-body{margin:10px 0}
+.media-preview{display:block;width:min(100%,260px);height:150px;padding:0;margin:12px 0;background:#101c32;border:1px solid #60758e;border-radius:10px;overflow:hidden}
+.media-preview img,.media-preview video{display:block;width:100%;height:100%;object-fit:cover}
+.media-preview.video-preview{position:relative}
+.media-preview.video-preview:after{content:"▶";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:#071a2cdd;color:white;font-size:23px;padding-left:3px;pointer-events:none}
+.media-lightbox{position:fixed;inset:0;z-index:100000;background:#050b14ee;display:flex;align-items:center;justify-content:center;padding:16px}
+.media-lightbox-inner{width:min(100%,1000px);max-height:100%;display:flex;flex-direction:column;gap:10px}
+.media-lightbox-content{display:block;max-width:100%;max-height:80vh;width:auto;height:auto;object-fit:contain;margin:auto;border-radius:10px}
+.media-lightbox video{width:100%;max-height:80vh;background:#000}
+.media-lightbox-title{margin:0;text-align:center;color:white;overflow-wrap:anywhere}
+.media-lightbox-close{align-self:flex-end;background:#30445f;color:white}
 </style>
 </head>
 <body>
@@ -749,7 +759,7 @@ ${l.section?`<p><strong>Section:</strong> ${safe(l.section)}</p>`:""}
 <span class="tag">${safe(l.type||"written")}</span>
 ${(l.type||"written")==="written"?`<div class="lesson-body">${formatLessonContent(l.content||"")}</div>`: "" }
 ${(l.type||"written")==="written"?`<button type="button" class="secondary" data-action="download-lesson-pdf"><span>⬇ Download PDF</span></button>`:""}
-${l.mediaUrl?((l.type==="image")?`<p><img src="${safe(l.mediaUrl)}" alt="${safe(l.title)}" style="max-width:100%;height:auto;border-radius:10px"></p>`:(l.type==="video")?`<video controls playsinline preload="metadata" style="width:100%;max-height:420px;border-radius:10px" src="${safe(l.mediaUrl)}"></video>`:(l.type==="audio")?`<audio controls preload="metadata" style="width:100%;margin:12px 0" src="${safe(l.mediaUrl)}"></audio>`:(l.type==="pdf")?`<div style="margin:12px 0"><iframe src="${safe(l.mediaUrl)}#toolbar=1" title="${safe(l.title)}" style="width:100%;height:650px;border:0;border-radius:10px;background:#fff"></iframe><p><a href="${safe(l.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open or download PDF</a></p></div>`:`<p><a href="${safe(l.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open learning material</a></p>`):""}
+${l.mediaUrl?((l.type==="image")?`<button type="button" class="media-preview" data-action="view-media" data-media-type="image" data-media-url="${safe(l.mediaUrl)}" data-media-title="${safe(l.title)}" aria-label="Open photo: ${safe(l.title)}"><img src="${safe(l.mediaUrl)}" alt="${safe(l.title)}" loading="lazy"></button>`:(l.type==="video")?`<button type="button" class="media-preview video-preview" data-action="view-media" data-media-type="video" data-media-url="${safe(l.mediaUrl)}" data-media-title="${safe(l.title)}" aria-label="Play video: ${safe(l.title)}"><video muted playsinline preload="metadata" src="${safe(l.mediaUrl)}"></video></button>`:(l.type==="audio")?`<audio controls preload="metadata" style="width:100%;margin:12px 0" src="${safe(l.mediaUrl)}"></audio>`:(l.type==="pdf")?`<div style="margin:12px 0"><iframe src="${safe(l.mediaUrl)}#toolbar=1" title="${safe(l.title)}" style="width:100%;height:650px;border:0;border-radius:10px;background:#fff"></iframe><p><a href="${safe(l.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open or download PDF</a></p></div>`:`<p><a href="${safe(l.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open learning material</a></p>`):""}
 ${isAdmin()?`
 <div class="actions">
 <button class="secondary" data-action="edit-lesson" data-id="${safe(l.id)}">Edit</button>
@@ -1029,6 +1039,27 @@ const id=b.dataset.id;
 
 try{
 if(action==="download-lesson-pdf"){downloadLessonPdf(b);return;}
+if(action==="view-media"){
+  const mediaUrl=b.dataset.mediaUrl||"",mediaType=b.dataset.mediaType||"",mediaTitle=b.dataset.mediaTitle||"Lesson media";
+  if(!/^https:\/\/.+/i.test(mediaUrl)){appMessage("This media link is not valid.","error");return;}
+  document.getElementById("lessonMediaViewer")?.remove();
+  const viewer=document.createElement("div");
+  viewer.id="lessonMediaViewer";viewer.className="media-lightbox";
+  const inner=document.createElement("div");inner.className="media-lightbox-inner";
+  const close=document.createElement("button");close.type="button";close.className="media-lightbox-close";close.textContent="✕ Close";
+  close.addEventListener("click",()=>viewer.remove());
+  const heading=document.createElement("h3");heading.className="media-lightbox-title";heading.textContent=mediaTitle;
+  inner.append(close,heading);
+  if(mediaType==="image"){
+    const img=document.createElement("img");img.className="media-lightbox-content";img.src=mediaUrl;img.alt=mediaTitle;inner.append(img);
+  }else if(mediaType==="video"){
+    const video=document.createElement("video");video.className="media-lightbox-content";video.controls=true;video.autoplay=true;video.playsInline=true;video.src=mediaUrl;inner.append(video);
+    video.addEventListener("error",()=>appMessage("This video could not be played. Please check the uploaded file.","error"));
+  }
+  viewer.append(inner);viewer.addEventListener("click",event=>{if(event.target===viewer)viewer.remove();});
+  document.body.append(viewer);
+  return;
+}
 if(action==="open-course")await openCourse(id);
     if(action==="manage-enrollments"&&isAdmin())await manageStudentEnrollments(id);
     if(action==="back-students"&&isAdmin())await renderUsers("student");
