@@ -98,10 +98,11 @@ Deno.serve(async (req) => {
       "image/gif",
       "video/mp4",
       "video/webm",
+      "application/pdf",
     ];
 
     if (!allowedTypes.includes(file.type)) {
-      return reply({ error: "This image or video format is not supported." }, 400);
+      return reply({ error: "Choose a JPG, PNG, WEBP, GIF, MP4, WEBM or PDF file." }, 400);
     }
 
     const courseResponse = await fetch(
