@@ -81,6 +81,49 @@ hr{border:0;border-top:1px solid #405675;margin:15px 0}
 .media-lightbox video{width:100%;max-height:80vh;background:#000}
 .media-lightbox-title{margin:0;text-align:center;color:white;overflow-wrap:anywhere}
 .media-lightbox-close{align-self:flex-end;background:#30445f;color:white}
+
+/* Professional visual refresh */
+:root{color-scheme:dark;--bg:#091525;--surface:#12243a;--surface2:#182f49;--line:#294663;--teal:#35d6c0;--blue:#62a9ff;--violet:#a78bfa;--gold:#ffc56b;--text:#f4f7fc;--muted:#afc1d5}
+html{background:var(--bg);scroll-behavior:smooth}
+body{background:radial-gradient(ellipse at 12% 0%,#173c5b 0,transparent 38%),radial-gradient(ellipse at 100% 20%,#24315b 0,transparent 34%),var(--bg);color:var(--text);line-height:1.55}
+header{background:linear-gradient(115deg,#10283fef,#18284aef);border-bottom:1px solid #3a6384;box-shadow:0 8px 28px #02091470;backdrop-filter:blur(14px)}
+header h1{color:var(--teal);letter-spacing:.6px;text-shadow:0 0 22px #35d6c044}
+header p{color:#c4d6ea;letter-spacing:.5px}
+main{padding-top:20px;padding-bottom:30px}
+.panel{background:linear-gradient(145deg,#172d46f5,#102239f5);border:1px solid #34516e;border-radius:17px;box-shadow:0 12px 28px #020b1745}
+h2{color:#77c7ff}
+h3{color:#b7a4ff}
+input,textarea,select{background:#0b1a2c;border:1px solid #385675;color:#f5f8ff;border-radius:11px;transition:border-color .2s,box-shadow .2s}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px #35d6c025}
+input::placeholder,textarea::placeholder{color:#8298b1}
+button{background:linear-gradient(110deg,#35d6c0,#64b8ef);color:#082033;border-radius:11px;box-shadow:0 5px 14px #35a9c02b;transition:transform .18s,filter .18s,box-shadow .18s}
+button:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 8px 18px #35a9c044}
+button:active{transform:translateY(0)}
+button.secondary{background:linear-gradient(110deg,#385777,#4b6487);color:#f4f8ff;box-shadow:none}
+button.danger{background:linear-gradient(110deg,#d94f68,#a83d66);color:white}
+nav{padding:7px;background:#0b1b2d;border:1px solid #2b4662;border-radius:14px}
+nav button{background:#203c59;color:#d9e8f8;box-shadow:none}
+nav button.active{background:linear-gradient(110deg,#35d6c0,#73baff);color:#082033}
+.card,.lesson-item,.dashboard-stat{background:linear-gradient(145deg,#1a3551,#142940);border:1px solid #345574;border-radius:14px;box-shadow:0 7px 18px #020b1730}
+.lesson-item{border-left:3px solid #42cbbb}
+.lesson-item::marker{color:var(--gold)}
+.tag{background:#273f60;color:#a9e9e4;border:1px solid #426487;border-radius:20px;padding:5px 10px}
+.muted{color:var(--muted)}
+.success{color:#55e0b4}.warning{color:#ffd27d}.error{color:#ff879b}
+a{color:#73c8ff;text-decoration:none}a:hover{text-decoration:underline;color:#a7e8ff}
+.dashboard-hero{background:linear-gradient(120deg,#123d59,#126b70 52%,#354078);border:1px solid #3b9a9b;box-shadow:0 14px 30px #020b1745}
+.dashboard-stat strong{color:#51e0cc}
+.dashboard-stat span{color:#c7d8e9}
+.dashboard-tip{border-left-color:var(--gold)}
+.lesson-editor{border-color:#55cfc2;box-shadow:0 0 0 3px #35d6c015}
+.media-preview{border-color:#4c7395;box-shadow:0 8px 18px #020b1745}
+.media-lightbox{backdrop-filter:blur(8px)}
+#message,#appMessage{color:#eaf3ff}
+footer{color:#8fa7c0}
+hr{border-top-color:#34516e}
+.uppercase-accent{color:#ffc56b!important;font-weight:800;letter-spacing:.045em;text-shadow:0 0 14px #ffc56b24}
+@media(max-width:600px){header{padding:20px 14px 16px}header h1{font-size:22px}.panel{padding:14px;border-radius:15px}main{padding:13px}}
+
 </style>
 </head>
 <body>
@@ -237,7 +280,35 @@ article img{max-width:100%;height:auto}article table{width:100%;border-collapse:
 @page{size:A4 portrait;margin:14mm}
 @media print{html,body{background:#fff!important;padding:0!important;margin:0!important}.sheet{max-width:none;min-height:0;margin:0;padding:0;box-shadow:none}.brand,*{-webkit-print-color-adjust:exact;print-color-adjust:exact}h1,h2,h3,blockquote{break-after:avoid}p,li,table,img,blockquote{break-inside:avoid}}
 </style></head><body><main class="sheet"><header class="brand"><div class="brand-name">MOBILE TECH ROOM</div><div class="brand-tag">LEARN • REPAIR • INNOVATE</div></header>
-<p class="kicker">MOBILE TECH LESSON</p><h1>${safe(cleanTitle)}</h1><article>${content}</article></main></body></html>`;
+<p class="kicker">MOBILE TECH LESSON</p><h1>${safe(cleanTitle)}</h1><article>${content}</article></main>
+<script>
+/* Accent every all-capital word in visible app text, including dynamically rendered pages. */
+(()=>{
+ const skip='SCRIPT,STYLE,TEXTAREA,INPUT,SELECT,OPTION,[contenteditable="true"],.lesson-editor';
+ const accent=(root)=>{
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+  const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+  for(const node of nodes){
+   if(!node.nodeValue||!/[A-Z]{2,}/.test(node.nodeValue))continue;
+   const parent=node.parentElement;if(!parent||parent.closest(skip)||parent.classList.contains('uppercase-accent'))continue;
+   const parts=node.nodeValue.split(/([A-Z][A-Z0-9&-]{1,})/g);
+   if(parts.length<2)continue;
+   const frag=document.createDocumentFragment();
+   for(const part of parts){
+    if(/^[A-Z][A-Z0-9&-]{1,}$/.test(part)){
+     const span=document.createElement('span');span.className='uppercase-accent';span.textContent=part;frag.appendChild(span);
+    }else frag.appendChild(document.createTextNode(part));
+   }
+   node.parentNode.replaceChild(frag,node);
+  }
+ };
+ const run=()=>accent(document.body);
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
+ new MutationObserver(()=>run()).observe(document.body,{childList:true,subtree:true});
+})();
+</script>
+
+</body></html>`;
 
   // Capacitor Android: use the native Android Print Framework, not window.print().
   if(window.location.hostname==="localhost" || window.location.protocol==="capacitor:" || window.Capacitor?.isNativePlatform?.()){
