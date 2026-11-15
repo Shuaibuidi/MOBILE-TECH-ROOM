@@ -585,11 +585,8 @@ html+=`
 <div class="card">
 <h3>${safe(c.title)}</h3>
 <span class="tag">${safe(c.category)}</span>
-<span class="tag">${safe(c.accessType||"free")}</span>
-<span class="tag">${safe(c.status||"draft")}</span>
 <p>${safe(c.description)}</p>
 ${c.accessType==="paid"?`<p>Price: ${safe(c.price||0)}</p>`:""}
-<p class="muted">Topic ID: ${safe(c.id)}</p>
 <div class="actions">
 <button data-action="open-course" data-id="${safe(c.id)}">Open Topic</button>
 ${isAdmin()?`
