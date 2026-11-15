@@ -666,8 +666,8 @@ html+="<label class='muted'>2. Lesson title</label><input id='lessonTitle' place
 html+="<label class='muted'>3. Topic</label><input id='lessonTopic' placeholder='e.g. Flashing basics' required>";
 html+="<label class='muted'>4. Section</label><input id='lessonSection' placeholder='e.g. Introduction, Tools, Practical Steps' required>";
 html+="<label class='muted'>5. What students will learn in this lesson</label><textarea id='lessonOutcomes' placeholder='List the skills students will gain' required></textarea>";
-html+="<label class='muted'>6. Lesson access</label><select id='courseAccess'><option value='free'>Free</option><option value='paid'>Paid</option></select>";
-html+="<div id='coursePriceField' class='hidden'><label class='muted' for='coursePrice'>7. Access price</label><input id='coursePrice' type='number' min='0' step='0.01' placeholder='Enter price'></div>";
+html+="<label class='muted'>6. Course access (covers every lesson)</label><select id='courseAccess'><option value='free'>Free</option><option value='paid'>Paid</option></select>";
+html+="<div id='coursePriceField' class='hidden'><label class='muted' for='coursePrice'>7. One-time course price (all lessons included)</label><input id='coursePrice' type='number' min='0' step='0.01' placeholder='Enter price'></div>";
 html+="<hr><label class='muted'>8. Lesson format</label><select id='lessonType'><option value='written'>Written lesson</option><option value='video'>Video</option><option value='audio'>Audio</option><option value='pdf'>PDF document</option><option value='image'>Image</option></select>";
 html+="<div id='writtenLessonFields'><label class='muted'>9. Write the lesson document</label><div class='editor-toolbar'><select id='lessonStyle'><option value='P'>Normal paragraph</option><option value='H1'>Title heading</option><option value='H2'>Section heading</option><option value='H3'>Small heading</option><option value='BLOCKQUOTE'>Quote box</option></select><select id='lessonFont'><option value='Arial'>Arial</option><option value='Georgia'>Georgia</option><option value='Times New Roman'>Times New Roman</option><option value='Verdana'>Verdana</option></select><select id='lessonSize'><option value='2'>Small</option><option value='3' selected>Normal</option><option value='4'>Large</option><option value='5'>Extra large</option></select><button type='button' class='secondary' data-editor='bold'><b>B</b></button><button type='button' class='secondary' data-editor='italic'><i>I</i></button><button type='button' class='secondary' data-editor='underline'><u>U</u></button><button type='button' class='secondary' data-editor='insertUnorderedList'>• List</button></div>";
 html+="<div id='lessonContent' class='lesson-editor' contenteditable='true' role='textbox' aria-multiline='true' data-placeholder='Write the lesson here...'></div>";
@@ -678,7 +678,7 @@ html+="<label class='muted'>Or paste an HTTPS media link</label><input id='lesso
 html+="</div>";
 if(!courses.length)html+="<div class='panel'><p>No courses available yet.</p></div>";
 for(const c of courses){
-html+="<div class='card'><h3>"+safe(c.title)+"</h3><span class='tag'>"+safe(c.category)+"</span><p>"+safe(c.description)+"</p>"+(c.accessType==="paid"?"<p>Price: "+safe(c.price||0)+"</p>":"")+"<div class='actions'><button data-action='open-course' data-id='"+safe(c.id)+"'>Open Course</button>"+(isAdmin()?"<button class='secondary' data-action='edit-course' data-id='"+safe(c.id)+"'>Edit</button><button class='danger' data-action='delete-course' data-id='"+safe(c.id)+"'>Delete</button>":"")+"</div></div>";
+html+="<div class='card'><h3>"+safe(c.title)+"</h3><span class='tag'>"+safe(c.category)+"</span><p>"+safe(c.description)+"</p>"+(c.accessType==="paid"?"<p>One-time course price (all lessons): "+safe(c.price||0)+"</p>":"")+"<div class='actions'><button data-action='open-course' data-id='"+safe(c.id)+"'>Open Course</button>"+(isAdmin()?"<button class='secondary' data-action='edit-course' data-id='"+safe(c.id)+"'>Edit</button><button class='danger' data-action='delete-course' data-id='"+safe(c.id)+"'>Delete</button>":"")+"</div></div>";
 }
 page.innerHTML=html;
 if(isStaff()){
@@ -736,7 +736,7 @@ await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:va
 
 async function openCourse(id){
 selectedCourse=courses.find(c=>c.id===id);
-if(!selectedCourse){appMessage("Lesson topic not found.","error");return}
+if(!selectedCourse){appMessage("Course not found.","error");return}
 
 if(isStudent()){
 if(selectedCourse.accessType==="paid"){
@@ -744,8 +744,8 @@ const enrollment=await getDoc(doc(db,"users",currentUser.uid,"enrollments",id));
 if(!enrollment.exists()||enrollment.data().status!=="active"){
 page.innerHTML=`<div class="panel">
 <h2>${safe(selectedCourse.title)}</h2>
-<p>These lessons require paid access. You do not currently have access.</p>
-<p class="muted">Contact the administrator to request this course and receive payment instructions. Your access will be unlocked after the Admin verifies your payment.</p>
+<p>This is a paid course. One payment gives access to every lesson in this course.</p>
+<p class="muted">Request this course and pay once. After the Admin verifies your payment, all lessons in this course will unlock together.</p>
 <a class="whatsapp-link" href="https://wa.me/265999290495?text=${encodeURIComponent("Hello Mobile Tech Room Admin, I want to join this course.\nStudent name: "+(profile.fullName||currentUser.displayName||"")+"\nEmail: "+(profile.email||currentUser.email)+"\nPhone: "+(profile.phone||"Not provided")+"\nCourse: "+(selectedCourse.title||"")+"\nCourse price: MK "+(selectedCourse.price??"Please confirm")+"\nPlease guide me on payment.")}" target="_blank" rel="noopener noreferrer">Request This Course on WhatsApp</a>
 <button class="secondary" data-action="back-courses">Back to Lessons</button>
 </div>`;
@@ -1025,7 +1025,7 @@ async function manageStudentEnrollments(studentId){
   if(!isAdmin())return;
   const student=users.find(u=>u.id===studentId);
   if(!student){appMessage("Student account not found.","error");return;}
-  page.innerHTML="<div class='panel'>Loading paid lesson access...</div>";
+  page.innerHTML="<div class='panel'>Loading paid course access...</div>";
   try{
     const courseSnap=await getDocs(collection(db,"courses"));
     const paidCourses=courseSnap.docs.map(d=>({id:d.id,...d.data()}))
@@ -1034,21 +1034,21 @@ async function manageStudentEnrollments(studentId){
     const enrollmentMap=new Map(enrollmentSnap.docs.map(d=>[d.id,d.data()]));
     let html=`<div class="panel">
       <button class="secondary" data-action="back-students">Back to Students</button>
-      <h2>Paid Lesson Access</h2>
+      <h2>Paid Course Access</h2>
       <p><strong>${safe(student.fullName||"Student")}</strong></p>
       <p class="muted">${safe(student.email||"")}</p>
-      <p class="muted">Grant or revoke access to published paid lesson topics.</p>
+      <p class="muted">Grant or revoke access to a whole course. One approval unlocks every lesson inside that course.</p>
     </div>`;
-    if(!paidCourses.length)html+=`<div class="panel">There are no published paid lesson topics.</div>`;
+    if(!paidCourses.length)html+=`<div class="panel">There are no published paid courses.</div>`;
     for(const course of paidCourses){
       const active=enrollmentMap.get(course.id)?.status==="active";
       html+=`<div class="card">
         <h3>${safe(course.title)}</h3>
-        <p>Price: ${safe(course.price??0)}</p>
-        <span class="tag">${active?"Access active":"No active access"}</span>
+        <p>One-time course price (all lessons): ${safe(course.price??0)}</p>
+        <span class="tag">${active?"Full course access active":"No course access yet"}</span>
         <div class="actions">${active
-          ? `<button class="danger" data-action="revoke-enrollment" data-student="${safe(studentId)}" data-course="${safe(course.id)}">Revoke Access</button>`
-          : `<button data-action="grant-enrollment" data-student="${safe(studentId)}" data-course="${safe(course.id)}">Grant Access</button>`}
+          ? `<button class="danger" data-action="revoke-enrollment" data-student="${safe(studentId)}" data-course="${safe(course.id)}">Revoke Course Access</button>`
+          : `<button data-action="grant-enrollment" data-student="${safe(studentId)}" data-course="${safe(course.id)}">Grant Full Course Access</button>`}
         </div>
       </div>`;
     }
@@ -1058,28 +1058,28 @@ async function manageStudentEnrollments(studentId){
 
 async function grantEnrollment(studentId,courseId){
   if(!isAdmin())return;
-  if(!confirm("Grant this student access to the selected paid lessons?"))return;
+  if(!confirm("Grant this student full access to every lesson in the selected paid course?"))return;
   try{
     const courseSnap=await getDoc(doc(db,"courses",courseId));
     if(!courseSnap.exists())throw new Error("Lesson topic not found.");
     const course=courseSnap.data();
     if(course.accessType!=="paid"||course.status!=="published")
-      throw new Error("Only published paid lesson topics can be enrolled.");
+      throw new Error("Only published paid courses can be enrolled.");
     await setDoc(doc(db,"users",studentId,"enrollments",courseId),{
       status:"active",courseId:courseId,courseTitle:course.title||"",
       grantedBy:currentUser.uid,grantedAt:serverTimestamp()
     });
-    appMessage("Paid lesson access granted.");
+    appMessage("Full course access granted. All lessons are unlocked.");
     await manageStudentEnrollments(studentId);
-  }catch(e){appMessage("Could not grant access: "+e.message,"error");}
+  }catch(e){appMessage("Could not grant course access: "+e.message,"error");}
 }
 
 async function revokeEnrollment(studentId,courseId){
   if(!isAdmin())return;
-  if(!confirm("Revoke this student's access to these lessons?"))return;
+  if(!confirm("Revoke this student's access to the entire course?"))return;
   try{
     await deleteDoc(doc(db,"users",studentId,"enrollments",courseId));
-    appMessage("Lesson access revoked.");
+    appMessage("Course access revoked.");
     await manageStudentEnrollments(studentId);
   }catch(e){appMessage("Could not revoke access: "+e.message,"error");}
 }
