@@ -558,7 +558,7 @@ async function renderDashboard(){
       stats=[
         {value:courseSnap.size,label:"Published lesson topics"},
         {value:availableCourses.length,label:"Lesson topics available to you"},
-        {value:activeEnrollments.length,label:"Active paid-lesson access"}
+        {value:activeEnrollments.length,label:"Active paid courses"}
       ];
       quickActions=`<button data-dashboard-tab="lessons">Explore Lessons</button>`;
       tip="Start with the fundamentals, follow each lesson in order and practise safely on suitable devices.";
@@ -1008,7 +1008,7 @@ ${u.status!=="blocked"?
 `<button class="danger" data-action="block-user" data-id="${safe(u.id)}">Block</button>`:
 `<button data-action="unblock-user" data-id="${safe(u.id)}">Restore</button>`}
 ${role==="student"&&u.status==="approved"?
-`<button class="secondary" data-action="manage-enrollments" data-id="${safe(u.id)}">Manage Lesson Access</button>
+`<button class="secondary" data-action="manage-enrollments" data-id="${safe(u.id)}">Manage Course Access</button>
 <button class="secondary" data-action="promote-user" data-id="${safe(u.id)}">Make Instructor</button>`:""}
 ${role==="instructor"?
 `<button class="secondary" data-action="demote-user" data-id="${safe(u.id)}">Return to Student</button>`:""}
