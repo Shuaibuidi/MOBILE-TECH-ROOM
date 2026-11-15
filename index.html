@@ -549,77 +549,80 @@ async function loadCourses(){
 }
 
 async function renderCourses(){
-page.innerHTML="<div class='panel'>Loading lessons...</div>";
+page.innerHTML="<div class='panel'>Loading courses...</div>";
 try{
 await loadCourses();
-let html=`<div class="panel"><h2>Lessons</h2>
-<p class="muted">Explore mobile software and phone technician lessons.</p>`;
-
+let html="<div class='panel'><h2>Courses and Lessons</h2><p class='muted'>Choose a course or create a new course with its first lesson.</p>";
 if(isStaff()){
-html+=`
-<h3>Create a Lesson Topic</h3>
-<form id="courseForm">
-<input id="courseTitle" placeholder="Lesson topic name" required>
-<input id="courseCategory" placeholder="Subject area (e.g. Android, iPhone, Flashing)" required>
-<textarea id="courseDescription" placeholder="Describe what these lessons cover" required></textarea>
-<select id="courseAccess">
-<option value="free">Free Lessons</option>
-<option value="paid">Paid Lessons</option>
-</select>
-<input id="coursePrice" type="number" min="0" placeholder="Lesson access price (optional)">
-<select id="courseStatus">
-<option value="draft">Save as Draft</option>
-<option value="published">Publish Lessons</option>
-</select>
-<button type="submit">Create Topic</button>
-</form><hr>`;
+html+="<h3>Create Course and First Lesson</h3><form id='combinedLessonForm'>";
+html+="<label class='muted'>1. Course name</label><input id='courseTitle' placeholder='e.g. Phone Flashing and Unlocking' required>";
+html+="<label class='muted'>Subject area</label><input id='courseCategory' placeholder='e.g. Android, iPhone, Flashing' required>";
+html+="<label class='muted'>What does this course cover?</label><textarea id='courseDescription' placeholder='Briefly describe the course' required></textarea><hr>";
+html+="<label class='muted'>2. Lesson title</label><input id='lessonTitle' placeholder='e.g. Introduction to Phone Flashing' required>";
+html+="<label class='muted'>3. Topic</label><input id='lessonTopic' placeholder='e.g. Flashing basics' required>";
+html+="<label class='muted'>4. Section</label><input id='lessonSection' placeholder='e.g. Introduction, Tools, Practical Steps' required>";
+html+="<label class='muted'>5. What students will learn in this lesson</label><textarea id='lessonOutcomes' placeholder='List the skills students will gain' required></textarea>";
+html+="<label class='muted'>6. Lesson access</label><select id='courseAccess'><option value='free'>Free</option><option value='paid'>Paid</option></select>";
+html+="<label class='muted'>7. Access price (only for Paid)</label><input id='coursePrice' type='number' min='0' placeholder='Enter price'>";
+html+="<hr><label class='muted'>8. Lesson format</label><select id='lessonType'><option value='written'>Written lesson</option><option value='video'>Video</option><option value='audio'>Audio</option><option value='pdf'>PDF document</option><option value='image'>Image</option></select>";
+html+="<label class='muted'>9. Write the lesson document</label><div class='editor-toolbar'><select id='lessonStyle'><option value='P'>Normal paragraph</option><option value='H1'>Title heading</option><option value='H2'>Section heading</option><option value='H3'>Small heading</option><option value='BLOCKQUOTE'>Quote box</option></select><select id='lessonFont'><option value='Arial'>Arial</option><option value='Georgia'>Georgia</option><option value='Times New Roman'>Times New Roman</option><option value='Verdana'>Verdana</option></select><select id='lessonSize'><option value='2'>Small</option><option value='3' selected>Normal</option><option value='4'>Large</option><option value='5'>Extra large</option></select><button type='button' class='secondary' data-editor='bold'><b>B</b></button><button type='button' class='secondary' data-editor='italic'><i>I</i></button><button type='button' class='secondary' data-editor='underline'><u>U</u></button><button type='button' class='secondary' data-editor='insertUnorderedList'>• List</button></div>";
+html+="<div id='lessonContent' class='lesson-editor' contenteditable='true' role='textbox' aria-multiline='true' data-placeholder='Write the lesson here...'></div>";
+html+="<label class='muted'><input id='allowPrint' type='checkbox' checked style='width:auto'> Allow students to print or download this written lesson as PDF</label><hr>";
+html+="<label class='muted'>10. Upload a file (maximum 50 MB)</label><input id='lessonFile' type='file' accept='*/*'><button type='button' class='secondary' id='uploadLessonFile'>Upload Selected File</button><p id='uploadStatus' class='muted'>Upload a file before saving, or leave this blank.</p>";
+html+="<label class='muted'>11. Optional video/audio link (use for long media)</label><input id='lessonUrl' type='url' placeholder='Paste an HTTPS video, audio or document link'><button type='submit'>12. Save Course and Lesson</button></form>";
 }
 html+="</div>";
-
-if(!courses.length){
-html+=`<div class="panel"><p>No lesson topics available yet.</p></div>`;
-}
-
+if(!courses.length)html+="<div class='panel'><p>No courses available yet.</p></div>";
 for(const c of courses){
-html+=`
-<div class="card">
-<h3>${safe(c.title)}</h3>
-<span class="tag">${safe(c.category)}</span>
-<p>${safe(c.description)}</p>
-${c.accessType==="paid"?`<p>Price: ${safe(c.price||0)}</p>`:""}
-<div class="actions">
-<button data-action="open-course" data-id="${safe(c.id)}">Open Topic</button>
-${isAdmin()?`
-<button class="secondary" data-action="edit-course" data-id="${safe(c.id)}">Edit</button>
-<button class="danger" data-action="delete-course" data-id="${safe(c.id)}">Delete</button>`:""}
-</div>
-</div>`;
+html+="<div class='card'><h3>"+safe(c.title)+"</h3><span class='tag'>"+safe(c.category)+"</span><p>"+safe(c.description)+"</p>"+(c.accessType==="paid"?"<p>Price: "+safe(c.price||0)+"</p>":"")+"<div class='actions'><button data-action='open-course' data-id='"+safe(c.id)+"'>Open Course</button>"+(isAdmin()?"<button class='secondary' data-action='edit-course' data-id='"+safe(c.id)+"'>Edit</button><button class='danger' data-action='delete-course' data-id='"+safe(c.id)+"'>Delete</button>":"")+"</div></div>";
 }
 page.innerHTML=html;
-
-const form=$("courseForm");
-if(form)form.onsubmit=createCourse;
-}catch(e){
-page.innerHTML=`<div class="panel error">Could not load lessons: ${safe(e.message)}</div>`;
-}
-}
-
-async function createCourse(e){
+if(isStaff()){
+let draftCourseId=null;
+const form=$("combinedLessonForm"),val=id=>$(id).value.trim(),editor=$("lessonContent");
+const courseFields=()=>({title:val("courseTitle"),category:val("courseCategory"),description:val("courseDescription"),accessType:$("courseAccess").value,price:Number($("coursePrice").value||0),createdBy:currentUser.uid});
+const ensureCourse=async()=>{
+if(!draftCourseId){const ref=doc(collection(db,"courses"));draftCourseId=ref.id;await setDoc(ref,{...courseFields(),status:"draft",createdAt:serverTimestamp()});}
+else await updateDoc(doc(db,"courses",draftCourseId),courseFields());
+return draftCourseId;
+};
+$("lessonStyle").onchange=()=>{editor.focus();document.execCommand("formatBlock",false,$("lessonStyle").value);};
+$("lessonFont").onchange=()=>{editor.focus();document.execCommand("fontName",false,$("lessonFont").value);};
+$("lessonSize").onchange=()=>{editor.focus();document.execCommand("fontSize",false,$("lessonSize").value);};
+document.querySelectorAll("[data-editor]").forEach(b=>b.onclick=()=>{editor.focus();document.execCommand(b.dataset.editor,false,null);});
+$("uploadLessonFile").onclick=async()=>{
+const f=$("lessonFile").files[0],st=$("uploadStatus"),btn=$("uploadLessonFile");
+if(!f){st.textContent="Please choose a file first.";return;}
+const ext=(f.name.split(".").pop()||"").toLowerCase(),map={jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",gif:"image/gif",mp4:"video/mp4",webm:"video/webm",pdf:"application/pdf",mp3:"audio/mpeg",wav:"audio/wav",m4a:"audio/mp4",ogg:"audio/ogg",aac:"audio/aac"},mime=f.type||map[ext]||"";
+const allowed=["image/jpeg","image/png","image/webp","image/gif","video/mp4","video/webm","application/pdf","audio/mpeg","audio/wav","audio/x-wav","audio/mp4","audio/x-m4a","audio/ogg","audio/webm","audio/aac"];
+if(!allowed.includes(mime)){st.textContent="Unsupported file type.";return;}
+if(f.size<=0||f.size>50*1024*1024){st.textContent="The file must be 50 MB or smaller.";return;}
+btn.disabled=true;st.textContent="Preparing course and uploading file...";
+try{
+const cid=await ensureCourse(),token=await currentUser.getIdToken(),body=new FormData();
+body.append("file",f.type?f:new File([f],f.name,{type:mime}));body.append("courseId",cid);
+const response=await fetch("https://uikexwoduxluqxxowcdc.supabase.co/functions/v1/staff-media-upload",{method:"POST",headers:{Authorization:"Bearer "+token},body});
+const result=await response.json();if(!response.ok||!result.success)throw new Error(result.error||"Upload failed.");
+$("lessonUrl").value=result.mediaUrl;$("lessonType").value=mime==="application/pdf"?"pdf":mime.startsWith("video/")?"video":mime.startsWith("audio/")?"audio":"image";
+st.textContent="Upload complete. Press Save Course and Lesson.";
+}catch(err){st.textContent=err.message||"Upload failed.";}finally{btn.disabled=false;}
+};
+form.onsubmit=async e=>{
 e.preventDefault();
 try{
-await addDoc(collection(db,"courses"),{
-title:$("courseTitle").value.trim(),
-category:$("courseCategory").value.trim(),
-description:$("courseDescription").value.trim(),
-accessType:$("courseAccess").value,
-price:Number($("coursePrice").value||0),
-status:$("courseStatus").value,
-createdBy:currentUser.uid,
-createdAt:serverTimestamp()
-});
-appMessage("Lesson topic created successfully.");
-await renderCourses();
-}catch(e){appMessage("Could not create lesson topic: "+e.message,"error")}
+if($("courseAccess").value==="paid"&&Number($("coursePrice").value)<=0){appMessage("Enter a price for this paid course.","error");return;}
+const url=val("lessonUrl");
+if($("lessonFile").files.length&&!url){appMessage("Please upload the selected file before saving.","error");return;}
+if(url&&!/^https:\/\/.+/i.test(url)){appMessage("Please enter a valid HTTPS link.","error");return;}
+const cid=await ensureCourse();
+await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:val("lessonOutcomes"),type:$("lessonType").value,content:editor.innerHTML.trim(),printable:$("allowPrint").checked,mediaUrl:url,createdBy:currentUser.uid,createdAt:serverTimestamp()});
+await updateDoc(doc(db,"courses",cid),{status:"published"});
+appMessage("Course and first lesson saved successfully.");
+await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:val("courseTitle"),description:val("courseDescription")};await openCourse(cid);
+}catch(err){appMessage("Could not save course and lesson: "+err.message,"error");}
+};
+}
+}catch(e){page.innerHTML="<div class='panel error'>Could not load courses: "+safe(e.message)+"</div>";}
 }
 
 async function openCourse(id){
@@ -659,7 +662,7 @@ let html=`
 if(isStaff()){
 html+=`
 <div class="panel">
-<h3>Add New Lesson</h3>
+<h3>Add Another Lesson</h3>
 <form id="lessonForm">
 <input id="lessonTitle" placeholder="Lesson title" required>
 <label class="muted" for="lessonTopic">Topic</label>
