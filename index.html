@@ -689,7 +689,7 @@ html+=`
 </div>
 <div id="lessonContent" class="lesson-editor" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Write your lesson here..."></div>
 <input id="lessonUrl" type="url" placeholder="Optional external media URL (https://...)">
-<label class="muted" for="lessonFile">Or choose an image, video, audio or PDF file (maximum 25 MB)</label>
+<label class="muted" for="lessonFile">Or choose an image, video, audio or PDF file (maximum 50 MB)</label>
 <input id="lessonFile" type="file" accept="*/*">
 <button type="button" class="secondary" id="uploadLessonFile">Upload Selected File</button>
 <p id="uploadStatus" class="muted">Only approved administrators and instructors can upload.</p>
@@ -740,7 +740,7 @@ if(uploadButton)uploadButton.onclick=async()=>{
   const mime=file.type||mimeByExt[ext]||"";
   const allowed=["image/jpeg","image/png","image/webp","image/gif","video/mp4","video/webm","application/pdf","audio/mpeg","audio/wav","audio/x-wav","audio/mp4","audio/x-m4a","audio/ogg","audio/webm","audio/aac"];
   if(!allowed.includes(mime)){status.textContent="Unsupported file. Choose JPG, PNG, WEBP, GIF, MP4, WEBM, PDF, MP3, WAV, M4A, OGG or AAC.";return;}
-  if(file.size<=0||file.size>25*1024*1024){status.textContent="The file must be smaller than 25 MB.";return;}
+  if(file.size<=0||file.size>50*1024*1024){status.textContent="The file must be 50 MB or smaller.";return;}
   const uploadFile=file.type?file:new File([file],file.name,{type:mime});
   uploadButton.disabled=true;status.textContent="Uploading file... Please wait.";
   try{
