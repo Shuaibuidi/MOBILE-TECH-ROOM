@@ -423,14 +423,67 @@ if(!user){
 profile=null;
 $("authPanel").classList.remove("hidden");
 $("appPanel").classList.add("hidden");
+// Restore the normal login screen after logout or profile recovery.
+$("email").classList.remove("hidden");
+$("password").classList.remove("hidden");
+$("authButton").classList.remove("hidden");
+$("forgotButton").classList.remove("hidden");
+$("switchText").classList.remove("hidden");
+$("authTitle").textContent=registerMode?"Create Student Account":"Student Login";
+$("authDescription").textContent=registerMode?"Register to request access to Mobile Tech Room.":"Sign in to your learning account.";
+$("registerFields").classList.toggle("hidden",!registerMode);
+authMessage("");
 return;
 }
 
 try{
 const snap=await getDoc(doc(db,"users",user.uid));
 if(!snap.exists()){
+// Older accounts may exist in Firebase Authentication without a Firestore profile.
+// Let the signed-in account owner safely create their own pending student profile.
+$("authPanel").classList.remove("hidden");
+$("appPanel").classList.add("hidden");
+$("authTitle").textContent="Complete Your Student Profile";
+$("authDescription").textContent="Your login exists, but your student profile is missing. Enter your details below to restore access.";
+$("email").classList.add("hidden");
+$("password").classList.add("hidden");
+$("authButton").classList.add("hidden");
+$("forgotButton").classList.add("hidden");
+$("switchText").classList.add("hidden");
+$("registerFields").classList.add("hidden");
+$("message").innerHTML=
+'<input id="recoveryName" placeholder="Your full name" autocomplete="name">'+
+'<input id="recoveryPhone" type="tel" inputmode="tel" placeholder="WhatsApp or phone number (e.g. +265...)">'+
+'<button id="recoverProfileButton">Save My Student Profile</button>'+
+'<p class="muted">Your account will be sent for administrator approval.</p>';
+$("recoverProfileButton").onclick=async()=>{
+const fullName=$("recoveryName").value.trim();
+const phone=$("recoveryPhone").value.trim();
+if(!fullName){authMessage("Please enter your full name.");return}
+if(fullName.length>120){authMessage("Your name must be 120 characters or fewer.");return}
+if(!phone){authMessage("Please enter your phone number.");return}
+const recoveryButton=$("recoverProfileButton");
+recoveryButton.disabled=true;
+authMessage("Saving your student profile...");
+try{
+const profileRef=doc(db,"users",user.uid);
+await setDoc(profileRef,{
+fullName:fullName,
+phone:phone,
+email:user.email,
+role:"student",
+status:"pending",
+createdAt:serverTimestamp()
+});
+const restored=await getDoc(profileRef);
+if(!restored.exists())throw new Error("The profile could not be verified. Please contact the administrator.");
 await signOut(auth);
-authMessage("Account profile not found.");
+authMessage("Your student profile has been restored. Please log in again. Your account is waiting for administrator approval.");
+}catch(recoveryError){
+authMessage("Could not restore your profile: "+recoveryError.message);
+recoveryButton.disabled=false;
+}
+};
 return;
 }
 profile=snap.data();
