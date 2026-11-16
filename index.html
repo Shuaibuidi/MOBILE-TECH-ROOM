@@ -164,6 +164,70 @@ hr{border-top-color:#34516e}
 .student-course-search{background:#fff;color:#25263b;border:1px solid #e5e0ed}
 @media(max-width:680px){.learning-layout{grid-template-columns:1fr}.learning-playlist{order:2}.learning-shell{padding:10px}.learning-main,.learning-playlist{padding:11px}.learning-top h2{font-size:16px}}
 
+
+
+/* Desktop academy layout */
+@media (min-width: 1000px){
+  body{min-height:100vh}
+  header{padding:20px max(32px,calc((100vw - 1440px)/2));text-align:left;display:flex;align-items:center;justify-content:space-between;min-height:86px}
+  header h1{font-size:25px}
+  header p{margin:0;font-size:14px}
+  main{max-width:1480px;padding:30px 34px 42px}
+  #authPanel{max-width:560px;margin:7vh auto;padding:34px}
+  #appPanel{display:grid;grid-template-columns:245px minmax(0,1fr);grid-template-rows:auto auto 1fr auto;column-gap:26px;align-items:start}
+  #appPanel > .panel:first-child{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:19px 25px;margin-bottom:18px}
+  #appPanel > .panel:first-child h2{margin:0 0 4px;font-size:23px}
+  #appPanel > .panel:first-child p{margin:0}
+  #appPanel > .panel:first-child button{min-width:120px}
+  #navigation{grid-column:1;grid-row:2/4;position:sticky;top:108px;display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:13px;margin:0;min-height:calc(100vh - 160px);border-radius:18px;background:linear-gradient(180deg,#0d2035,#102943);box-shadow:0 12px 30px #02091455}
+  #navigation button{width:100%;min-height:48px;text-align:left;padding:13px 16px;margin:0;border-radius:11px;font-size:14px}
+  #navigation button::before{content:'›';display:inline-block;margin-right:12px;color:#70e3d4;font-size:20px;line-height:10px;vertical-align:-1px}
+  #navigation button.active{box-shadow:0 5px 16px #35d6c033}
+  #page{grid-column:2;grid-row:2;min-width:0}
+  #appMessage{grid-column:2;grid-row:3;min-width:0}
+  .panel{padding:24px;margin-bottom:19px}
+  .dashboard-hero{padding:34px 38px;min-height:190px;display:flex;flex-direction:column;justify-content:center}
+  .dashboard-hero h2{font-size:34px}
+  .dashboard-stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:18px 0 24px}
+  .dashboard-stat{padding:22px}
+  .dashboard-stat strong{font-size:32px}
+  .dashboard-actions{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .course-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+  .student-course-cover{height:185px}
+  .student-course-info{padding:19px}
+  .student-course-info h3{font-size:19px}
+  .student-course-info p{font-size:14px}
+  .student-course-heading{margin-bottom:16px}
+  .student-course-search{max-width:430px}
+  .learning-shell{padding:24px;border-radius:22px}
+  .learning-top{margin-bottom:20px}
+  .learning-top h2{font-size:23px}
+  .learning-layout{grid-template-columns:minmax(0,1.9fr) minmax(300px,.85fr);gap:22px;align-items:start}
+  .learning-main,.learning-playlist{padding:22px;border-radius:17px}
+  .learning-media{margin-bottom:20px}
+  .learning-main h2{font-size:25px}
+  .learning-main .lesson-body{font-size:16px;line-height:1.8}
+  .learning-playlist{position:sticky;top:108px;max-height:calc(100vh - 145px);overflow:auto}
+  .playlist-item{padding:13px;min-height:60px}
+  .learning-controls{gap:12px}
+  .learning-controls button{min-height:46px}
+  .lesson-list{grid-template-columns:repeat(2,minmax(0,1fr));padding-left:28px;gap:15px}
+  .lesson-item{padding:18px}
+  .media-lightbox-inner{width:min(100%,1200px)}
+  footer{padding:30px}
+}
+@media (min-width:1450px){
+  main{padding-left:48px;padding-right:48px}
+  #appPanel{grid-template-columns:265px minmax(0,1fr);column-gap:32px}
+  .course-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .learning-layout{grid-template-columns:minmax(0,2fr) minmax(330px,.82fr)}
+}
+@media (min-width:681px) and (max-width:999px){
+  main{max-width:100%;padding:22px}
+  .course-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .learning-layout{grid-template-columns:minmax(0,1.4fr) minmax(230px,.9fr)}
+}
+
 </style>
 </head>
 <body>
