@@ -272,13 +272,18 @@ button:hover{transform:none!important}
 
 
 /* Compact named media tiles for staff and students */
-.media-file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,168px));gap:10px;margin:12px 0;align-items:stretch}
-.media-file-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:100%;min-height:118px;margin:0;padding:10px;background:#0b2543;border:1px solid #27618e;border-radius:12px;color:#edf7ff;box-shadow:none;text-align:center;overflow:hidden}
-.media-file-card:hover{transform:translateY(-2px);background:#10345a}
-.media-file-icon{display:grid;place-items:center;min-width:42px;height:42px;padding:0 7px;border-radius:11px;background:linear-gradient(135deg,#087cff,#12bcd6);color:#fff;font-size:20px;font-weight:900}
-.media-file-thumb{width:100%;height:74px;object-fit:cover;border-radius:8px}
-.media-file-name{display:block;width:100%;font-size:12px;font-weight:800;line-height:1.35;overflow-wrap:anywhere}
-.media-file-kind{display:block;color:#a9c8e5;font-size:10px;font-weight:600}
+/* Light blue lesson-material gallery inspired by the approved layout */
+.media-file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,225px),1fr));gap:14px;margin:16px 0;align-items:stretch}
+.media-file-card{position:relative;display:grid;grid-template-columns:76px minmax(0,1fr);grid-template-rows:auto auto 1fr;align-items:center;justify-items:start;column-gap:13px;row-gap:5px;width:100%;min-height:112px;margin:0;padding:13px;background:linear-gradient(145deg,#fff,#f5f8ff);border:1px solid #dce7f5;border-radius:15px;color:#172b49;box-shadow:0 7px 20px #001b3d12;text-align:left;overflow:hidden}
+.media-file-card:hover{transform:translateY(-2px);background:#fff;border-color:#75baff;box-shadow:0 10px 24px #087cff20}
+.media-file-icon{grid-column:1;grid-row:1/4;display:grid;place-items:center;width:76px;height:76px;padding:0 7px;border-radius:12px;background:linear-gradient(145deg,#087cff,#13c5e7);color:#fff;font-size:26px;font-weight:900;box-shadow:0 5px 13px #087cff30}
+.media-file-thumb{grid-column:1;grid-row:1/4;width:76px;height:76px;object-fit:cover;border-radius:12px}
+.media-file-name{grid-column:2;grid-row:1;display:block;width:100%;font-size:13px;font-weight:850;line-height:1.35;overflow-wrap:anywhere;color:#152c4d}
+.media-file-kind{grid-column:2;grid-row:2;display:block;color:#52708f;font-size:10px;font-weight:800;letter-spacing:.5px}
+.media-file-card:after{content:'Open material  ›';grid-column:2;grid-row:3;align-self:end;color:#087cff;font-size:11px;font-weight:800}
+.student-published-lesson .media-file-grid{padding:12px;background:#f1f6fd;border:1px solid #dbe8f7;border-radius:16px}
+.student-published-lesson .media-file-card{min-height:108px}
+@media(max-width:420px){.media-file-grid{grid-template-columns:1fr;gap:9px}.media-file-card{min-height:100px;padding:11px}.media-file-icon,.media-file-thumb{width:68px;height:68px}.media-file-card{grid-template-columns:68px minmax(0,1fr)}}
 .student-lesson-media{margin:12px 0;padding:0;background:transparent;border:0;overflow:visible}
 .media-lightbox-audio{display:block;width:min(100%,620px);margin:20px auto}
 .media-lightbox-pdf{display:block;width:100%;height:min(72vh,760px);border:0;border-radius:10px;background:#fff}
@@ -881,7 +886,7 @@ if(isStudent()){
  const available=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
  const locked=courses.filter(c=>c.accessType==="paid"&&!activeIds.has(c.id));
  const cards=items=>items.map(c=>`<article class="student-course"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">✦</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${safe(c.description||"Explore this practical technology course.")}</p>${c.accessType==="paid"?`<strong style="color:#68439b">MK ${safe(Number(c.price||0).toLocaleString("en-US"))}</strong>`:""}<button data-action="open-course" data-id="${safe(c.id)}">${c.accessType==="paid"?"View Course":"Start Learning →"}</button></div></article>`).join("");
- html+=`<div class="panel"><div class="student-course-heading"><h2>Explore Courses</h2><span class="tag">${available.length} available</span></div><p class="muted">Choose a course, follow the lessons and build your practical skills.</p><input id="courseSearch" class="student-course-search" placeholder="Search courses..."><div id="studentCourseGrid" class="course-grid">${cards(available)||"<p class='muted'>No courses are available yet.</p>"}</div></div>`;
+ html+=`<div class="panel"><div class="student-course-heading"><h2>Explore Courses</h2><span class="tag">${available.length} available</span></div><p class="muted">Open your pictures, videos, audio tutorials and PDF learning guides.</p><input id="courseSearch" class="student-course-search" placeholder="Search courses..."><div id="studentCourseGrid" class="course-grid">${cards(available)||"<p class='muted'>No courses are available yet.</p>"}</div></div>`;
  if(locked.length)html+=`<div class="panel"><h3>More Courses</h3><p class="muted">These paid courses need administrator approval before you can start learning.</p><div class="course-grid">${cards(locked)}</div></div>`;
 }else{
  if(!courses.length)html+="<div class='panel'><p>No courses available yet.</p></div>";
@@ -992,7 +997,7 @@ if(isStudent()){
    return `<li class="lesson-item student-published-lesson" data-student-lesson="${safe(lesson.id)}"><div class="student-course-heading"><h3>${index+1}. ${safe(lesson.title||"Untitled lesson")}</h3><span class="tag">${done?"✓ COMPLETED":safe(type.toUpperCase())}</span></div>${lesson.topic?`<p><strong>Topic:</strong> ${safe(lesson.topic)}</p>`:""}${lesson.section?`<p><strong>Section:</strong> ${safe(lesson.section)}</p>`:""}${lesson.learningOutcomes?`<p><strong>What you'll learn:</strong> ${safe(lesson.learningOutcomes)}</p>`:""}${body}${media}<div class="student-lesson-actions"><span class="muted">${done?"You have completed this lesson.":"Study this lesson and mark it complete when finished."}</span><button class="${done?"secondary":"student-lesson-done"}" data-action="student-complete" data-id="${safe(lesson.id)}">${done?"✓ Completed":"Mark as Complete ✓"}</button></div></li>`;
  };
  const percent=Math.round(completed.filter(id=>lessons.some(l=>l.id===id)).length/lessons.length*100);
- page.innerHTML=`<section class="panel"><button class="secondary" data-action="back-courses">← All Courses</button><h2>${safe(selectedCourse.title)}</h2><p>${safe(selectedCourse.description||"Follow the lessons in order and practise each skill safely.")}</p><div class="learning-progress-label"><strong>${completed.filter(id=>lessons.some(l=>l.id===id)).length} of ${lessons.length} lessons completed</strong><strong>${percent}%</strong></div><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${percent}%"></div></div></section><section class="panel"><div class="student-course-heading"><h2>Course Lessons</h2><span class="tag">${lessons.length} lessons</span></div><ol class="lesson-list">${lessons.map(renderStudentLesson).join("")}</ol></section>`;
+ page.innerHTML=`<section class="panel"><button class="secondary" data-action="back-courses">← All Courses</button><h2>${safe(selectedCourse.title)}</h2><p>${safe(selectedCourse.description||"Follow the lessons in order and practise each skill safely.")}</p><div class="learning-progress-label"><strong>${completed.filter(id=>lessons.some(l=>l.id===id)).length} of ${lessons.length} lessons completed</strong><strong>${percent}%</strong></div><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${percent}%"></div></div></section><section class="panel"><div class="student-course-heading"><h2>Lesson Materials</h2><span class="tag">${lessons.length} lessons</span></div><ol class="lesson-list">${lessons.map(renderStudentLesson).join("")}</ol></section>`;
  page.onclick=event=>{
    const button=event.target.closest('[data-action="student-complete"]');
    if(!button)return;
