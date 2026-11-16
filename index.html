@@ -270,6 +270,20 @@ button:hover{transform:none!important}
 .student-lesson-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:14px}
 .student-lesson-done{background:linear-gradient(100deg,#16c94b,#65f04d)!important;color:#031b0b!important}
 
+
+/* Compact named media tiles for staff and students */
+.media-file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,168px));gap:10px;margin:12px 0;align-items:stretch}
+.media-file-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:100%;min-height:118px;margin:0;padding:10px;background:#0b2543;border:1px solid #27618e;border-radius:12px;color:#edf7ff;box-shadow:none;text-align:center;overflow:hidden}
+.media-file-card:hover{transform:translateY(-2px);background:#10345a}
+.media-file-icon{display:grid;place-items:center;min-width:42px;height:42px;padding:0 7px;border-radius:11px;background:linear-gradient(135deg,#087cff,#12bcd6);color:#fff;font-size:20px;font-weight:900}
+.media-file-thumb{width:100%;height:74px;object-fit:cover;border-radius:8px}
+.media-file-name{display:block;width:100%;font-size:12px;font-weight:800;line-height:1.35;overflow-wrap:anywhere}
+.media-file-kind{display:block;color:#a9c8e5;font-size:10px;font-weight:600}
+.student-lesson-media{margin:12px 0;padding:0;background:transparent;border:0;overflow:visible}
+.media-lightbox-audio{display:block;width:min(100%,620px);margin:20px auto}
+.media-lightbox-pdf{display:block;width:100%;height:min(72vh,760px);border:0;border-radius:10px;background:#fff}
+@media(max-width:420px){.media-file-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.media-file-card{min-height:108px;padding:8px}.media-file-thumb{height:64px}.media-file-name{font-size:11px}}
+
 </style>
 </head>
 <body>
@@ -967,10 +981,12 @@ if(isStudent()){
  const renderStudentLesson=(lesson,index)=>{
    const type=lesson.type||"written";
    let media="";
-   if(lesson.mediaUrl&&type==="video")media=`<div class="student-lesson-media"><video controls playsinline preload="metadata" src="${safe(lesson.mediaUrl)}"></video></div>`;
-   else if(lesson.mediaUrl&&type==="audio")media=`<div class="student-lesson-media"><p><strong>♫ Audio lesson</strong></p><audio controls preload="metadata" src="${safe(lesson.mediaUrl)}"></audio><p><a href="${safe(lesson.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open or download audio</a></p></div>`;
-   else if(lesson.mediaUrl&&type==="image")media=`<div class="student-lesson-media"><img src="${safe(lesson.mediaUrl)}" alt="${safe(lesson.title)}" loading="lazy"><p><a href="${safe(lesson.mediaUrl)}" target="_blank" rel="noopener noreferrer">View full-size picture</a></p></div>`;
-   else if(lesson.mediaUrl&&type==="pdf")media=`<div class="student-lesson-media"><iframe loading="lazy" src="${safe(lesson.mediaUrl)}#toolbar=1" title="${safe(lesson.title)}"></iframe><p><a href="${safe(lesson.mediaUrl)}" target="_blank" rel="noopener noreferrer" download>Open or download PDF guide ↗</a></p></div>`;
+   if(lesson.mediaUrl&&["video","audio","image","pdf"].includes(type)){
+     const mediaLabel=lesson.title||"Learning material";
+     const mediaIcon=type==="video"?"▶":type==="audio"?"♫":type==="pdf"?"PDF":"▧";
+     const imageThumb=type==="image"?`<img class="media-file-thumb" src="${safe(lesson.mediaUrl)}" alt="" loading="lazy">`:"";
+     media=`<div class="media-file-grid"><button type="button" class="media-file-card" data-action="view-media" data-media-type="${safe(type)}" data-media-url="${safe(lesson.mediaUrl)}" data-media-title="${safe(mediaLabel)}"><span class="media-file-icon">${mediaIcon}</span>${imageThumb}<span class="media-file-name">${safe(mediaLabel)}</span><span class="media-file-kind">${safe(type.toUpperCase())} · Tap to open</span></button></div>`;
+   }
    const body=type==="written"?`<div class="lesson-body">${formatLessonContent(lesson.content||"")}</div>`:"";
    const done=completed.includes(lesson.id);
    return `<li class="lesson-item student-published-lesson" data-student-lesson="${safe(lesson.id)}"><div class="student-course-heading"><h3>${index+1}. ${safe(lesson.title||"Untitled lesson")}</h3><span class="tag">${done?"✓ COMPLETED":safe(type.toUpperCase())}</span></div>${lesson.topic?`<p><strong>Topic:</strong> ${safe(lesson.topic)}</p>`:""}${lesson.section?`<p><strong>Section:</strong> ${safe(lesson.section)}</p>`:""}${lesson.learningOutcomes?`<p><strong>What you'll learn:</strong> ${safe(lesson.learningOutcomes)}</p>`:""}${body}${media}<div class="student-lesson-actions"><span class="muted">${done?"You have completed this lesson.":"Study this lesson and mark it complete when finished."}</span><button class="${done?"secondary":"student-lesson-done"}" data-action="student-complete" data-id="${safe(lesson.id)}">${done?"✓ Completed":"Mark as Complete ✓"}</button></div></li>`;
@@ -1053,7 +1069,7 @@ ${l.section?`<p><strong>Section:</strong> ${safe(l.section)}</p>`:""}
 <span class="tag">${safe(l.type||"written")}</span>
 ${(l.type||"written")==="written"?`<div class="lesson-body">${formatLessonContent(l.content||"")}</div>`: "" }
 ${(l.type||"written")==="written"?`<button type="button" class="secondary" data-action="download-lesson-pdf"><span>⬇ Download PDF</span></button>`:""}
-${l.mediaUrl?((l.type==="image")?`<button type="button" class="media-preview" data-action="view-media" data-media-type="image" data-media-url="${safe(l.mediaUrl)}" data-media-title="${safe(l.title)}" aria-label="Open photo: ${safe(l.title)}"><img src="${safe(l.mediaUrl)}" alt="${safe(l.title)}" loading="lazy"></button>`:(l.type==="video")?`<button type="button" class="media-preview video-preview" data-action="view-media" data-media-type="video" data-media-url="${safe(l.mediaUrl)}" data-media-title="${safe(l.title)}" aria-label="Play video: ${safe(l.title)}"><video muted playsinline preload="metadata" src="${safe(l.mediaUrl)}"></video></button>`:(l.type==="audio")?`<audio controls preload="metadata" style="width:100%;margin:12px 0" src="${safe(l.mediaUrl)}"></audio>`:(l.type==="pdf")?`<div style="margin:12px 0"><iframe src="${safe(l.mediaUrl)}#toolbar=1" title="${safe(l.title)}" style="width:100%;height:650px;border:0;border-radius:10px;background:#fff"></iframe><p><a href="${safe(l.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open or download PDF</a></p></div>`:`<p><a href="${safe(l.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open learning material</a></p>`):""}
+${l.mediaUrl&&["image","video","audio","pdf"].includes(l.type)?`<div class="media-file-grid"><button type="button" class="media-file-card" data-action="view-media" data-media-type="${safe(l.type)}" data-media-url="${safe(l.mediaUrl)}" data-media-title="${safe(l.title)}"><span class="media-file-icon">${l.type==="video"?"▶":l.type==="audio"?"♫":l.type==="pdf"?"PDF":"▧"}</span>${l.type==="image"?`<img class="media-file-thumb" src="${safe(l.mediaUrl)}" alt="" loading="lazy">`:""}<span class="media-file-name">${safe(l.title||"Learning material")}</span><span class="media-file-kind">${safe(l.type.toUpperCase())} · Tap to open</span></button></div>`:(l.mediaUrl?`<p><a href="${safe(l.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open learning material</a></p>`:"")}
 ${isAdmin()?`
 <div class="actions">
 <button class="secondary" data-action="edit-lesson" data-id="${safe(l.id)}">Edit</button>
@@ -1336,6 +1352,11 @@ if(action==="view-media"){
   }else if(mediaType==="video"){
     const video=document.createElement("video");video.className="media-lightbox-content";video.controls=true;video.autoplay=true;video.playsInline=true;video.src=mediaUrl;inner.append(video);
     video.addEventListener("error",()=>appMessage("This video could not be played. Please check the uploaded file.","error"));
+  }else if(mediaType==="audio"){
+    const audio=document.createElement("audio");audio.className="media-lightbox-audio";audio.controls=true;audio.autoplay=true;audio.src=mediaUrl;inner.append(audio);
+  }else if(mediaType==="pdf"){
+    const frame=document.createElement("iframe");frame.className="media-lightbox-pdf";frame.src=mediaUrl+"#toolbar=1";frame.title=mediaTitle;inner.append(frame);
+    const link=document.createElement("a");link.href=mediaUrl;link.target="_blank";link.rel="noopener noreferrer";link.textContent="Open or download PDF";inner.append(link);
   }
   viewer.append(inner);viewer.addEventListener("click",event=>{if(event.target===viewer)viewer.remove();});
   document.body.append(viewer);
