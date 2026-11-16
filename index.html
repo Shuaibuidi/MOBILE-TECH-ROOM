@@ -362,7 +362,8 @@ return String(value??"").replace(/[&<>"']/g,c=>({
 async function uploadLessonMedia(file,courseId,onProgress=()=>{}){
   if(!currentUser)throw new Error("Please sign in again before uploading.");
   if(!isStaff())throw new Error("Only approved administrators and instructors can upload lesson files.");
-  if(!file||!courseId)throw new Error("Choose a file and save the course details first.");
+  if(!file)throw new Error("Choose a file first.");
+  if(typeof courseId!=="string"||!courseId.trim())throw new Error("Course ID is missing. Save the course details again before uploading.");
   if(file.size<=0||file.size>50*1024*1024)throw new Error("The file must be 50 MB or smaller.");
   const ext=(file.name.split(".").pop()||"").toLowerCase();
   const mimeByExt={jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",gif:"image/gif",mp4:"video/mp4",webm:"video/webm",pdf:"application/pdf",mp3:"audio/mpeg",wav:"audio/wav",m4a:"audio/mp4",ogg:"audio/ogg",aac:"audio/aac"};
@@ -828,9 +829,8 @@ let html="<div class='panel'><h2>Courses and Lessons</h2><p class='muted'>Choose
 if(isStaff()){
 html+="<h3>Create Course and First Lesson</h3><form id='combinedLessonForm'>";
 html+="<label class='muted'>1. Course name</label><input id='courseTitle' placeholder='e.g. Phone Flashing and Unlocking' required>";
-html+="<label class='muted'>Subject area</label><input id='courseCategory' placeholder='e.g. Android, iPhone, Flashing' required>";
 html+="<label class='muted'>What does this course cover?</label><textarea id='courseDescription' placeholder='Briefly describe the course' required></textarea>";
- html+="<label class='muted'>Course cover image URL (optional)</label><input id='courseCoverImage' type='url' placeholder='Paste an HTTPS image link for the course thumbnail'><hr>";
+ html+="<hr>";
 html+="<label class='muted'>2. Lesson title</label><input id='lessonTitle' placeholder='e.g. Introduction to Phone Flashing' required>";
 html+="<label class='muted'>3. Topic</label><input id='lessonTopic' placeholder='e.g. Flashing basics' required>";
 html+="<label class='muted'>4. Section</label><input id='lessonSection' placeholder='e.g. Introduction, Tools, Practical Steps' required>";
@@ -867,11 +867,15 @@ if(isStaff()){
 bindLessonFormControls({accessId:"courseAccess",priceFieldId:"coursePriceField",priceId:"coursePrice",typeId:"lessonType",writtenId:"writtenLessonFields",mediaId:"mediaLessonFields",contentId:"lessonContent"});
 let draftCourseId=null;
 const form=$("combinedLessonForm"),val=id=>$(id).value.trim(),editor=$("lessonContent");
-const courseFields=()=>({title:val("courseTitle"),category:val("courseCategory"),description:val("courseDescription"),coverImage:val("courseCoverImage"),accessType:$("courseAccess").value,price:Number($("coursePrice").value||0),createdBy:currentUser.uid});
+const courseFields=()=>({title:val("courseTitle"),category:"Technology",description:val("courseDescription"),coverImage:"",accessType:$("courseAccess").value,price:Number($("coursePrice").value||0),createdBy:currentUser.uid});
 const ensureCourse=async()=>{
-if(!draftCourseId){const ref=doc(collection(db,"courses"));draftCourseId=ref.id;await setDoc(ref,{...courseFields(),status:"draft",createdAt:serverTimestamp()});}
-else await updateDoc(doc(db,"courses",draftCourseId),courseFields());
-return draftCourseId;
+  if(!draftCourseId)draftCourseId=doc(collection(db,"courses")).id;
+  if(!draftCourseId)throw new Error("Could not create a course ID. Please refresh and try again.");
+  const courseRef=doc(db,"courses",draftCourseId);
+  await setDoc(courseRef,{...courseFields(),status:"draft",createdAt:serverTimestamp()},{merge:true});
+  const savedCourse=await getDoc(courseRef);
+  if(!savedCourse.exists())throw new Error("Course draft could not be verified. Check Firestore course permissions.");
+  return draftCourseId;
 };
 $("lessonStyle").onchange=()=>{editor.focus();document.execCommand("formatBlock",false,$("lessonStyle").value);};
 $("lessonFont").onchange=()=>{editor.focus();document.execCommand("fontName",false,$("lessonFont").value);};
@@ -903,7 +907,7 @@ if($("lessonFile").files.length&&!url){appMessage("Please upload the selected fi
 if(url&&!/^https:\/\/.+/i.test(url)){appMessage("Please enter a valid HTTPS link.","error");return;}
 const cid=await ensureCourse();
 await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:val("lessonOutcomes"),type:lessonType,content:lessonType==="written"?content:"",printable:lessonType==="written"?$("allowPrint").checked:false,mediaUrl:url,createdBy:currentUser.uid,createdAt:serverTimestamp()});
-await updateDoc(doc(db,"courses",cid),{status:"published"});
+await setDoc(doc(db,"courses",cid),{status:"published",updatedAt:serverTimestamp()},{merge:true});
 appMessage("Course and first lesson saved successfully.");
 await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:val("courseTitle"),description:val("courseDescription")};await openCourse(cid);
 }catch(err){appMessage("Could not save course and lesson: "+err.message,"error");}
