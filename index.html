@@ -125,6 +125,45 @@ hr{border-top-color:#34516e}
 .uppercase-accent{color:#ffc56b!important;font-weight:800;letter-spacing:.045em;text-shadow:0 0 14px #ffc56b24}
 @media(max-width:600px){header{padding:20px 14px 16px}header h1{font-size:22px}.panel{padding:14px;border-radius:15px}main{padding:13px}}
 
+
+/* Student academy experience */
+.course-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:15px;margin:14px 0}
+.student-course{overflow:hidden;padding:0;background:#fff;color:#243047;border:1px solid #e4e8ef;border-radius:18px;box-shadow:0 10px 28px #0002}
+.student-course-cover{height:142px;background:linear-gradient(135deg,#6441a5,#bd74c9);position:relative;overflow:hidden}
+.student-course-cover img{width:100%;height:100%;object-fit:cover;display:block}
+.student-course-cover .cover-placeholder{height:100%;display:grid;place-items:center;color:white;font-size:42px;background:linear-gradient(135deg,#6844a5,#d17cbb)}
+.student-course-info{padding:15px}
+.student-course-info h3{color:#292d45;margin:0 0 7px;font-size:17px}
+.student-course-info p{color:#697386;font-size:13px;line-height:1.5;min-height:38px}
+.student-course-info .tag{background:#f0eafa;color:#6946a0;border:0}
+.student-course-info button{width:100%;margin:8px 0 0;background:linear-gradient(110deg,#8055b7,#a56ac5);color:white}
+.student-course-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.student-course-heading h2{color:#fff}
+.learning-shell{background:#f4f2f8;color:#25263b;border-radius:20px;padding:14px;box-shadow:0 12px 30px #0002}
+.learning-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.learning-top h2{color:#29243c;margin:0;font-size:19px}
+.learning-layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(220px,.8fr);gap:14px}
+.learning-main,.learning-playlist{background:#fff;border:1px solid #e6e2ed;border-radius:15px;padding:14px;min-width:0}
+.learning-media{width:100%;aspect-ratio:16/9;background:#171527;border-radius:12px;overflow:hidden;display:grid;place-items:center;margin-bottom:14px}
+.learning-media video,.learning-media iframe,.learning-media img{width:100%;height:100%;object-fit:contain;border:0}
+.learning-media .media-placeholder{color:#fff;text-align:center;padding:20px}
+.learning-main h2{color:#4f347b;margin:10px 0}
+.learning-main .lesson-body{background:#fff;color:#263244;padding:4px 0}
+.learning-main .lesson-body blockquote{background:#f2eef8;color:#34445a}
+.learning-progress-track{height:8px;background:#e8e4ef;border-radius:20px;overflow:hidden;margin:9px 0}
+.learning-progress-fill{height:100%;background:linear-gradient(90deg,#7952b3,#d18ac6);border-radius:20px}
+.learning-playlist h3{color:#4c3474;margin:0 0 10px}
+.playlist-item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:#f7f5fa;color:#33304a;box-shadow:none;border:1px solid #e8e3ef;margin:5px 0;padding:10px;border-radius:10px}
+.playlist-item.active{background:#eee5f8;border-color:#9368be;color:#56377f}
+.playlist-item .playlist-number{width:27px;height:27px;flex:0 0 27px;border-radius:50%;display:grid;place-items:center;background:#e4d8f1;color:#68439b}
+.playlist-item small{display:block;color:#777185;font-weight:400}
+.learning-controls{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:15px}
+.learning-controls button{flex:1}
+.learning-controls .complete-button{background:linear-gradient(110deg,#1aa77a,#54c99c);color:#fff}
+.learning-back{background:#4b3b68!important;color:#fff!important}
+.student-course-search{background:#fff;color:#25263b;border:1px solid #e5e0ed}
+@media(max-width:680px){.learning-layout{grid-template-columns:1fr}.learning-playlist{order:2}.learning-shell{padding:10px}.learning-main,.learning-playlist{padding:11px}.learning-top h2{font-size:16px}}
+
 </style>
 </head>
 <body>
@@ -715,7 +754,8 @@ if(isStaff()){
 html+="<h3>Create Course and First Lesson</h3><form id='combinedLessonForm'>";
 html+="<label class='muted'>1. Course name</label><input id='courseTitle' placeholder='e.g. Phone Flashing and Unlocking' required>";
 html+="<label class='muted'>Subject area</label><input id='courseCategory' placeholder='e.g. Android, iPhone, Flashing' required>";
-html+="<label class='muted'>What does this course cover?</label><textarea id='courseDescription' placeholder='Briefly describe the course' required></textarea><hr>";
+html+="<label class='muted'>What does this course cover?</label><textarea id='courseDescription' placeholder='Briefly describe the course' required></textarea>";
+ html+="<label class='muted'>Course cover image URL (optional)</label><input id='courseCoverImage' type='url' placeholder='Paste an HTTPS image link for the course thumbnail'><hr>";
 html+="<label class='muted'>2. Lesson title</label><input id='lessonTitle' placeholder='e.g. Introduction to Phone Flashing' required>";
 html+="<label class='muted'>3. Topic</label><input id='lessonTopic' placeholder='e.g. Flashing basics' required>";
 html+="<label class='muted'>4. Section</label><input id='lessonSection' placeholder='e.g. Introduction, Tools, Practical Steps' required>";
@@ -730,16 +770,28 @@ html+="<div id='mediaLessonFields' class='hidden'><label class='muted'>Upload th
 html+="<label class='muted'>Or paste an HTTPS media link</label><input id='lessonUrl' type='url' placeholder='Paste a video, audio, photo or PDF link'></div><button type='submit'>12. Save Course and Lesson</button></form>";
 }
 html+="</div>";
-if(!courses.length)html+="<div class='panel'><p>No courses available yet.</p></div>";
-for(const c of courses){
-html+="<div class='card'><h3>"+safe(c.title)+"</h3><span class='tag'>"+safe(c.category)+"</span><p>"+safe(c.description)+"</p>"+(c.accessType==="paid"?"<p>One-time course price (all lessons): MK "+safe(Number(c.price||0).toLocaleString('en-US'))+"</p>":"")+"<div class='actions'><button data-action='open-course' data-id='"+safe(c.id)+"'>Open Course</button>"+(isAdmin()?"<button class='secondary' data-action='edit-course' data-id='"+safe(c.id)+"'>Edit</button><button class='danger' data-action='delete-course' data-id='"+safe(c.id)+"'>Delete</button>":"")+"</div></div>";
+if(isStudent()){
+ const enrollmentSnap=await getDocs(collection(db,"users",currentUser.uid,"enrollments"));
+ const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
+ const available=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
+ const locked=courses.filter(c=>c.accessType==="paid"&&!activeIds.has(c.id));
+ const cards=items=>items.map(c=>`<article class="student-course"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">✦</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${safe(c.description||"Explore this practical technology course.")}</p>${c.accessType==="paid"?`<strong style="color:#68439b">MK ${safe(Number(c.price||0).toLocaleString("en-US"))}</strong>`:""}<button data-action="open-course" data-id="${safe(c.id)}">${c.accessType==="paid"?"View Course":"Start Learning →"}</button></div></article>`).join("");
+ html+=`<div class="panel"><div class="student-course-heading"><h2>Explore Courses</h2><span class="tag">${available.length} available</span></div><p class="muted">Choose a course, follow the lessons and build your practical skills.</p><input id="courseSearch" class="student-course-search" placeholder="Search courses..."><div id="studentCourseGrid" class="course-grid">${cards(available)||"<p class='muted'>No courses are available yet.</p>"}</div></div>`;
+ if(locked.length)html+=`<div class="panel"><h3>More Courses</h3><p class="muted">These paid courses need administrator approval before you can start learning.</p><div class="course-grid">${cards(locked)}</div></div>`;
+}else{
+ if(!courses.length)html+="<div class='panel'><p>No courses available yet.</p></div>";
+ for(const c of courses){html+="<div class='card'><h3>"+safe(c.title)+"</h3><span class='tag'>"+safe(c.category)+"</span><p>"+safe(c.description)+"</p>"+(c.accessType==="paid"?"<p>One-time course price (all lessons): MK "+safe(Number(c.price||0).toLocaleString('en-US'))+"</p>":"")+"<div class='actions'><button data-action='open-course' data-id='"+safe(c.id)+"'>Open Course</button>"+(isAdmin()?"<button class='secondary' data-action='edit-course' data-id='"+safe(c.id)+"'>Edit</button><button class='danger' data-action='delete-course' data-id='"+safe(c.id)+"'>Delete</button>":"")+"</div></div>";}
 }
 page.innerHTML=html;
+if(isStudent()){
+ const search=$("courseSearch"),grid=$("studentCourseGrid");
+ if(search&&grid)search.oninput=()=>{const term=search.value.toLowerCase();grid.querySelectorAll(".student-course").forEach(card=>card.classList.toggle("hidden",!card.innerText.toLowerCase().includes(term)));};
+}
 if(isStaff()){
 bindLessonFormControls({accessId:"courseAccess",priceFieldId:"coursePriceField",priceId:"coursePrice",typeId:"lessonType",writtenId:"writtenLessonFields",mediaId:"mediaLessonFields",contentId:"lessonContent"});
 let draftCourseId=null;
 const form=$("combinedLessonForm"),val=id=>$(id).value.trim(),editor=$("lessonContent");
-const courseFields=()=>({title:val("courseTitle"),category:val("courseCategory"),description:val("courseDescription"),accessType:$("courseAccess").value,price:Number($("coursePrice").value||0),createdBy:currentUser.uid});
+const courseFields=()=>({title:val("courseTitle"),category:val("courseCategory"),description:val("courseDescription"),coverImage:val("courseCoverImage"),accessType:$("courseAccess").value,price:Number($("coursePrice").value||0),createdBy:currentUser.uid});
 const ensureCourse=async()=>{
 if(!draftCourseId){const ref=doc(collection(db,"courses"));draftCourseId=ref.id;await setDoc(ref,{...courseFields(),status:"draft",createdAt:serverTimestamp()});}
 else await updateDoc(doc(db,"courses",draftCourseId),courseFields());
@@ -816,6 +868,33 @@ page.innerHTML="<div class='panel'>Loading lessons...</div>";
 try{
 const snap=await getDocs(collection(db,"courses",courseId,"lessons"));
 const lessons=snap.docs.map(d=>({id:d.id,...d.data()}));
+if(isStudent()){
+ if(!lessons.length){page.innerHTML=`<div class="panel"><button class="secondary" data-action="back-courses">← Courses</button><h2>${safe(selectedCourse.title)}</h2><p class="muted">Your instructor has not added lessons yet.</p></div>`;return;}
+ const progressKey=`mtr_progress_${currentUser.uid}_${courseId}`;
+ let completed=[];try{completed=JSON.parse(localStorage.getItem(progressKey)||"[]");if(!Array.isArray(completed))completed=[];}catch(_){}
+ let activeIndex=0;
+ const drawRoom=()=>{
+  const lesson=lessons[activeIndex],done=completed.includes(lesson.id),percent=Math.round(completed.length/lessons.length*100);
+  let media="";
+  if(lesson.type==="video"&&lesson.mediaUrl)media=`<video controls playsinline preload="metadata" src="${safe(lesson.mediaUrl)}"></video>`;
+  else if(lesson.type==="audio"&&lesson.mediaUrl)media=`<div class="media-placeholder"><div style="font-size:38px">♫</div><p>Audio lesson</p><audio controls style="width:100%" src="${safe(lesson.mediaUrl)}"></audio></div>`;
+  else if(lesson.type==="image"&&lesson.mediaUrl)media=`<img src="${safe(lesson.mediaUrl)}" alt="${safe(lesson.title)}">`;
+  else if(lesson.type==="pdf"&&lesson.mediaUrl)media=`<iframe src="${safe(lesson.mediaUrl)}#toolbar=1" title="${safe(lesson.title)}"></iframe>`;
+  else media=`<div class="media-placeholder"><div style="font-size:42px">${lesson.type==="written"?"📖":"▶"}</div><p>${lesson.type==="written"?"Read the lesson below":"Learning material"}</p></div>`;
+  const content=(lesson.type||"written")==="written"?`<div class="lesson-body">${formatLessonContent(lesson.content||"")}</div>`:"";
+  const playlist=lessons.map((item,i)=>`<button class="playlist-item ${i===activeIndex?"active":""}" data-action="student-select-lesson" data-index="${i}"><span class="playlist-number">${completed.includes(item.id)?"✓":i+1}</span><span>${safe(item.title)}<small>${safe(item.type||"written")} ${completed.includes(item.id)?"· Completed":""}</small></span></button>`).join("");
+  page.innerHTML=`<section class="learning-shell"><div class="learning-top"><button class="learning-back" data-action="back-courses">← Courses</button><span class="tag">${safe(selectedCourse.category||"Course")}</span></div><div class="learning-layout"><div class="learning-main"><div class="learning-media">${media}</div><p class="muted">${safe(lesson.section||lesson.topic||"Course lesson")} · Lesson ${activeIndex+1} of ${lessons.length}</p><h2>${safe(lesson.title)}</h2>${lesson.learningOutcomes?`<p><strong>What you'll learn:</strong> ${safe(lesson.learningOutcomes)}</p>`:""}${content}${lesson.type==="written"&&lesson.printable!==false?`<button class="secondary" data-action="download-lesson-pdf">⬇ Download lesson PDF</button>`:""}<div class="learning-controls"><button class="secondary" data-action="student-prev" ${activeIndex===0?"disabled":""}>← Previous</button><button class="complete-button" data-action="student-complete">${done?"✓ Completed":"Mark as completed"}</button><button data-action="student-next" ${activeIndex===lessons.length-1?"disabled":""}>Next lesson →</button></div></div><aside class="learning-playlist"><h3>${safe(selectedCourse.title)}</h3><p class="muted">${safe(selectedCourse.description||"Follow the lessons in order.")}</p><strong style="color:#5d4382">${completed.length} of ${lessons.length} completed</strong><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${percent}%"></div></div><p class="muted">${percent}% course progress</p><hr><h3>Course Content</h3>${playlist}</aside></div><p class="muted" style="text-align:center;margin:12px 0 0">Lesson completion is saved on this device.</p></section>`;
+ };
+ drawRoom();
+ page.onclick=event=>{
+  const b=event.target.closest("[data-action]");if(!b)return;
+  if(b.dataset.action==="student-select-lesson"){activeIndex=Number(b.dataset.index)||0;drawRoom();}
+  if(b.dataset.action==="student-prev"&&activeIndex>0){activeIndex--;drawRoom();}
+  if(b.dataset.action==="student-next"&&activeIndex<lessons.length-1){activeIndex++;drawRoom();}
+  if(b.dataset.action==="student-complete"){if(!completed.includes(lessons[activeIndex].id))completed.push(lessons[activeIndex].id);try{localStorage.setItem(progressKey,JSON.stringify(completed));}catch(_){}if(activeIndex<lessons.length-1)activeIndex++;drawRoom();}
+ };
+ return;
+}
 let html=`
 <div class="panel">
 <button class="secondary" data-action="back-courses">Back to Lessons</button>
