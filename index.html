@@ -243,14 +243,41 @@ main{max-width:1600px;padding:24px clamp(12px,2vw,30px) 40px}#appPanel{gap:18px}
 @media(max-width:999px){.academy-header{grid-template-columns:1fr auto;gap:10px}.global-search-wrap{grid-column:1/-1;grid-row:2}.header-kicker{display:none}#appPanel{display:block}#navigation{position:static;min-height:0;display:flex;flex-direction:row;overflow-x:auto;white-space:nowrap;margin:0 0 14px}#navigation button{min-width:130px}.course-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
 @media(max-width:600px){.brand-mark{width:42px;height:42px;font-size:25px}.brand-lockup h1{font-size:14px}.brand-lockup p{font-size:9px}.academy-header{padding:10px 12px}.header-avatar{width:36px;height:36px}.course-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.student-course-cover{height:105px}.student-course-info{padding:10px}.student-course-info h3{font-size:14px}.student-course-info p{font-size:11px;min-height:0}.student-course-info button{font-size:11px;padding:9px 6px}.learning-layout{grid-template-columns:1fr}.learning-playlist{order:2}.learning-media{aspect-ratio:16/9}.resource-tabs button{min-width:70px;font-size:11px;padding:9px 5px}}
 
+
+/* Stability and requested header refinements */
+html{scroll-behavior:auto;scrollbar-gutter:stable}
+body{overflow-anchor:none}
+.academy-header{position:sticky;top:0;transform:translateZ(0);backface-visibility:hidden}
+.brand-lockup h1{font-size:clamp(22px,2vw,30px)!important;letter-spacing:.35px}
+.brand-lockup p{font-size:clamp(12px,1.05vw,15px)!important;letter-spacing:.55px}
+.brand-mark,.header-avatar{display:none!important}
+.header-right{justify-content:flex-end;min-width:86px}
+.header-logout{margin:0;padding:10px 17px;background:linear-gradient(100deg,#087cff,#08bfe8);color:#fff;white-space:nowrap}
+.dashboard-hero:after{content:none!important;display:none!important}
+button:hover{transform:none!important}
+#navigation button:hover{transform:none!important}
+#appPanel>.panel:first-child{display:none!important}
+@media(min-width:1000px){#appPanel{grid-template-columns:230px minmax(0,1fr)}#navigation{grid-column:1;grid-row:1/3;position:sticky;top:100px;align-self:start}#page{grid-column:2;grid-row:1}#appMessage{grid-column:2;grid-row:2}}
+@media(max-width:600px){.brand-lockup h1{font-size:21px!important}.brand-lockup p{font-size:12px!important}.academy-header{min-height:70px}}
+.student-published-lesson{padding:18px;margin:12px 0;border-left:4px solid #16c9d8}
+.student-published-lesson h3{white-space:normal;overflow:visible;text-overflow:clip}
+.student-lesson-media{margin:14px 0;padding:12px;background:#06172d;border:1px solid #1b568b;border-radius:13px;overflow:hidden}
+.student-lesson-media video,.student-lesson-media iframe{display:block;width:100%;max-width:100%;border:0;border-radius:9px;background:#000}
+.student-lesson-media video{max-height:560px}
+.student-lesson-media iframe{height:min(75vh,760px);background:#fff}
+.student-lesson-media img{display:block;max-width:100%;max-height:650px;width:auto;height:auto;margin:auto;object-fit:contain;border-radius:9px}
+.student-lesson-media audio{display:block;width:100%;max-width:760px;margin:12px auto}
+.student-lesson-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:14px}
+.student-lesson-done{background:linear-gradient(100deg,#16c94b,#65f04d)!important;color:#031b0b!important}
+
 </style>
 </head>
 <body>
 
 <header class="academy-header">
-  <div class="brand-lockup"><div class="brand-mark">⚙</div><div><h1>Mobile Tech Room</h1><p>Learn. Repair. Innovate.</p></div></div>
+  <div class="brand-lockup"><div class="brand-copy"><h1>Mobile Tech Room</h1><p>Learn. Repair. Innovate.</p></div></div>
   <label class="global-search-wrap"><span>⌕</span><input id="globalCourseSearch" type="search" placeholder="Search courses, lessons..." aria-label="Search courses and lessons"></label>
-  <div class="header-right"><span class="header-avatar">MTR</span></div>
+  <div class="header-right"><button id="logoutButton" class="header-logout hidden" type="button">Logout</button></div>
 </header>
 
 <main>
@@ -270,12 +297,6 @@ main{max-width:1600px;padding:24px clamp(12px,2vw,30px) 40px}#appPanel{gap:18px}
 </section>
 
 <section id="appPanel" class="hidden">
-<div class="panel">
-<h2 id="welcomeTitle">Welcome</h2>
-<p class="muted" id="accountInfo"></p>
-<button id="logoutButton" class="secondary">Logout</button>
-</div>
-
 <nav id="navigation"></nav>
 <div id="page"></div>
 <div id="appMessage"></div>
@@ -301,6 +322,10 @@ getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,
 query,where
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
+import {
+getStorage,ref as storageRef,uploadBytesResumable,getDownloadURL
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-storage.js";
+
 const firebaseConfig={
 apiKey:"AIzaSyAFP-RfZWPKPcHU9NqtTzX1b8HvVVzkb3Y",
 authDomain:"mobile-tech-room.firebaseapp.com",
@@ -314,6 +339,7 @@ measurementId:"G-WY4T9JMB97"
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
+const storage=getStorage(app);
 
 let currentUser=null;
 let profile=null;
@@ -331,6 +357,26 @@ function safe(value){
 return String(value??"").replace(/[&<>"']/g,c=>({
 "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
 }[c]));
+}
+
+async function uploadLessonMedia(file,courseId,onProgress=()=>{}){
+  if(!currentUser)throw new Error("Please sign in again before uploading.");
+  if(!isStaff())throw new Error("Only approved administrators and instructors can upload lesson files.");
+  if(!file||!courseId)throw new Error("Choose a file and save the course details first.");
+  if(file.size<=0||file.size>50*1024*1024)throw new Error("The file must be 50 MB or smaller.");
+  const ext=(file.name.split(".").pop()||"").toLowerCase();
+  const mimeByExt={jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",gif:"image/gif",mp4:"video/mp4",webm:"video/webm",pdf:"application/pdf",mp3:"audio/mpeg",wav:"audio/wav",m4a:"audio/mp4",ogg:"audio/ogg",aac:"audio/aac"};
+  const mime=file.type||mimeByExt[ext]||"";
+  const allowed=["image/jpeg","image/png","image/webp","image/gif","video/mp4","video/webm","application/pdf","audio/mpeg","audio/wav","audio/x-wav","audio/mp4","audio/x-m4a","audio/ogg","audio/webm","audio/aac"];
+  if(!allowed.includes(mime))throw new Error("Unsupported file type. Choose JPG, PNG, WEBP, GIF, MP4, WEBM, PDF, MP3, WAV, M4A, OGG or AAC.");
+  const cleanName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_").slice(-100)||("lesson."+ext);
+  const objectPath=`course-media/${currentUser.uid}/${courseId}/${Date.now()}_${cleanName}`;
+  const target=storageRef(storage,objectPath);
+  const task=uploadBytesResumable(target,file.type?file:new File([file],file.name,{type:mime}),{contentType:mime,customMetadata:{courseId,uploadedBy:currentUser.uid}});
+  const snapshot=await new Promise((resolve,reject)=>{
+    task.on("state_changed",snap=>onProgress(Math.round((snap.bytesTransferred/snap.totalBytes)*100)),reject,()=>resolve(task.snapshot));
+  });
+  return {mediaUrl:await getDownloadURL(snapshot.ref),mime,objectPath};
 }
 
 function formatLessonContent(value){
@@ -539,6 +585,7 @@ currentUser=user;
 // A new account must finish writing its Firestore profile before auth-state checks run.
 if(registrationInProgress)return;
 if(!user){
+$("logoutButton").classList.add("hidden");
 profile=null;
 $("authPanel").classList.remove("hidden");
 $("appPanel").classList.add("hidden");
@@ -616,9 +663,7 @@ return;
 
 $("authPanel").classList.add("hidden");
 $("appPanel").classList.remove("hidden");
-$("welcomeTitle").textContent="Welcome, "+(profile.fullName||user.email);
-$("accountInfo").textContent=
-(profile.role||"student").toUpperCase()+" · "+(profile.status||"pending").toUpperCase();
+$("logoutButton").classList.remove("hidden");
 
 if(profile.status!=="approved"){
 page.innerHTML=`<div class="panel">
@@ -653,6 +698,25 @@ $("navigation").onclick=e=>{
 const b=e.target.closest("[data-tab]");
 if(b)showTab(b.dataset.tab);
 };
+const globalSearchField=$("globalCourseSearch");
+if(globalSearchField){
+  globalSearchField.addEventListener("input",()=>{
+    applyGlobalCourseSearch();
+    const hasSearchable=[...page.querySelectorAll(".student-course,.card,.lesson-item")].length>0;
+    if(globalSearchField.value.trim()&&!hasSearchable&&currentUser&&currentTab!=="lessons")showTab("lessons");
+  });
+  globalSearchField.addEventListener("keydown",event=>{
+    if(event.key==="Enter"&&currentUser){event.preventDefault();if(currentTab!=="lessons")showTab("lessons").then(applyGlobalCourseSearch);else applyGlobalCourseSearch();}
+  });
+}
+
+function applyGlobalCourseSearch(){
+  const field=$("globalCourseSearch");
+  if(!field)return;
+  const term=field.value.trim().toLowerCase();
+  const candidates=[...page.querySelectorAll(".student-course,.card,.lesson-item")];
+  candidates.forEach(item=>item.classList.toggle("hidden",!!term&&!item.innerText.toLowerCase().includes(term)));
+}
 
 async function showTab(tab){
 currentTab=tab;
@@ -664,6 +728,7 @@ if(tab==="dashboard")await renderDashboard();
 if(tab==="lessons")await renderCourses();
 if(tab==="students"&&isAdmin())await renderUsers("student");
 if(tab==="instructors"&&isAdmin())await renderUsers("instructor");
+applyGlobalCourseSearch();
 }
 
 async function renderDashboard(){
@@ -690,7 +755,6 @@ async function renderDashboard(){
       <section class="panel"><div class="student-course-heading"><h2>Our Courses</h2><button data-dashboard-tab="lessons">View All Courses →</button></div><p class="muted">Choose your technical path and learn at your own pace.</p><div class="course-grid">${cards||`<p class="muted">Your instructors have not published courses yet. Please check again soon.</p>`}</div></section>
       ${locked.length?`<section class="panel"><h3>More Courses</h3><p class="muted">Paid courses become available after administrator approval.</p>${locked.map(c=>`<span class="tag">🔒 ${safe(c.title)}</span>`).join("")}</section>`:""}
       <section class="panel"><h3>Learn with every format</h3><div class="course-quick-stats"><div class="course-quick-stat"><strong>▶</strong><span>Video lessons</span></div><div class="course-quick-stat"><strong>♫</strong><span>Audio tutorials</span></div><div class="course-quick-stat"><strong>PDF</strong><span>Guides &amp; manuals</span></div></div><p class="muted">Study with videos, listen to audio explanations, read PDF manuals and inspect pictures or diagrams inside each lesson.</p></section>`;
-      const search=$("globalCourseSearch");if(search)search.oninput=()=>{const term=search.value.toLowerCase();page.querySelectorAll(".student-course").forEach(card=>card.classList.toggle("hidden",!card.innerText.toLowerCase().includes(term)));};
       return;
     }catch(error){appMessage("Could not load your learning dashboard: "+error.message,"error");}
   }
@@ -706,7 +770,7 @@ async function renderDashboard(){
       stats=[{value:courses.length,label:"My lesson topics"},{value:courses.filter(c=>c.status==="published").length,label:"Published topics"},{value:lessonCounts.reduce((a,b)=>a+b,0),label:"Lessons created"}];quickActions=`<button data-dashboard-tab="lessons">Open My Lessons</button>`;
     }
   }catch(error){appMessage("Some dashboard statistics could not be loaded: "+error.message,"error");}
-  page.innerHTML=`<section class="dashboard-hero"><h2>Welcome, ${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats">${stats.map(x=>`<div class="dashboard-stat"><strong>${safe(x.value)}</strong><span>${safe(x.label)}</span></div>`).join("")}</div><section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions">${quickActions}</div></section><section class="panel"><h3>Account Information</h3><p><strong>Name:</strong> ${safe(name)}</p><p><strong>Role:</strong> <span class="tag">${safe(role.toUpperCase())}</span></p><p><strong>Account status:</strong> <span class="tag">${safe(status.toUpperCase())}</span></p></section>`;
+  page.innerHTML=`<section class="dashboard-hero"><h2>Welcome, ${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats">${stats.map(x=>`<div class="dashboard-stat"><strong>${safe(x.value)}</strong><span>${safe(x.label)}</span></div>`).join("")}</div><section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions">${quickActions}</div></section><section class="panel"><h3>Account Information</h3><p><strong>Name:</strong> ${safe(name)}</p><p><strong>Role:</strong> <span class="tag">${safe(role.toUpperCase())}</span></p>${isAdmin()?"":`<p><strong>Account status:</strong> <span class="tag">${safe(status.toUpperCase())}</span></p>`}</section>`;
 }
 
 
@@ -816,20 +880,16 @@ document.querySelectorAll("[data-editor]").forEach(b=>b.onclick=()=>{editor.focu
 $("uploadLessonFile").onclick=async()=>{
 const f=$("lessonFile").files[0],st=$("uploadStatus"),btn=$("uploadLessonFile");
 if(!f){st.textContent="Please choose a file first.";return;}
-const ext=(f.name.split(".").pop()||"").toLowerCase(),map={jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",gif:"image/gif",mp4:"video/mp4",webm:"video/webm",pdf:"application/pdf",mp3:"audio/mpeg",wav:"audio/wav",m4a:"audio/mp4",ogg:"audio/ogg",aac:"audio/aac"},mime=f.type||map[ext]||"";
-const allowed=["image/jpeg","image/png","image/webp","image/gif","video/mp4","video/webm","application/pdf","audio/mpeg","audio/wav","audio/x-wav","audio/mp4","audio/x-m4a","audio/ogg","audio/webm","audio/aac"];
-if(!allowed.includes(mime)){st.textContent="Unsupported file type.";return;}
-if(f.size<=0||f.size>50*1024*1024){st.textContent="The file must be 50 MB or smaller.";return;}
-btn.disabled=true;st.textContent="Preparing course and uploading file...";
+btn.disabled=true;st.textContent="Preparing course and uploading file... 0%";
 try{
-const cid=await ensureCourse(),token=await currentUser.getIdToken(),body=new FormData();
-body.append("file",f.type?f:new File([f],f.name,{type:mime}));body.append("courseId",cid);
-const response=await fetch("https://uikexwoduxluqxxowcdc.supabase.co/functions/v1/staff-media-upload",{method:"POST",headers:{Authorization:"Bearer "+token},body});
-const result=await response.json();if(!response.ok||!result.success)throw new Error(result.error||"Upload failed.");
-$("lessonUrl").value=result.mediaUrl;$("lessonType").value=mime==="application/pdf"?"pdf":mime.startsWith("video/")?"video":mime.startsWith("audio/")?"audio":"image";
+const cid=await ensureCourse();
+const result=await uploadLessonMedia(f,cid,p=>st.textContent=`Uploading file... ${p}%`);
+$("lessonUrl").value=result.mediaUrl;
+$("lessonType").value=result.mime==="application/pdf"?"pdf":result.mime.startsWith("video/")?"video":result.mime.startsWith("audio/")?"audio":"image";
 $("lessonType").dispatchEvent(new Event("change"));
 st.textContent="Upload complete. Press Save Course and Lesson.";
-}catch(err){st.textContent=err.message||"Upload failed.";}finally{btn.disabled=false;}
+}catch(err){st.textContent=(err.code?err.code+": ":"")+(err.message||"Upload failed.");}
+finally{btn.disabled=false;}
 };
 form.onsubmit=async e=>{
 e.preventDefault();
@@ -883,30 +943,31 @@ const lessons=snap.docs.map(d=>({id:d.id,...d.data()}));
 if(isStudent()){
  if(!lessons.length){page.innerHTML=`<div class="panel"><button class="secondary" data-action="back-courses">← Courses</button><h2>${safe(selectedCourse.title)}</h2><p class="muted">Your instructor has not added lessons yet.</p></div>`;return;}
  const progressKey=`mtr_progress_${currentUser.uid}_${courseId}`;
- let completed=[];try{completed=JSON.parse(localStorage.getItem(progressKey)||"[]");if(!Array.isArray(completed))completed=[];}catch(_){}
- let activeIndex=0;
- const drawRoom=()=>{
-  const lesson=lessons[activeIndex],done=completed.includes(lesson.id),percent=Math.round(completed.length/lessons.length*100);
-  let media="";
-  if(lesson.type==="video"&&lesson.mediaUrl)media=`<video controls playsinline preload="metadata" src="${safe(lesson.mediaUrl)}"></video>`;
-  else if(lesson.type==="audio"&&lesson.mediaUrl)media=`<div class="media-placeholder"><div style="font-size:38px">♫</div><p>Audio lesson</p><audio controls style="width:100%" src="${safe(lesson.mediaUrl)}"></audio></div>`;
-  else if(lesson.type==="image"&&lesson.mediaUrl)media=`<img src="${safe(lesson.mediaUrl)}" alt="${safe(lesson.title)}">`;
-  else if(lesson.type==="pdf"&&lesson.mediaUrl)media=`<iframe src="${safe(lesson.mediaUrl)}#toolbar=1" title="${safe(lesson.title)}"></iframe>`;
-  else media=`<div class="media-placeholder"><div style="font-size:42px">${lesson.type==="written"?"📖":"▶"}</div><p>${lesson.type==="written"?"Read the lesson below":"Learning material"}</p></div>`;
-  const content=(lesson.type||"written")==="written"?`<div class="lesson-body">${formatLessonContent(lesson.content||"")}</div>`:"";
-  const playlist=lessons.map((item,i)=>`<button class="playlist-item ${i===activeIndex?"active":""}" data-action="student-select-lesson" data-index="${i}"><span class="playlist-number">${completed.includes(item.id)?"✓":i+1}</span><span>${safe(item.title)}<small>${safe((item.type||"written").toUpperCase())} ${completed.includes(item.id)?"· Completed":""}</small></span></button>`).join("");
-  const resourceTypes=[{key:"video",label:"▶ Video"},{key:"audio",label:"♫ Audio"},{key:"pdf",label:"▤ PDF"},{key:"image",label:"▧ Pictures"},{key:"written",label:"▤ Notes"}];
-  const resourceTabs=resourceTypes.map(r=>`<button class="${(lesson.type||"written")===r.key?"active":""}" data-action="filter-resource" data-type="${r.key}" ${lessons.some(x=>(x.type||"written")===r.key)?"":"disabled"}>${r.label}</button>`).join("");
-  page.innerHTML=`<section class="learning-shell"><div class="learning-top"><button class="learning-back" data-action="back-courses">← All Courses</button><span class="tag">${safe(selectedCourse.category||"Technical Course")}</span></div><div class="learning-layout"><div class="learning-main"><h2>Lesson Player · ${safe(selectedCourse.title)}</h2><div class="learning-media">${media}</div><div class="resource-tabs">${resourceTabs}</div><p class="muted">${safe(lesson.section||lesson.topic||"Course lesson")} · Lesson ${activeIndex+1} of ${lessons.length}</p><h2>${safe(lesson.title)}</h2>${lesson.learningOutcomes?`<p><strong>What you'll learn:</strong> ${safe(lesson.learningOutcomes)}</p>`:""}${content}${lesson.type==="written"&&lesson.printable!==false?`<button class="secondary" data-action="download-lesson-pdf">⬇ Download lesson PDF</button>`:""}${lesson.mediaUrl&&lesson.type==="pdf"?`<p><a href="${safe(lesson.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open or download this PDF guide ↗</a></p>`:""}${lesson.mediaUrl&&lesson.type==="image"?`<p><a href="${safe(lesson.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open full-size picture ↗</a></p>`:""}<div class="learning-controls"><button class="secondary" data-action="student-prev" ${activeIndex===0?"disabled":""}>← Previous</button><button class="complete-button" data-action="student-complete">${done?"✓ Completed":"Mark as complete ✓"}</button><button data-action="student-next" ${activeIndex===lessons.length-1?"disabled":""}>Next Lesson →</button></div></div><aside class="learning-playlist"><h3>Lesson Playlist</h3><p class="muted">${safe(selectedCourse.description||"Follow the lessons in order.")}</p><div class="learning-progress-label"><strong>${completed.length} of ${lessons.length} completed</strong><strong>${percent}%</strong></div><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${percent}%"></div></div><hr><h3>Course Content · ${lessons.length} Lessons</h3>${playlist}</aside></div><p class="muted" style="text-align:center;margin:12px 0 0">Your lesson completion is currently saved on this device.</p></section>`;
+ let completed=[];try{completed=JSON.parse(localStorage.getItem(progressKey)||"[]");if(!Array.isArray(completed))completed=[];}catch(_){completed=[];}
+ const renderStudentLesson=(lesson,index)=>{
+   const type=lesson.type||"written";
+   let media="";
+   if(lesson.mediaUrl&&type==="video")media=`<div class="student-lesson-media"><video controls playsinline preload="metadata" src="${safe(lesson.mediaUrl)}"></video></div>`;
+   else if(lesson.mediaUrl&&type==="audio")media=`<div class="student-lesson-media"><p><strong>♫ Audio lesson</strong></p><audio controls preload="metadata" src="${safe(lesson.mediaUrl)}"></audio><p><a href="${safe(lesson.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open or download audio</a></p></div>`;
+   else if(lesson.mediaUrl&&type==="image")media=`<div class="student-lesson-media"><img src="${safe(lesson.mediaUrl)}" alt="${safe(lesson.title)}" loading="lazy"><p><a href="${safe(lesson.mediaUrl)}" target="_blank" rel="noopener noreferrer">View full-size picture</a></p></div>`;
+   else if(lesson.mediaUrl&&type==="pdf")media=`<div class="student-lesson-media"><iframe loading="lazy" src="${safe(lesson.mediaUrl)}#toolbar=1" title="${safe(lesson.title)}"></iframe><p><a href="${safe(lesson.mediaUrl)}" target="_blank" rel="noopener noreferrer" download>Open or download PDF guide ↗</a></p></div>`;
+   const body=type==="written"?`<div class="lesson-body">${formatLessonContent(lesson.content||"")}</div>`:"";
+   const done=completed.includes(lesson.id);
+   return `<li class="lesson-item student-published-lesson" data-student-lesson="${safe(lesson.id)}"><div class="student-course-heading"><h3>${index+1}. ${safe(lesson.title||"Untitled lesson")}</h3><span class="tag">${done?"✓ COMPLETED":safe(type.toUpperCase())}</span></div>${lesson.topic?`<p><strong>Topic:</strong> ${safe(lesson.topic)}</p>`:""}${lesson.section?`<p><strong>Section:</strong> ${safe(lesson.section)}</p>`:""}${lesson.learningOutcomes?`<p><strong>What you'll learn:</strong> ${safe(lesson.learningOutcomes)}</p>`:""}${body}${media}<div class="student-lesson-actions"><span class="muted">${done?"You have completed this lesson.":"Study this lesson and mark it complete when finished."}</span><button class="${done?"secondary":"student-lesson-done"}" data-action="student-complete" data-id="${safe(lesson.id)}">${done?"✓ Completed":"Mark as Complete ✓"}</button></div></li>`;
  };
- drawRoom();
+ const percent=Math.round(completed.filter(id=>lessons.some(l=>l.id===id)).length/lessons.length*100);
+ page.innerHTML=`<section class="panel"><button class="secondary" data-action="back-courses">← All Courses</button><h2>${safe(selectedCourse.title)}</h2><p>${safe(selectedCourse.description||"Follow the lessons in order and practise each skill safely.")}</p><div class="learning-progress-label"><strong>${completed.filter(id=>lessons.some(l=>l.id===id)).length} of ${lessons.length} lessons completed</strong><strong>${percent}%</strong></div><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${percent}%"></div></div></section><section class="panel"><div class="student-course-heading"><h2>Course Lessons</h2><span class="tag">${lessons.length} lessons</span></div><ol class="lesson-list">${lessons.map(renderStudentLesson).join("")}</ol></section>`;
  page.onclick=event=>{
-  const b=event.target.closest("[data-action]");if(!b)return;
-  if(b.dataset.action==="filter-resource"){const type=b.dataset.type;const index=lessons.findIndex(x=>(x.type||"written")===type);if(index>=0){activeIndex=index;drawRoom();}return;}
-  if(b.dataset.action==="student-select-lesson"){activeIndex=Number(b.dataset.index)||0;drawRoom();}
-  if(b.dataset.action==="student-prev"&&activeIndex>0){activeIndex--;drawRoom();}
-  if(b.dataset.action==="student-next"&&activeIndex<lessons.length-1){activeIndex++;drawRoom();}
-  if(b.dataset.action==="student-complete"){if(!completed.includes(lessons[activeIndex].id))completed.push(lessons[activeIndex].id);try{localStorage.setItem(progressKey,JSON.stringify(completed));}catch(_){}if(activeIndex<lessons.length-1)activeIndex++;drawRoom();}
+   const button=event.target.closest('[data-action="student-complete"]');
+   if(!button)return;
+   const lessonId=button.dataset.id;
+   if(!completed.includes(lessonId))completed.push(lessonId);
+   try{localStorage.setItem(progressKey,JSON.stringify(completed));}catch(_){appMessage("Lesson completed, but this browser could not save progress on this device.","error");}
+   const card=button.closest(".student-published-lesson");
+   if(card){const tag=card.querySelector(".tag");if(tag)tag.textContent="✓ COMPLETED";button.textContent="✓ Completed";button.classList.remove("student-lesson-done");button.classList.add("secondary");}
+   const count=completed.filter(id=>lessons.some(l=>l.id===id)).length;
+   const label=page.querySelector(".learning-progress-label");if(label)label.innerHTML=`<strong>${count} of ${lessons.length} lessons completed</strong><strong>${Math.round(count/lessons.length*100)}%</strong>`;
+   const bar=page.querySelector(".learning-progress-fill");if(bar)bar.style.width=Math.round(count/lessons.length*100)+"%";
  };
  return;
 }
@@ -997,30 +1058,16 @@ if(editor){
 }
 const uploadButton=$("uploadLessonFile");
 if(uploadButton)uploadButton.onclick=async()=>{
-  const file=$("lessonFile").files[0];
-  const status=$("uploadStatus");
+  const file=$("lessonFile").files[0],status=$("uploadStatus");
   if(!file){status.textContent="Please choose an image, video, audio file or PDF first.";return;}
-  const ext=(file.name.split(".").pop()||"").toLowerCase();
-  const mimeByExt={jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",gif:"image/gif",mp4:"video/mp4",webm:"video/webm",pdf:"application/pdf",mp3:"audio/mpeg",wav:"audio/wav",m4a:"audio/mp4",ogg:"audio/ogg",aac:"audio/aac"};
-  const mime=file.type||mimeByExt[ext]||"";
-  const allowed=["image/jpeg","image/png","image/webp","image/gif","video/mp4","video/webm","application/pdf","audio/mpeg","audio/wav","audio/x-wav","audio/mp4","audio/x-m4a","audio/ogg","audio/webm","audio/aac"];
-  if(!allowed.includes(mime)){status.textContent="Unsupported file. Choose JPG, PNG, WEBP, GIF, MP4, WEBM, PDF, MP3, WAV, M4A, OGG or AAC.";return;}
-  if(file.size<=0||file.size>50*1024*1024){status.textContent="The file must be 50 MB or smaller.";return;}
-  const uploadFile=file.type?file:new File([file],file.name,{type:mime});
-  uploadButton.disabled=true;status.textContent="Uploading file... Please wait.";
+  uploadButton.disabled=true;status.textContent="Uploading file... 0%";
   try{
-    const token=await currentUser.getIdToken();
-    const body=new FormData();body.append("file",uploadFile);body.append("courseId",courseId);
-    const response=await fetch("https://uikexwoduxluqxxowcdc.supabase.co/functions/v1/staff-media-upload",{
-      method:"POST",headers:{Authorization:"Bearer "+token},body
-    });
-    const result=await response.json();
-    if(!response.ok||!result.success)throw new Error(result.error||"Upload failed.");
+    const result=await uploadLessonMedia(file,courseId,p=>status.textContent=`Uploading file... ${p}%`);
     $("lessonUrl").value=result.mediaUrl;
-    $("lessonType").value=mime==="application/pdf"?"pdf":(mime.startsWith("video/")?"video":(mime.startsWith("audio/")?"audio":"image"));
+    $("lessonType").value=result.mime==="application/pdf"?"pdf":result.mime.startsWith("video/")?"video":result.mime.startsWith("audio/")?"audio":"image";
     $("lessonType").dispatchEvent(new Event("change"));
     status.textContent="Upload complete. Save Lesson to publish this material.";
-  }catch(error){status.textContent=error.message||"Upload failed. Please try again.";}
+  }catch(error){status.textContent=(error.code?error.code+": ":"")+(error.message||"Upload failed. Please try again.");}
   finally{uploadButton.disabled=false;}
 };
 const form=$("lessonForm");
