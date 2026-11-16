@@ -455,16 +455,17 @@ $("message").innerHTML=
 '<input id="recoveryName" placeholder="Your full name" autocomplete="name">'+
 '<input id="recoveryPhone" type="tel" inputmode="tel" placeholder="WhatsApp or phone number (e.g. +265...)">'+
 '<button id="recoverProfileButton">Save My Student Profile</button>'+
-'<p class="muted">Your account will be sent for administrator approval.</p>';
+'<p class="muted">Your account will be sent for administrator approval.</p>'+
+'<p id="recoveryStatus" class="muted"></p>';
 $("recoverProfileButton").onclick=async()=>{
 const fullName=$("recoveryName").value.trim();
 const phone=$("recoveryPhone").value.trim();
-if(!fullName){authMessage("Please enter your full name.");return}
-if(fullName.length>120){authMessage("Your name must be 120 characters or fewer.");return}
-if(!phone){authMessage("Please enter your phone number.");return}
+if(!fullName){$("recoveryStatus").textContent="Please enter your full name.";return}
+if(fullName.length>120){$("recoveryStatus").textContent="Your name must be 120 characters or fewer.";return}
+if(!phone){$("recoveryStatus").textContent="Please enter your phone number.";return}
 const recoveryButton=$("recoverProfileButton");
 recoveryButton.disabled=true;
-authMessage("Saving your student profile...");
+$("recoveryStatus").textContent="Saving your student profile...";
 try{
 const profileRef=doc(db,"users",user.uid);
 await setDoc(profileRef,{
@@ -480,7 +481,7 @@ if(!restored.exists())throw new Error("The profile could not be verified. Please
 await signOut(auth);
 authMessage("Your student profile has been restored. Please log in again. Your account is waiting for administrator approval.");
 }catch(recoveryError){
-authMessage("Could not restore your profile: "+recoveryError.message);
+$("recoveryStatus").textContent="Could not restore your profile: "+recoveryError.message;
 recoveryButton.disabled=false;
 }
 };
