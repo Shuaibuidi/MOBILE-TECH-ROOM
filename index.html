@@ -322,9 +322,6 @@ getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,
 query,where
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
-import {
-getStorage,ref as storageRef,uploadBytesResumable,getDownloadURL
-} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-storage.js";
 
 const firebaseConfig={
 apiKey:"AIzaSyAFP-RfZWPKPcHU9NqtTzX1b8HvVVzkb3Y",
@@ -339,7 +336,6 @@ measurementId:"G-WY4T9JMB97"
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
-const storage=getStorage(app);
 
 let currentUser=null;
 let profile=null;
@@ -370,14 +366,34 @@ async function uploadLessonMedia(file,courseId,onProgress=()=>{}){
   const mime=file.type||mimeByExt[ext]||"";
   const allowed=["image/jpeg","image/png","image/webp","image/gif","video/mp4","video/webm","application/pdf","audio/mpeg","audio/wav","audio/x-wav","audio/mp4","audio/x-m4a","audio/ogg","audio/webm","audio/aac"];
   if(!allowed.includes(mime))throw new Error("Unsupported file type. Choose JPG, PNG, WEBP, GIF, MP4, WEBM, PDF, MP3, WAV, M4A, OGG or AAC.");
-  const cleanName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_").slice(-100)||("lesson."+ext);
-  const objectPath=`course-media/${currentUser.uid}/${courseId}/${Date.now()}_${cleanName}`;
-  const target=storageRef(storage,objectPath);
-  const task=uploadBytesResumable(target,file.type?file:new File([file],file.name,{type:mime}),{contentType:mime,customMetadata:{courseId,uploadedBy:currentUser.uid}});
-  const snapshot=await new Promise((resolve,reject)=>{
-    task.on("state_changed",snap=>onProgress(Math.round((snap.bytesTransferred/snap.totalBytes)*100)),reject,()=>resolve(task.snapshot));
+
+  const token=await currentUser.getIdToken();
+  const formData=new FormData();
+  formData.append("file",file,file.name);
+  formData.append("courseId",courseId.trim());
+
+  const result=await new Promise((resolve,reject)=>{
+    const xhr=new XMLHttpRequest();
+    xhr.open("POST","https://starter-function-9cke.sgp.appwrite.run",true);
+    xhr.setRequestHeader("Authorization",`Bearer ${token}`);
+    xhr.upload.onprogress=event=>{
+      if(event.lengthComputable)onProgress(Math.min(99,Math.round((event.loaded/event.total)*100)));
+    };
+    xhr.onload=()=>{
+      let data={};
+      try{data=JSON.parse(xhr.responseText||"{}");}catch(_){}
+      if(xhr.status>=200&&xhr.status<300&&data.success){
+        onProgress(100);
+        resolve({mediaUrl:data.mediaUrl,mime,fileId:data.fileId,bucketId:data.bucketId});
+      }else{
+        reject(new Error(data.error||`Upload failed (HTTP ${xhr.status}). Please try again.`));
+      }
+    };
+    xhr.onerror=()=>reject(new Error("Network error while uploading. Check your internet connection and try again."));
+    xhr.onabort=()=>reject(new Error("Upload was cancelled."));
+    xhr.send(formData);
   });
-  return {mediaUrl:await getDownloadURL(snapshot.ref),mime,objectPath};
+  return result;
 }
 
 function formatLessonContent(value){
