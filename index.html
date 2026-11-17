@@ -1458,7 +1458,7 @@ footer{color:#71839a!important}
 .reference-media-player{aspect-ratio:16/9!important;max-height:650px!important;object-fit:contain!important}
 .reference-media-image{max-height:700px!important;object-fit:contain!important;background:#f2f5fa!important}
 .reference-image-link{display:block!important}
-.reference-media-pdf{height:min(75vh,760px)!important;background:#f3f6fb!important}
+.reference-media-pdf{height:min(52vh,520px)!important;max-height:520px!important;background:#f3f6fb!important;border-radius:12px!important}@media(max-width:600px){.reference-media-pdf{height:46vh!important;max-height:420px!important}}
 .reference-pdf-viewer{display:flex!important;flex-direction:column!important;gap:9px!important}
 .reference-pdf-download{align-self:flex-end!important;display:inline-block!important;padding:10px 17px!important;border-radius:25px!important;background:#0755c9!important;color:#fff!important;font-weight:850!important;text-decoration:none!important}
 .reference-audio-player{display:flex!important;align-items:center!important;gap:14px!important;padding:16px!important;border-radius:15px!important;background:linear-gradient(110deg,#e5efff,#dceaff)!important}
@@ -2320,6 +2320,8 @@ function bindLessonFormControls({accessId=null,priceFieldId=null,priceId=null,ty
   update();
 }
 
+function bindRichTextEditor(editorId,toolbarId){const editor=$(editorId),toolbar=$(toolbarId);if(!editor||!toolbar)return;toolbar.querySelectorAll('[data-rich-command]').forEach(button=>{button.addEventListener('mousedown',e=>e.preventDefault());button.onclick=()=>{editor.focus();document.execCommand(button.dataset.richCommand,false,null);};});const bindSelect=(id,command)=>{const el=$(id);if(el)el.onchange=()=>{editor.focus();document.execCommand(command,false,el.value);};};bindSelect(toolbarId+'Style','formatBlock');bindSelect(toolbarId+'Font','fontName');bindSelect(toolbarId+'Size','fontSize');const color=$(toolbarId+'Color'),highlight=$(toolbarId+'Highlight');if(color)color.oninput=()=>{editor.focus();document.execCommand('foreColor',false,color.value);};if(highlight)highlight.oninput=()=>{editor.focus();document.execCommand('hiliteColor',false,highlight.value);};}
+function richEditorToolbar(prefix){return '<div class="editor-toolbar" id="'+prefix+'Toolbar"><select id="'+prefix+'ToolbarStyle"><option value="P">Paragraph</option><option value="H1">Title</option><option value="H2">Heading</option><option value="H3">Small heading</option><option value="BLOCKQUOTE">Quote</option></select><select id="'+prefix+'ToolbarFont"><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option><option value="Verdana">Verdana</option></select><select id="'+prefix+'ToolbarSize"><option value="2">Small</option><option value="3" selected>Normal</option><option value="4">Large</option><option value="5">Extra large</option></select><button type="button" class="secondary" data-rich-command="bold"><b>B</b></button><button type="button" class="secondary" data-rich-command="italic"><i>I</i></button><button type="button" class="secondary" data-rich-command="underline"><u>U</u></button><button type="button" class="secondary" data-rich-command="insertUnorderedList">• List</button><label class="muted">Text</label><input id="'+prefix+'ToolbarColor" type="color" value="#202938"><label class="muted">Highlight</label><input id="'+prefix+'ToolbarHighlight" type="color" value="#fff2a8"></div>';}
 async function renderCourses(){
 page.innerHTML="<div class='panel'>Loading courses...</div>";
 try{
@@ -2328,20 +2330,17 @@ let html="<div class='panel'><h2>Courses and Lessons</h2><p class='muted'>Choose
 if(isStaff()){
 html+="<h3>Create Course and First Lesson</h3><form id='combinedLessonForm'>";
 html+="<label class='muted'>1. Course name</label><input id='courseTitle' placeholder='e.g. Phone Flashing and Unlocking' required>";
-html+="<label class='muted'>What does this course cover?</label><textarea id='courseDescription' placeholder='Briefly describe the course' required></textarea>";
+html+="<label class='muted'>What does this course cover?</label>"+richEditorToolbar("courseDescription")+"<div id='courseDescription' class='lesson-editor' contenteditable='true' role='textbox' aria-multiline='true' data-placeholder='Describe what students will learn throughout this course...'></div>";
  html+="<hr>";
 html+="<label class='muted'>2. Lesson title</label><input id='lessonTitle' placeholder='e.g. Introduction to Phone Flashing' required>";
 html+="<label class='muted'>3. Topic</label><input id='lessonTopic' placeholder='e.g. Flashing basics' required>";
 html+="<label class='muted'>4. Section</label><input id='lessonSection' placeholder='e.g. Introduction, Tools, Practical Steps' required>";
-html+="<label class='muted'>5. What students will learn in this lesson</label><textarea id='lessonOutcomes' placeholder='List the skills students will gain' required></textarea>";
+html+="<label class='muted'>5. What students will learn in this lesson</label>"+richEditorToolbar("lessonOutcomes")+"<div id='lessonOutcomes' class='lesson-editor' contenteditable='true' role='textbox' aria-multiline='true' data-placeholder='Describe the skills and knowledge students will gain...'></div>";
 html+="<label class='muted'>6. Course access (covers every lesson)</label><select id='courseAccess'><option value='free'>Free</option><option value='paid'>Paid</option></select>";
 html+="<div id='coursePriceField' class='hidden'><label class='muted' for='coursePrice'>7. One-time course price (Malawi Kwacha – MK)</label><div class='input-prefix'><span>MK</span><input id='coursePrice' type='number' min='1' step='1' inputmode='numeric' placeholder='e.g. 25000'></div><small class='muted'>Enter the amount in Malawi Kwacha.</small></div>";
-html+="<hr><label class='muted'>8. Lesson format</label><select id='lessonType'><option value='written'>Written lesson</option><option value='video'>Video</option><option value='audio'>Audio</option><option value='pdf'>PDF document</option><option value='image'>Image</option></select>";
-html+="<div id='writtenLessonFields'><label class='muted'>9. Write the lesson document</label><div class='editor-toolbar'><select id='lessonStyle'><option value='P'>Normal paragraph</option><option value='H1'>Title heading</option><option value='H2'>Section heading</option><option value='H3'>Small heading</option><option value='BLOCKQUOTE'>Quote box</option></select><select id='lessonFont'><option value='Arial'>Arial</option><option value='Georgia'>Georgia</option><option value='Times New Roman'>Times New Roman</option><option value='Verdana'>Verdana</option></select><select id='lessonSize'><option value='2'>Small</option><option value='3' selected>Normal</option><option value='4'>Large</option><option value='5'>Extra large</option></select><button type='button' class='secondary' data-editor='bold'><b>B</b></button><button type='button' class='secondary' data-editor='italic'><i>I</i></button><button type='button' class='secondary' data-editor='underline'><u>U</u></button><button type='button' class='secondary' data-editor='insertUnorderedList'>• List</button></div>";
-html+="<div id='lessonContent' class='lesson-editor' contenteditable='true' role='textbox' aria-multiline='true' data-placeholder='Write the lesson here...'></div>";
-html+="<label class='muted'><input id='allowPrint' type='checkbox' checked style='width:auto'> Allow students to print or download this written lesson as PDF</label></div><hr>";
-html+="<div id='mediaLessonFields' class='hidden'><label class='muted'>Upload the lesson file (maximum 50 MB)</label><input id='lessonFile' type='file' accept='image/*,video/*,audio/*,application/pdf'><button type='button' class='secondary' id='uploadLessonFile'>Upload Selected File</button><p id='uploadStatus' class='muted'>Choose a file and upload it before saving.</p>";
-html+="<label class='muted'>Or paste an HTTPS media link</label><input id='lessonUrl' type='url' placeholder='Paste a video, audio, photo or PDF link'></div><button type='submit'>12. Save Course and Lesson</button></form>";
+html+="<hr><label class='muted'>8. Lesson material</label><select id='lessonType'><option value='pdf' selected>PDF document</option><option value='video'>Video</option><option value='audio'>Audio</option></select>";
+html+="<div id='mediaLessonFields'><label class='muted'>Upload the lesson PDF, video or audio (maximum 50 MB)</label><input id='lessonFile' type='file' accept='.pdf,.mp4,.webm,.mp3,.wav,.m4a,.ogg,.aac,application/pdf,video/*,audio/*'><button type='button' class='secondary' id='uploadLessonFile'>Upload Selected File</button><p id='uploadStatus' class='muted'>Choose a PDF, video or audio file and upload it before saving.</p>";
+html+="<label class='muted'>Or paste an HTTPS PDF, video or audio link</label><input id='lessonUrl' type='url' placeholder='Paste a PDF, video or audio link'></div><button type='submit'>9. Save Course and Lesson</button></form>";
 }
 html+="</div>";
 if(isStudent()){
@@ -2349,12 +2348,12 @@ if(isStudent()){
  const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
  const available=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
  const locked=courses.filter(c=>c.accessType==="paid"&&!activeIds.has(c.id));
- const cards=items=>items.map(c=>`<article class="student-course"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">✦</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${safe(c.description||"Explore this practical technology course.")}</p>${c.accessType==="paid"?`<strong style="color:#68439b">MK ${safe(Number(c.price||0).toLocaleString("en-US"))}</strong>`:""}<button data-action="open-course" data-id="${safe(c.id)}">${c.accessType==="paid"?"View Course":"Start Learning →"}</button></div></article>`).join("");
+ const cards=items=>items.map(c=>`<article class="student-course"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">✦</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${formatLessonContent(c.description||"Explore this practical technology course.")}</p>${c.accessType==="paid"?`<strong style="color:#68439b">MK ${safe(Number(c.price||0).toLocaleString("en-US"))}</strong>`:""}<button data-action="open-course" data-id="${safe(c.id)}">${c.accessType==="paid"?"View Course":"Start Learning →"}</button></div></article>`).join("");
  html+=`<div class="panel"><div class="student-course-heading"><h2>Explore Courses</h2><span class="tag">${available.length} available</span></div><p class="muted">Open your pictures, videos, audio tutorials and PDF learning guides.</p><input id="courseSearch" class="student-course-search" placeholder="Search courses..."><div id="studentCourseGrid" class="course-grid">${cards(available)||"<p class='muted'>No courses are available yet.</p>"}</div></div>`;
  if(locked.length)html+=`<div class="panel"><h3>More Courses</h3><p class="muted">These paid courses need administrator approval before you can start learning.</p><div class="course-grid">${cards(locked)}</div></div>`;
 }else{
  if(!courses.length)html+="<div class='panel'><p>No courses available yet.</p></div>";
- for(const c of courses){html+="<div class='card'><h3>"+safe(c.title)+"</h3><span class='tag'>"+safe(c.category)+"</span><p>"+safe(c.description)+"</p>"+(c.accessType==="paid"?"<p>One-time course price (all lessons): MK "+safe(Number(c.price||0).toLocaleString('en-US'))+"</p>":"")+"<div class='actions'><button data-action='open-course' data-id='"+safe(c.id)+"'>Open Course</button>"+(isAdmin()?"<button class='secondary' data-action='edit-course' data-id='"+safe(c.id)+"'>Edit</button><button class='danger' data-action='delete-course' data-id='"+safe(c.id)+"'>Delete</button>":"")+"</div></div>";}
+ for(const c of courses){html+="<div class='card'><h3>"+safe(c.title)+"</h3><span class='tag'>"+safe(c.category)+"</span><p>"+formatLessonContent(c.description)+"</p>"+(c.accessType==="paid"?"<p>One-time course price (all lessons): MK "+safe(Number(c.price||0).toLocaleString('en-US'))+"</p>":"")+"<div class='actions'><button data-action='open-course' data-id='"+safe(c.id)+"'>Open Course</button>"+(isAdmin()?"<button class='secondary' data-action='edit-course' data-id='"+safe(c.id)+"'>Edit</button><button class='danger' data-action='delete-course' data-id='"+safe(c.id)+"'>Delete</button>":"")+"</div></div>";}
 }
 page.innerHTML=html;
 if(isStudent()){
@@ -2364,9 +2363,10 @@ if(isStudent()){
 }
 if(isStaff()){
 bindLessonFormControls({accessId:"courseAccess",priceFieldId:"coursePriceField",priceId:"coursePrice",typeId:"lessonType",writtenId:"writtenLessonFields",mediaId:"mediaLessonFields",contentId:"lessonContent"});
+bindRichTextEditor("courseDescription","courseDescriptionToolbar");bindRichTextEditor("lessonOutcomes","lessonOutcomesToolbar");
 let draftCourseId=null;
-const form=$("combinedLessonForm"),val=id=>$(id).value.trim(),editor=$("lessonContent");
-const courseFields=()=>({title:val("courseTitle"),category:"Technology",description:val("courseDescription"),coverImage:"",accessType:$("courseAccess").value,price:Number($("coursePrice").value||0),createdBy:currentUser.uid});
+const form=$("combinedLessonForm"),val=id=>$(id).value.trim(),rich=id=>$(id).innerHTML.trim();
+const courseFields=()=>({title:val("courseTitle"),category:"Technology",description:rich("courseDescription"),coverImage:"",accessType:$("courseAccess").value,price:Number($("coursePrice").value||0),createdBy:currentUser.uid});
 const ensureCourse=async()=>{
   if(!draftCourseId)draftCourseId=doc(collection(db,"courses")).id;
   if(!draftCourseId)throw new Error("Could not create a course ID. Please refresh and try again.");
@@ -2399,13 +2399,13 @@ e.preventDefault();
 try{
 const accessType=$("courseAccess").value,lessonType=$("lessonType").value;
 if(accessType==="paid"&&(!val("coursePrice")||Number(val("coursePrice"))<=0)){appMessage("Enter a valid price for this paid course.","error");return;}
-const url=val("lessonUrl"),content=editor.innerHTML.trim();
-if(lessonType==="written"&&!editor.innerText.trim()){appMessage("Write the lesson document before saving.","error");return;}
-if(lessonType!=="written"&&!url){appMessage("Upload the lesson file or enter its HTTPS link before saving.","error");return;}
+const url=val("lessonUrl");
+if(!$("lessonOutcomes").innerText.trim()){appMessage("Describe what students will learn in this lesson.","error");return;}
+if(!url){appMessage("Upload the lesson file or enter its HTTPS link before saving.","error");return;}
 if($("lessonFile").files.length&&!url){appMessage("Please upload the selected file before saving.","error");return;}
 if(url&&!/^https:\/\/.+/i.test(url)){appMessage("Please enter a valid HTTPS link.","error");return;}
 const cid=await ensureCourse();
-await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:val("lessonOutcomes"),type:lessonType,content:lessonType==="written"?content:"",printable:lessonType==="written"?$("allowPrint").checked:false,mediaUrl:url,createdBy:currentUser.uid,createdAt:serverTimestamp()});
+await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:rich("lessonOutcomes"),lessonNumber:1,type:lessonType,content:"",mediaUrl:url,createdBy:currentUser.uid,createdAt:serverTimestamp()});
 await setDoc(doc(db,"courses",cid),{status:"published",updatedAt:serverTimestamp()},{merge:true});
 appMessage("Course and first lesson saved successfully.");
 await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:val("courseTitle"),description:val("courseDescription")};await openCourse(cid);
@@ -2443,7 +2443,7 @@ page.innerHTML="<div class='panel'>Loading lessons...</div>";
 try{
 const snap=await getDocs(collection(db,"courses",courseId,"lessons"));
 
-const lessons=snap.docs.map(d=>({id:d.id,...d.data()}));
+const lessons=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{const at=a.createdAt?.toMillis?.()??0,bt=b.createdAt?.toMillis?.()??0;return at-bt;});
 const renderReferenceMedia=(lesson)=>{
  const type=lesson.type||"written", url=lesson.mediaUrl||"", title=lesson.title||"Lesson media";
  if(!url||!["video","audio","image","pdf"].includes(type))return "";
@@ -2468,10 +2468,10 @@ if(isStudent()){
    }
    const body=type==="written"?`<div class="lesson-body">${formatLessonContent(lesson.content||"")}</div>`:"";
    const done=completed.includes(lesson.id);
-   return `<li class="lesson-item reference-lesson-card student-published-lesson" data-student-lesson="${safe(lesson.id)}"><div class="reference-lesson-title-row"><div class="reference-round-icon">▣</div><div class="reference-lesson-title"><span>Title of the Lesson</span><h3>${safe(lesson.title||"Untitled lesson")}</h3></div><span class="reference-chevron">›</span></div>${lesson.topic?`<div class="reference-topic-row"><div class="reference-round-icon">☷</div><div class="reference-topic-content"><strong>Topic</strong><p>${safe(lesson.topic)}</p></div><span class="reference-chevron">›</span></div>`:""}${lesson.section?`<div class="reference-topic-row"><div class="reference-round-icon">§</div><div class="reference-topic-content"><strong>Section</strong><p>${safe(lesson.section)}</p></div></div>`:""}${lesson.learningOutcomes?`<div class="reference-topic-row"><div class="reference-round-icon">✓</div><div class="reference-topic-content"><strong>What you will learn</strong><p>${safe(lesson.learningOutcomes)}</p></div></div>`:""}${body}${media}<div class="reference-next-row"><span class="reference-completion">${done?"✓ Lesson completed":"Continue your learning journey"}</span><button class="${done?"secondary":"student-lesson-done"}" data-action="student-complete" data-id="${safe(lesson.id)}">${done?"✓ Completed":index<lessons.length-1?"Next Lesson　›":"Complete Lesson　✓"}</button></div></li>`;
+   return `<li class="lesson-item reference-lesson-card student-published-lesson" data-student-lesson="${safe(lesson.id)}"><div class="reference-lesson-title-row"><div class="reference-round-icon">▣</div><div class="reference-lesson-title"><span>Title of the Lesson</span><h3>${safe(lesson.title||"Untitled lesson")}</h3></div><span class="reference-chevron">›</span></div>${lesson.topic?`<div class="reference-topic-row"><div class="reference-round-icon">☷</div><div class="reference-topic-content"><strong>Topic</strong><p>${safe(lesson.topic)}</p></div><span class="reference-chevron">›</span></div>`:""}${lesson.section?`<div class="reference-topic-row"><div class="reference-round-icon">§</div><div class="reference-topic-content"><strong>Section</strong><p>${safe(lesson.section)}</p></div></div>`:""}${lesson.learningOutcomes?`<div class="reference-topic-row"><div class="reference-round-icon">✓</div><div class="reference-topic-content"><strong>What you will learn</strong><p>${formatLessonContent(lesson.learningOutcomes)}</p></div></div>`:""}${body}${media}<div class="reference-next-row"><span class="reference-completion">${done?"✓ Lesson completed":"Continue your learning journey"}</span><button class="${done?"secondary":"student-lesson-done"}" data-action="student-complete" data-id="${safe(lesson.id)}">${done?"✓ Completed":index<lessons.length-1?"Next Lesson　›":"Complete Lesson　✓"}</button></div></li>`;
  };
  const percent=Math.round(completed.filter(id=>lessons.some(l=>l.id===id)).length/lessons.length*100);
- page.innerHTML=`<section class="panel"><button class="secondary" data-action="back-courses">← All Courses</button><h2>${safe(selectedCourse.title)}</h2><p>${safe(selectedCourse.description||"Follow the lessons in order and practise each skill safely.")}</p><div class="learning-progress-label"><strong>${completed.filter(id=>lessons.some(l=>l.id===id)).length} of ${lessons.length} lessons completed</strong><strong>${percent}%</strong></div><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${percent}%"></div></div></section><section class="panel"><div class="student-course-heading"><h2>Lesson Materials</h2><span class="tag">${lessons.length} lessons</span></div><ol class="lesson-list">${lessons.map(renderStudentLesson).join("")}</ol></section>`;
+ page.innerHTML=`<section class="panel"><button class="secondary" data-action="back-courses">← All Courses</button><h2>${safe(selectedCourse.title)}</h2><p>${formatLessonContent(selectedCourse.description||"Follow the lessons in order and practise each skill safely.")}</p><div class="learning-progress-label"><strong>${completed.filter(id=>lessons.some(l=>l.id===id)).length} of ${lessons.length} lessons completed</strong><strong>${percent}%</strong></div><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${percent}%"></div></div></section><section class="panel"><div class="student-course-heading"><h2>Lessons List</h2><span class="tag">${lessons.length} lessons</span></div><ol class="lesson-list">${lessons.map(renderStudentLesson).join("")}</ol></section>`;
  page.onclick=event=>{
    const button=event.target.closest('[data-action="student-complete"]');
    if(!button)return;
@@ -2490,7 +2490,7 @@ let html=`
 <div class="panel">
 <button class="secondary" data-action="back-courses">Back to Lessons</button>
 <h2>${safe(selectedCourse.title)}</h2>
-<p>${safe(selectedCourse.description)}</p>
+<p>${formatLessonContent(selectedCourse.description)}</p>
 </div>`;
 
 if(isStaff()){
@@ -2545,7 +2545,7 @@ html+=`
 <div class="reference-lesson-title-row"><div class="reference-round-icon">▣</div><div class="reference-lesson-title"><span>Title of the Lesson</span><h3>${safe(l.title||"Untitled lesson")}</h3></div><span class="reference-chevron">›</span></div>
 ${l.topic?`<div class="reference-topic-row"><div class="reference-round-icon">☷</div><div class="reference-topic-content"><strong>Topic</strong><p>${safe(l.topic)}</p></div><span class="reference-chevron">›</span></div>`:""}
 ${l.section?`<div class="reference-topic-row"><div class="reference-round-icon">§</div><div class="reference-topic-content"><strong>Section</strong><p>${safe(l.section)}</p></div></div>`:""}
-${l.learningOutcomes?`<div class="reference-topic-row"><div class="reference-round-icon">✓</div><div class="reference-topic-content"><strong>What you will learn</strong><p>${safe(l.learningOutcomes)}</p></div></div>`:""}
+${l.learningOutcomes?`<div class="reference-topic-row"><div class="reference-round-icon">✓</div><div class="reference-topic-content"><strong>What you will learn</strong><p>${formatLessonContent(l.learningOutcomes)}</p></div></div>`:""}
 ${(l.type||"written")==="written"?`<div class="reference-written-row"><div class="reference-round-icon">▤</div><div class="reference-topic-content"><strong>Lesson Content</strong><div class="lesson-body">${formatLessonContent(l.content||"")}</div></div></div><button type="button" class="secondary" data-action="download-lesson-pdf"><span>⬇ Download PDF</span></button>`:""}
 ${renderReferenceMedia(l)}
 ${isAdmin()?`<div class="actions reference-admin-actions"><button class="secondary" data-action="edit-lesson" data-id="${safe(l.id)}">Edit</button><button class="danger" data-action="delete-lesson" data-id="${safe(l.id)}">Delete</button></div>`:""}
