@@ -1404,6 +1404,39 @@ footer{color:#71839a!important}
   .academy-header .brand-lockup p{color:#eef5ff!important}
 }
 
+
+
+/* Requested dashboard refinements: admin greeting accent + compact student hero */
+.dashboard-hero .admin-welcome{
+  color:#ffdc36!important;
+  -webkit-text-fill-color:#ffdc36!important;
+}
+.student-dashboard-hero{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  justify-content:center!important;
+  gap:12px!important;
+}
+.student-dashboard-hero .student-platform-title{
+  display:block!important;
+  width:100%!important;
+  margin:0!important;
+  padding:0!important;
+  color:#ffdc36!important;
+  font-size:clamp(10px,3.3vw,15px)!important;
+  line-height:1.25!important;
+  letter-spacing:.15px!important;
+  font-weight:900!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+.student-dashboard-hero .actions{width:100%!important;display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:10px!important}
+@media(max-width:360px){
+  .student-dashboard-hero .student-platform-title{font-size:10px!important;letter-spacing:0!important}
+}
+
 </style>
 </head>
 <body>
@@ -2016,7 +2049,7 @@ async function renderDashboard(){
       const percent=totalLessons?Math.min(100,Math.round(completedLessons/totalLessons*100)):0;
       const cards=counts.map(({course:c,count,done})=>`<article class="student-course"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">${/computer|laptop|windows/i.test(c.title)?"💻":/iphone|ios|apple/i.test(c.title)?"📱":/android|frp/i.test(c.title)?"🤖":/gsm|tool|repair/i.test(c.title)?"🛠":"📲"}</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${safe(c.description||"Practical technical training and step-by-step lessons.")}</p><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${count?Math.round(done/count*100):0}%"></div></div><small class="muted">${done}/${count} lessons completed</small><button data-action="open-course" data-id="${safe(c.id)}">Continue Learning →</button></div></article>`).join("");
       page.innerHTML=`
-      <section class="dashboard-hero"><p class="uppercase-accent">YOUR COMPLETE TECH LEARNING PLATFORM</p><h2>Mobile <span>Tech Room</span></h2><h2 style="font-size:clamp(18px,2.5vw,27px);color:#ffffff">Computer &amp; Phone Flashing and Unlocking</h2><p><strong>Learn • Repair • Unlock • Innovate</strong></p><div class="actions"><button data-dashboard-tab="lessons">Explore My Courses →</button><span class="tag">✓ ${safe(status.toUpperCase())} STUDENT</span></div></section>
+      <section class="dashboard-hero student-dashboard-hero"><p class="uppercase-accent student-platform-title">YOUR COMPLETE TECH LEARNING PLATFORM</p><div class="actions"><button data-dashboard-tab="lessons">Explore My Courses →</button><span class="tag">✓ ${safe(status.toUpperCase())} STUDENT</span></div></section>
       <div class="course-quick-stats"><div class="course-quick-stat"><strong>${available.length}</strong><span>Available courses</span></div><div class="course-quick-stat"><strong>${totalLessons}</strong><span>Lessons to explore</span></div><div class="course-quick-stat"><strong>${percent}%</strong><span>Learning progress</span></div></div>
       <section class="panel"><div class="student-course-heading"><h2>Our Courses</h2><button data-dashboard-tab="lessons">View All Courses →</button></div><p class="muted">Choose your technical path and learn at your own pace.</p><div class="course-grid">${cards||`<p class="muted">Your instructors have not published courses yet. Please check again soon.</p>`}</div></section>
       ${locked.length?`<section class="panel"><h3>More Courses</h3><p class="muted">Paid courses become available after administrator approval.</p>${locked.map(c=>`<span class="tag">🔒 ${safe(c.title)}</span>`).join("")}</section>`:""}
@@ -2036,7 +2069,7 @@ async function renderDashboard(){
       stats=[{value:courses.length,label:"My lesson topics"},{value:courses.filter(c=>c.status==="published").length,label:"Published topics"},{value:lessonCounts.reduce((a,b)=>a+b,0),label:"Lessons created"}];quickActions=`<button data-dashboard-tab="lessons">Open My Lessons</button>`;
     }
   }catch(error){appMessage("Some dashboard statistics could not be loaded: "+error.message,"error");}
-  page.innerHTML=`<section class="dashboard-hero"><h2>Welcome, ${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats">${stats.map(x=>`<div class="dashboard-stat"><strong>${safe(x.value)}</strong><span>${safe(x.label)}</span></div>`).join("")}</div>${isAdmin()?"":`<section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions">${quickActions}</div></section>`}<section class="panel"><h3>Account Information</h3><p><strong>Name:</strong> ${safe(name)}</p><p><strong>Role:</strong> <span class="tag">${safe(role.toUpperCase())}</span></p>${isAdmin()?"":`<p><strong>Account status:</strong> <span class="tag">${safe(status.toUpperCase())}</span></p>`}</section>`;
+  page.innerHTML=`<section class="dashboard-hero"><h2 class="${isAdmin()?"admin-welcome":""}">Welcome, ${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats">${stats.map(x=>`<div class="dashboard-stat"><strong>${safe(x.value)}</strong><span>${safe(x.label)}</span></div>`).join("")}</div>${isAdmin()?"":`<section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions">${quickActions}</div></section>`}<section class="panel"><h3>Account Information</h3><p><strong>Name:</strong> ${safe(name)}</p><p><strong>Role:</strong> <span class="tag">${safe(role.toUpperCase())}</span></p>${isAdmin()?"":`<p><strong>Account status:</strong> <span class="tag">${safe(status.toUpperCase())}</span></p>`}</section>`;
 }
 
 
