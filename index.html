@@ -816,13 +816,18 @@ async function uploadLessonMedia(file,courseId,onProgress=()=>{}){
   if(file.size<=0||file.size>50*1024*1024)throw new Error("The file must be 50 MB or smaller.");
   const ext=(file.name.split(".").pop()||"").toLowerCase();
   const mimeByExt={jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",gif:"image/gif",mp4:"video/mp4",webm:"video/webm",pdf:"application/pdf",mp3:"audio/mpeg",wav:"audio/wav",m4a:"audio/mp4",ogg:"audio/ogg",aac:"audio/aac"};
-  const mime=file.type||mimeByExt[ext]||"";
+  // Android file pickers sometimes report application/octet-stream even for
+  // valid PDFs, videos and audio. Prefer the known extension in that case.
+  const reportedMime=(file.type||"").toLowerCase();
+  const mime=(!reportedMime||reportedMime==="application/octet-stream")?(mimeByExt[ext]||reportedMime):reportedMime;
   const allowed=["image/jpeg","image/png","image/webp","image/gif","video/mp4","video/webm","application/pdf","audio/mpeg","audio/wav","audio/x-wav","audio/mp4","audio/x-m4a","audio/ogg","audio/webm","audio/aac"];
   if(!allowed.includes(mime))throw new Error("Unsupported file type. Choose JPG, PNG, WEBP, GIF, MP4, WEBM, PDF, MP3, WAV, M4A, OGG or AAC.");
 
   const token=await currentUser.getIdToken();
   const formData=new FormData();
-  formData.append("file",file,file.name);
+  // Preserve the detected content type when Android supplies a generic MIME.
+  const uploadBlob=new Blob([file],{type:mime});
+  formData.append("file",uploadBlob,file.name);
   formData.append("courseId",courseId.trim());
 
   const result=await new Promise((resolve,reject)=>{
@@ -933,6 +938,35 @@ html,body{overflow-anchor:none!important;scroll-behavior:auto!important;scrollba
 .media-file-name{grid-column:2!important;grid-row:1!important;align-self:end!important;font-size:13px!important}
 .media-file-kind{grid-column:2!important;grid-row:2!important;align-self:start!important}
 .media-file-card:after{grid-column:2!important;grid-row:3!important;display:none!important}
+
+
+/* Final requested refinements: lower headings, readable blue theme and consistent media lists */
+.dashboard-section-title{position:relative!important;margin-top:30px!important;padding-top:12px!important;line-height:1.4!important;transform:translateY(4px)!important}
+.dashboard-hero h2{position:relative!important;top:5px!important;padding-top:8px!important;line-height:1.3!important;color:#fff!important}
+.dashboard-hero h2[style*="color"]{color:#fff!important}
+.dashboard-hero .uppercase-accent,.dashboard-hero p,.dashboard-hero strong{color:#f4f8ff!important}
+:root{--mtr-yellow:#13d8ed!important}
+body{background:#02050b!important;color:#f3f6fb!important}
+#appPanel,#page{color:#f3f6fb!important}
+.panel,.card,.learning-main,.learning-playlist,.learning-shell,.student-course,.student-course-info,.student-course-search{background:#080d16!important;color:#f3f6fb!important;border-color:#1c2b40!important}
+.panel h2,.panel h3,.card h2,.card h3,.student-course-info h3,.learning-main h2,.learning-playlist h3{color:#f4f7fc!important}
+.panel p,.card p,.student-course-info p,.muted,.learning-main p{color:#c3cfdf!important}
+input,select,textarea,.lesson-editor,.student-course-search{background:#0d1522!important;color:#f5f8ff!important;border-color:#30445f!important}
+input::placeholder,textarea::placeholder{color:#9aaac0!important}
+.tag{background:#10243b!important;color:#a9d8ff!important;border-color:#24517a!important}
+.dashboard-stat,.course-quick-stat{background:#0a1422!important;border-color:#23405f!important}
+.dashboard-stat span,.course-quick-stat span{color:#c7d5e8!important}
+.media-file-grid{display:flex!important;flex-direction:column!important;grid-template-columns:none!important;gap:10px!important;padding:10px!important;background:#050a12!important;border:1px solid #1c2b40!important;border-radius:14px!important}
+.media-file-card{display:grid!important;grid-template-columns:72px minmax(0,1fr)!important;grid-template-rows:auto auto!important;align-items:center!important;min-height:88px!important;width:100%!important;padding:10px 12px!important;column-gap:13px!important;row-gap:4px!important;background:#0b1422!important;color:#f5f8ff!important;border:1px solid #263c58!important;border-radius:13px!important;box-shadow:none!important;text-align:left!important;transform:none!important}
+.media-file-card .media-file-icon,.media-file-card .media-file-thumb{grid-column:1!important;grid-row:1/3!important;width:72px!important;height:66px!important;object-fit:cover!important;border-radius:9px!important}
+.media-file-card .media-file-icon{display:grid!important;place-items:center!important;background:linear-gradient(135deg,#075bea,#087fbd)!important;color:#fff!important;font-size:25px!important}
+.media-file-name{grid-column:2!important;grid-row:1!important;align-self:end!important;color:#f5f8ff!important;font-size:13px!important;font-weight:800!important;overflow-wrap:anywhere!important}
+.media-file-kind{grid-column:2!important;grid-row:2!important;align-self:start!important;color:#9fc7f2!important;font-size:10px!important}
+.media-file-card:after{display:block!important;grid-column:2!important;grid-row:3!important;color:#62c8ff!important;font-size:10px!important;content:"Tap To Open  ›"!important}
+.student-published-lesson .media-file-grid{background:#050a12!important;border-color:#1c2b40!important}
+.student-published-lesson .media-file-card{background:#0b1422!important;border-color:#263c58!important}
+@media(max-width:420px){.media-file-card{grid-template-columns:60px minmax(0,1fr)!important;min-height:78px!important;padding:9px!important}.media-file-card .media-file-icon,.media-file-card .media-file-thumb{width:60px!important;height:58px!important}}
+
 </style></head><body><main class="sheet"><header class="brand"><div class="brand-name">MOBILE TECH ROOM</div><div class="brand-tag">LEARN • REPAIR • INNOVATE</div></header>
 <p class="kicker">MOBILE TECH LESSON</p><h1>${safe(cleanTitle)}</h1><article>${content}</article></main>
 </body></html>`;
@@ -1249,7 +1283,7 @@ async function renderDashboard(){
       const percent=totalLessons?Math.min(100,Math.round(completedLessons/totalLessons*100)):0;
       const cards=counts.map(({course:c,count,done})=>`<article class="student-course"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">${/computer|laptop|windows/i.test(c.title)?"💻":/iphone|ios|apple/i.test(c.title)?"📱":/android|frp/i.test(c.title)?"🤖":/gsm|tool|repair/i.test(c.title)?"🛠":"📲"}</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${safe(c.description||"Practical technical training and step-by-step lessons.")}</p><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${count?Math.round(done/count*100):0}%"></div></div><small class="muted">${done}/${count} lessons completed</small><button data-action="open-course" data-id="${safe(c.id)}">Continue Learning →</button></div></article>`).join("");
       page.innerHTML=`
-      <section class="dashboard-hero"><p class="uppercase-accent">YOUR COMPLETE TECH LEARNING PLATFORM</p><h2>Mobile <span>Tech Room</span></h2><h2 style="font-size:clamp(18px,2.5vw,27px);color:#ffe000">Computer &amp; Phone Flashing and Unlocking</h2><p><strong>Learn • Repair • Unlock • Innovate</strong></p><div class="actions"><button data-dashboard-tab="lessons">Explore My Courses →</button><span class="tag">✓ ${safe(status.toUpperCase())} STUDENT</span></div></section>
+      <section class="dashboard-hero"><p class="uppercase-accent">YOUR COMPLETE TECH LEARNING PLATFORM</p><h2>Mobile <span>Tech Room</span></h2><h2 style="font-size:clamp(18px,2.5vw,27px);color:#ffffff">Computer &amp; Phone Flashing and Unlocking</h2><p><strong>Learn • Repair • Unlock • Innovate</strong></p><div class="actions"><button data-dashboard-tab="lessons">Explore My Courses →</button><span class="tag">✓ ${safe(status.toUpperCase())} STUDENT</span></div></section>
       <div class="course-quick-stats"><div class="course-quick-stat"><strong>${available.length}</strong><span>Available courses</span></div><div class="course-quick-stat"><strong>${totalLessons}</strong><span>Lessons to explore</span></div><div class="course-quick-stat"><strong>${percent}%</strong><span>Learning progress</span></div></div>
       <section class="panel"><div class="student-course-heading"><h2>Our Courses</h2><button data-dashboard-tab="lessons">View All Courses →</button></div><p class="muted">Choose your technical path and learn at your own pace.</p><div class="course-grid">${cards||`<p class="muted">Your instructors have not published courses yet. Please check again soon.</p>`}</div></section>
       ${locked.length?`<section class="panel"><h3>More Courses</h3><p class="muted">Paid courses become available after administrator approval.</p>${locked.map(c=>`<span class="tag">🔒 ${safe(c.title)}</span>`).join("")}</section>`:""}
@@ -1516,7 +1550,7 @@ html+=`
 <div id="mediaLessonFields" class="hidden">
 <input id="lessonUrl" type="url" placeholder="Optional HTTPS media link">
 <label class="muted" for="lessonFile">Choose a video, photo, audio or PDF file (maximum 50 MB)</label>
-<input id="lessonFile" type="file" accept="image/*,video/*,audio/*,application/pdf">
+<input id="lessonFile" type="file" accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm,.pdf,.mp3,.wav,.m4a,.ogg,.aac,image/*,video/*,audio/*,application/pdf">
 <button type="button" class="secondary" id="uploadLessonFile">Upload Selected File</button>
 <p id="uploadStatus" class="muted">Only approved administrators and instructors can upload.</p>
 </div>
