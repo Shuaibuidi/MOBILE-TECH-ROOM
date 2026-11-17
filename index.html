@@ -707,6 +707,21 @@ footer{color:#8192a7!important}
  .media-file-thumb,.media-file-icon{height:95px!important}
 }
 
+
+/* Final stability and layout corrections */
+html,body{overflow-anchor:none!important;scroll-behavior:auto!important;scrollbar-gutter:stable both-edges}
+.academy-header{transform:none!important;backface-visibility:visible!important;will-change:auto!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+#page{overflow-anchor:none!important;contain:layout style}
+#navigation button{display:flex!important;align-items:center!important;justify-content:center!important;line-height:1.35!important;padding:12px 10px!important;min-height:46px!important;white-space:normal!important}
+.dashboard-hero h2{line-height:1.25!important;padding-top:3px!important;margin-top:8px!important}
+.dashboard-section-title{padding-top:5px!important;line-height:1.35!important}
+.media-file-grid{display:flex!important;flex-direction:column!important;gap:9px!important;grid-template-columns:none!important;padding:10px!important}
+.media-file-card{display:grid!important;grid-template-columns:62px minmax(0,1fr)!important;grid-template-rows:auto auto!important;min-height:78px!important;width:100%!important;padding:9px 12px!important;column-gap:12px!important;row-gap:3px!important;transform:none!important}
+.media-file-card .media-file-icon,.media-file-card .media-file-thumb{grid-column:1!important;grid-row:1/3!important;width:62px!important;height:62px!important;object-fit:cover!important}
+.media-file-card:has(.media-file-thumb) .media-file-icon{display:none!important}
+.media-file-name{grid-column:2!important;grid-row:1!important;align-self:end!important;font-size:13px!important}
+.media-file-kind{grid-column:2!important;grid-row:2!important;align-self:start!important}
+.media-file-card:after{grid-column:2!important;grid-row:3!important;display:none!important}
 </style>
 </head>
 <body>
@@ -776,6 +791,7 @@ const db=getFirestore(app);
 
 let currentUser=null;
 let profile=null;
+let authStateGeneration=0;
 let registerMode=false;
 let registrationInProgress=false;
 let currentTab="dashboard";
@@ -902,6 +918,21 @@ article img{max-width:100%;height:auto}article table{width:100%;border-collapse:
 @page{size:A4 portrait;margin:14mm}
 @media print{html,body{background:#fff!important;padding:0!important;margin:0!important}.sheet{max-width:none;min-height:0;margin:0;padding:0;box-shadow:none}.brand,*{-webkit-print-color-adjust:exact;print-color-adjust:exact}h1,h2,h3,blockquote{break-after:avoid}p,li,table,img,blockquote{break-inside:avoid}}
 
+
+/* Final stability and layout corrections */
+html,body{overflow-anchor:none!important;scroll-behavior:auto!important;scrollbar-gutter:stable both-edges}
+.academy-header{transform:none!important;backface-visibility:visible!important;will-change:auto!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+#page{overflow-anchor:none!important;contain:layout style}
+#navigation button{display:flex!important;align-items:center!important;justify-content:center!important;line-height:1.35!important;padding:12px 10px!important;min-height:46px!important;white-space:normal!important}
+.dashboard-hero h2{line-height:1.25!important;padding-top:3px!important;margin-top:8px!important}
+.dashboard-section-title{padding-top:5px!important;line-height:1.35!important}
+.media-file-grid{display:flex!important;flex-direction:column!important;gap:9px!important;grid-template-columns:none!important;padding:10px!important}
+.media-file-card{display:grid!important;grid-template-columns:62px minmax(0,1fr)!important;grid-template-rows:auto auto!important;min-height:78px!important;width:100%!important;padding:9px 12px!important;column-gap:12px!important;row-gap:3px!important;transform:none!important}
+.media-file-card .media-file-icon,.media-file-card .media-file-thumb{grid-column:1!important;grid-row:1/3!important;width:62px!important;height:62px!important;object-fit:cover!important}
+.media-file-card:has(.media-file-thumb) .media-file-icon{display:none!important}
+.media-file-name{grid-column:2!important;grid-row:1!important;align-self:end!important;font-size:13px!important}
+.media-file-kind{grid-column:2!important;grid-row:2!important;align-self:start!important}
+.media-file-card:after{grid-column:2!important;grid-row:3!important;display:none!important}
 </style></head><body><main class="sheet"><header class="brand"><div class="brand-name">MOBILE TECH ROOM</div><div class="brand-tag">LEARN • REPAIR • INNOVATE</div></header>
 <p class="kicker">MOBILE TECH LESSON</p><h1>${safe(cleanTitle)}</h1><article>${content}</article></main>
 </body></html>`;
@@ -1033,13 +1064,24 @@ authMessage("Password reset email sent. Check your inbox.");
 }catch(e){authMessage(e.message)}
 };
 
-$("logoutButton").onclick=()=>signOut(auth);
+$("logoutButton").onclick=async()=>{
+  // Clear the old account immediately, before Firebase finishes signing out.
+  authStateGeneration++;
+  currentUser=null;profile=null;selectedCourse=null;courses=[];users=[];currentTab="dashboard";
+  $("page").innerHTML="";$("navigation").innerHTML="";$("globalCourseSearch").value="";
+  $("appMessage").innerHTML="";document.getElementById("lessonMediaViewer")?.remove();
+  $("appPanel").classList.add("hidden");$("authPanel").classList.remove("hidden");
+  try{await signOut(auth);}catch(e){authMessage("Could not sign out: "+e.message);}
+};
 
 onAuthStateChanged(auth,async user=>{
+const generation=++authStateGeneration;
 currentUser=user;
 // A new account must finish writing its Firestore profile before auth-state checks run.
 if(registrationInProgress)return;
 if(!user){
+profile=null;selectedCourse=null;courses=[];users=[];currentTab="dashboard";
+$("page").innerHTML="";$("navigation").innerHTML="";$("globalCourseSearch").value="";$("appMessage").innerHTML="";document.getElementById("lessonMediaViewer")?.remove();
 $("logoutButton").classList.add("hidden");
 profile=null;
 $("authPanel").classList.remove("hidden");
@@ -1059,6 +1101,7 @@ return;
 
 try{
 const snap=await getDoc(doc(db,"users",user.uid));
+if(generation!==authStateGeneration||auth.currentUser?.uid!==user.uid)return;
 if(!snap.exists()){
 // Older accounts may exist in Firebase Authentication without a Firestore profile.
 // Let the signed-in account owner safely create their own pending student profile.
@@ -1109,6 +1152,7 @@ recoveryButton.disabled=false;
 return;
 }
 profile=snap.data();
+if(generation!==authStateGeneration||auth.currentUser?.uid!==user.uid)return;
 
 if(profile.status==="blocked"){
 await signOut(auth);
@@ -1205,7 +1249,7 @@ async function renderDashboard(){
       const percent=totalLessons?Math.min(100,Math.round(completedLessons/totalLessons*100)):0;
       const cards=counts.map(({course:c,count,done})=>`<article class="student-course"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">${/computer|laptop|windows/i.test(c.title)?"💻":/iphone|ios|apple/i.test(c.title)?"📱":/android|frp/i.test(c.title)?"🤖":/gsm|tool|repair/i.test(c.title)?"🛠":"📲"}</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${safe(c.description||"Practical technical training and step-by-step lessons.")}</p><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${count?Math.round(done/count*100):0}%"></div></div><small class="muted">${done}/${count} lessons completed</small><button data-action="open-course" data-id="${safe(c.id)}">Continue Learning →</button></div></article>`).join("");
       page.innerHTML=`
-      <section class="dashboard-hero"><p class="uppercase-accent">YOUR COMPLETE TECH LEARNING PLATFORM</p><h2>Mobile <span>Tech Room</span></h2><h2 style="font-size:clamp(18px,2.5vw,27px);color:#ffe000">Computer &amp; Phone Flashing and Unlocking</h2><p><strong>Learn • Repair • Unlock • Innovate</strong></p><p>Welcome back, ${safe(name)}. Build real technical skills with video lessons, audio tutorials, PDF guides and practical pictures.</p><div class="actions"><button data-dashboard-tab="lessons">Explore My Courses →</button><span class="tag">✓ ${safe(status.toUpperCase())} STUDENT</span></div></section>
+      <section class="dashboard-hero"><p class="uppercase-accent">YOUR COMPLETE TECH LEARNING PLATFORM</p><h2>Mobile <span>Tech Room</span></h2><h2 style="font-size:clamp(18px,2.5vw,27px);color:#ffe000">Computer &amp; Phone Flashing and Unlocking</h2><p><strong>Learn • Repair • Unlock • Innovate</strong></p><div class="actions"><button data-dashboard-tab="lessons">Explore My Courses →</button><span class="tag">✓ ${safe(status.toUpperCase())} STUDENT</span></div></section>
       <div class="course-quick-stats"><div class="course-quick-stat"><strong>${available.length}</strong><span>Available courses</span></div><div class="course-quick-stat"><strong>${totalLessons}</strong><span>Lessons to explore</span></div><div class="course-quick-stat"><strong>${percent}%</strong><span>Learning progress</span></div></div>
       <section class="panel"><div class="student-course-heading"><h2>Our Courses</h2><button data-dashboard-tab="lessons">View All Courses →</button></div><p class="muted">Choose your technical path and learn at your own pace.</p><div class="course-grid">${cards||`<p class="muted">Your instructors have not published courses yet. Please check again soon.</p>`}</div></section>
       ${locked.length?`<section class="panel"><h3>More Courses</h3><p class="muted">Paid courses become available after administrator approval.</p>${locked.map(c=>`<span class="tag">🔒 ${safe(c.title)}</span>`).join("")}</section>`:""}
@@ -1225,7 +1269,7 @@ async function renderDashboard(){
       stats=[{value:courses.length,label:"My lesson topics"},{value:courses.filter(c=>c.status==="published").length,label:"Published topics"},{value:lessonCounts.reduce((a,b)=>a+b,0),label:"Lessons created"}];quickActions=`<button data-dashboard-tab="lessons">Open My Lessons</button>`;
     }
   }catch(error){appMessage("Some dashboard statistics could not be loaded: "+error.message,"error");}
-  page.innerHTML=`<section class="dashboard-hero"><h2>Welcome, ${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats">${stats.map(x=>`<div class="dashboard-stat"><strong>${safe(x.value)}</strong><span>${safe(x.label)}</span></div>`).join("")}</div><section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions">${quickActions}</div></section><section class="panel"><h3>Account Information</h3><p><strong>Name:</strong> ${safe(name)}</p><p><strong>Role:</strong> <span class="tag">${safe(role.toUpperCase())}</span></p>${isAdmin()?"":`<p><strong>Account status:</strong> <span class="tag">${safe(status.toUpperCase())}</span></p>`}</section>`;
+  page.innerHTML=`<section class="dashboard-hero"><h2>Welcome, ${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats">${stats.map(x=>`<div class="dashboard-stat"><strong>${safe(x.value)}</strong><span>${safe(x.label)}</span></div>`).join("")}</div>${isAdmin()?"":`<section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions">${quickActions}</div></section>`}<section class="panel"><h3>Account Information</h3><p><strong>Name:</strong> ${safe(name)}</p><p><strong>Role:</strong> <span class="tag">${safe(role.toUpperCase())}</span></p>${isAdmin()?"":`<p><strong>Account status:</strong> <span class="tag">${safe(status.toUpperCase())}</span></p>`}</section>`;
 }
 
 
