@@ -1493,6 +1493,80 @@ footer{color:#71839a!important}
  .reference-next-row button{width:100%!important;font-size:19px!important}
 }
 
+
+/* Small-screen fit adjustment only — preserve the existing reference design. */
+.reference-lesson-card{
+  box-sizing:border-box!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+}
+.reference-lesson-card *{box-sizing:border-box}
+.reference-lesson-title-row,.reference-topic-row,.reference-written-row,.reference-media-row{
+  min-width:0!important;
+  width:100%!important;
+  gap:10px!important;
+}
+.reference-round-icon{
+  width:48px!important;
+  height:48px!important;
+  flex:0 0 48px!important;
+  font-size:21px!important;
+}
+.reference-lesson-title,.reference-topic-content,.reference-media-content{
+  min-width:0!important;
+  flex:1 1 auto!important;
+  padding-left:10px!important;
+}
+.reference-lesson-title>span{font-size:12px!important}
+.reference-lesson-title h3{
+  font-size:clamp(16px,4.2vw,21px)!important;
+  line-height:1.2!important;
+  overflow-wrap:anywhere!important;
+}
+.reference-topic-content>strong,.reference-media-content>h3{
+  font-size:16px!important;
+}
+.reference-topic-content>p{
+  font-size:13px!important;
+  line-height:1.35!important;
+  overflow-wrap:anywhere!important;
+}
+.reference-chevron{
+  flex:0 0 18px!important;
+  font-size:30px!important;
+}
+.reference-media-player,.reference-media-image,.reference-media-pdf{
+  width:100%!important;
+  max-width:100%!important;
+}
+.reference-media-availability{
+  min-width:0!important;
+  font-size:11px!important;
+  flex-wrap:wrap!important;
+}
+.reference-media-availability span{min-width:0!important}
+.reference-media-availability strong{font-size:10px!important}
+.reference-audio-player{min-width:0!important;padding:10px!important;gap:9px!important}
+.reference-audio-art{width:46px!important;height:46px!important;flex-basis:46px!important;font-size:25px!important}
+.reference-audio-main{min-width:0!important}
+.reference-next-row{min-width:0!important;gap:8px!important}
+.reference-next-row button{
+  min-width:0!important;
+  max-width:100%!important;
+  font-size:17px!important;
+  padding:12px 10px!important;
+}
+@media(max-width:380px){
+  .reference-lesson-card{padding:9px!important}
+  .reference-round-icon{width:42px!important;height:42px!important;flex-basis:42px!important;font-size:18px!important}
+  .reference-lesson-title,.reference-topic-content,.reference-media-content{padding-left:8px!important}
+  .reference-lesson-title h3{font-size:16px!important}
+  .reference-topic-content>strong,.reference-media-content>h3{font-size:14px!important}
+  .reference-topic-content>p{font-size:12px!important}
+  .reference-chevron{flex-basis:14px!important;font-size:26px!important}
+}
+
 </style>
 </head>
 <body>
