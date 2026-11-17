@@ -1454,6 +1454,36 @@ input::placeholder,textarea::placeholder{color:#9aaac0!important}
 .student-published-lesson .media-file-card{background:#0b1422!important;border-color:#263c58!important}
 @media(max-width:420px){.media-file-card{grid-template-columns:60px minmax(0,1fr)!important;min-height:78px!important;padding:9px!important}.media-file-card .media-file-icon,.media-file-card .media-file-thumb{width:60px!important;height:58px!important}}
 
+
+/* Final Android phone spacing: keep the brand clear of status/battery icons. */
+@media(max-width:600px){
+  .academy-header{
+    position:relative!important;
+    top:auto!important;
+    min-height:176px!important;
+    padding: max(38px, calc(24px + env(safe-area-inset-top, 0px))) 16px 18px!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    grid-template-rows:auto auto!important;
+    align-content:center!important;
+    row-gap:14px!important;
+  }
+  .academy-header .brand-lockup h1{
+    font-size:clamp(25px,6.2vw,31px)!important;
+    line-height:1.16!important;
+  }
+  .academy-header .brand-lockup p{
+    margin-top:7px!important;
+    font-size:13px!important;
+    line-height:1.35!important;
+  }
+  .academy-header .global-search-wrap{
+    grid-column:1/-1!important;
+    grid-row:2!important;
+    min-height:48px!important;
+    height:48px!important;
+    margin:0!important;
+  }
+}
 </style></head><body><main class="sheet"><header class="brand"><div class="brand-name">MOBILE TECH ROOM</div><div class="brand-tag">LEARN • REPAIR • INNOVATE</div></header>
 <p class="kicker">MOBILE TECH LESSON</p><h1>${safe(cleanTitle)}</h1><article>${content}</article></main>
 </body></html>`;
@@ -1576,13 +1606,14 @@ authMessage(errors[error.code]||error.message);
 }finally{$("authButton").disabled=false}
 }
 
-document.addEventListener("click",event=>{
-  const button=event.target.closest("#authButton");
-  if(!button)return;
+// Bind directly to the login button so mobile taps always reach authentication.
+// The button is outside dynamically-rendered app content, so delegation is unnecessary.
+$("authButton").addEventListener("click",event=>{
   event.preventDefault();
-  if(button.disabled)return;
+  event.stopPropagation();
+  if($("authButton").disabled)return;
   handleAuthButton();
-},true);
+});
 
 $("forgotButton").onclick=async()=>{
 const email=$("email").value.trim();
