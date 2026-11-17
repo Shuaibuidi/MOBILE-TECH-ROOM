@@ -1038,6 +1038,38 @@ hr{border-color:#263f60!important}
   .panel{padding:16px!important}
 }
 
+
+/* Final header type hierarchy and dependable sign-in tap target */
+.academy-header .brand-lockup h1{
+  font-size:clamp(24px,5.2vw,29px)!important;
+  line-height:1.12!important;
+  font-weight:900!important;
+  letter-spacing:-.55px!important;
+  white-space:nowrap!important;
+}
+.academy-header .brand-lockup h1 span{color:#f4f8ff!important}
+.academy-header .brand-lockup p{
+  margin-top:5px!important;
+  font-size:clamp(11px,2.8vw,13px)!important;
+  line-height:1.25!important;
+  font-weight:650!important;
+  letter-spacing:.35px!important;
+  color:#bcd8fa!important;
+}
+#authPanel{position:relative!important;z-index:2!important}
+#authButton{
+  position:relative!important;
+  z-index:5!important;
+  display:block!important;
+  width:100%!important;
+  min-height:52px!important;
+  margin:14px 0 8px!important;
+  pointer-events:auto!important;
+  touch-action:manipulation!important;
+  cursor:pointer!important;
+}
+#authButton:disabled{opacity:.65!important;cursor:wait!important}
+
 </style>
 </head>
 <body>
@@ -1058,7 +1090,7 @@ hr{border-color:#263f60!important}
 </div>
 <input id="email" type="email" placeholder="Email address">
 <input id="password" type="password" placeholder="Password (minimum 6 characters)">
-<button id="authButton">Login</button>
+<button id="authButton" type="button">Login</button>
 <button id="forgotButton" class="secondary">Forgot Password?</button>
 <p class="muted" id="switchText">No account? <a href="#" id="switchButton">Register here</a></p>
 <div id="message"></div>
@@ -1358,7 +1390,7 @@ authMessage("");
 
 $("switchButton").onclick=e=>{e.preventDefault();switchAuth()};
 
-$("authButton").onclick=async()=>{
+async function handleAuthButton(){
 const email=$("email").value.trim();
 const password=$("password").value;
 const name=$("registerName").value.trim();
@@ -1405,7 +1437,15 @@ const errors={
 };
 authMessage(errors[error.code]||error.message);
 }finally{$("authButton").disabled=false}
-};
+}
+
+document.addEventListener("click",event=>{
+  const button=event.target.closest("#authButton");
+  if(!button)return;
+  event.preventDefault();
+  if(button.disabled)return;
+  handleAuthButton();
+},true);
 
 $("forgotButton").onclick=async()=>{
 const email=$("email").value.trim();
