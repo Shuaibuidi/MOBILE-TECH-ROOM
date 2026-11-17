@@ -778,14 +778,84 @@ html,body{overflow-anchor:none!important;scroll-behavior:auto!important;scrollba
   .media-file-card .media-file-thumb,.media-file-card .media-file-icon{height:92px!important}
 }
 
+
+/* Screenshot-matched student interface */
+@media(max-width:760px){
+ body{background:#f5f8fd!important;color:#172b49!important}
+ .academy-header{position:relative;display:grid;grid-template-columns:42px minmax(0,1fr) auto;grid-template-areas:"menu brand actions" "search search search";gap:8px 10px;min-height:0;padding:10px 12px 12px!important;background:linear-gradient(105deg,#07358d,#075bea 65%,#087fdf)!important;border:0!important;border-bottom:3px solid #f4c52e!important}
+ .mobile-menu-toggle{grid-area:menu;display:block!important;width:40px;height:44px;padding:0;margin:0;background:#ffffff18!important;color:white!important;border-radius:8px!important;font-size:25px!important;box-shadow:none!important}
+ .brand-lockup{grid-area:brand;gap:8px!important;min-width:0}
+ .brand-mark{display:grid!important;place-items:center;width:44px;height:48px;flex:none;border-radius:8px;background:transparent!important;box-shadow:none!important;font-size:27px}
+ .brand-lockup h1{font-size:clamp(17px,4.8vw,23px)!important;white-space:nowrap;letter-spacing:-.5px!important}
+ .brand-lockup h1 span{color:#ffd12f!important}
+ .brand-lockup p{font-size:10px!important;color:#fff!important;letter-spacing:.2px!important;margin-top:2px!important}
+ .header-right{grid-area:actions;gap:6px!important}
+ .header-notification,.header-profile{display:grid!important;place-items:center;width:38px;height:42px;padding:0!important;margin:0!important;background:transparent!important;color:white!important;box-shadow:none!important;font-size:24px!important;position:relative}
+ .header-notification span{position:absolute;right:-1px;top:-3px;width:19px;height:19px;border-radius:50%;background:#ed2439;color:white;font-size:12px;line-height:19px}
+ .header-profile{width:42px;border-radius:50%!important;background:#1688e8!important;border:2px solid #ffffff50!important;font-size:20px!important}
+ .global-search-wrap{grid-area:search;display:none!important}
+ main{max-width:100%!important;padding:10px 11px 100px!important}
+ #appPanel{display:block!important}
+ #navigation{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px!important;padding:0!important;margin:8px 0 16px!important;background:transparent!important;border:0!important;box-shadow:none!important}
+ #navigation button{min-width:0!important;min-height:58px!important;margin:0!important;padding:8px 4px!important;border:1px solid #e1e7f0!important;border-radius:28px!important;background:#f0f3f9!important;color:#18283f!important;font-size:11px!important;line-height:1.15!important;box-shadow:none!important}
+ #navigation button.active{background:#075bea!important;color:#fff!important;border-color:#075bea!important}
+ #navigation button:before{display:none!important}
+ #page{min-width:0!important}
+ .student-material-banner{display:flex;align-items:center;gap:14px;min-height:112px;padding:17px 15px;margin:0 0 17px;border-radius:19px;background:linear-gradient(110deg,#073aa0,#087fdf);color:white;box-shadow:0 5px 14px #075bea25}
+ .student-material-banner .book-icon{font-size:47px;line-height:1}
+ .student-material-banner h2{margin:0 0 3px!important;color:white!important;font-size:22px!important;line-height:1.2}
+ .student-material-banner p{margin:0;color:#edf5ff;font-size:12px;line-height:1.35}
+ .student-material-banner button{margin:0 0 0 auto!important;padding:9px 11px!important;border:2px solid #fff!important;border-radius:24px!important;background:transparent!important;color:white!important;font-size:11px!important;white-space:nowrap;box-shadow:none!important}
+ .student-media-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 18px}
+ .student-media-card{min-width:0;overflow:hidden;padding:8px!important;margin:0!important;border:1px solid #e2e8f0!important;border-radius:19px!important;background:#fff!important;color:#172b49!important;box-shadow:0 4px 12px #102d5017!important;text-align:left!important}
+ .student-media-preview{height:112px;position:relative;overflow:hidden;border-radius:13px;background:linear-gradient(135deg,#d8eaff,#eef5ff);display:grid;place-items:center;margin-bottom:9px}
+ .student-media-preview img,.student-media-preview video{width:100%;height:100%;object-fit:cover}
+ .student-media-preview .file-symbol{font-size:68px;line-height:1}
+ .student-media-type{position:absolute;right:5px;top:5px;padding:5px 9px;border-radius:20px;background:#12a85b;color:#fff;font-size:11px;font-weight:800}
+ .student-media-type.video,.student-media-type.pdf{background:#ed2038}
+ .student-media-type.audio{background:#7025d8}
+ .student-media-card h3{margin:0 0 4px!important;color:#15243b!important;font-size:14px!important;line-height:1.25!important;overflow-wrap:anywhere}
+ .student-media-meta{margin:0 0 7px;color:#58677d;font-size:11px;line-height:1.3}
+ .student-media-action{display:flex;justify-content:flex-end}
+ .student-media-action button{min-width:94px;padding:9px 13px!important;margin:0!important;border-radius:24px!important;background:#075bea!important;color:#fff!important;font-size:13px!important;box-shadow:none!important}
+ .student-learning-banner{display:flex;align-items:center;gap:12px;padding:14px 13px;margin:18px 0 12px;border:2px solid #b4e8c6;border-radius:19px;background:#ddfbe4;color:#126b37}
+ .student-learning-banner .check{width:48px;height:48px;flex:none;display:grid;place-items:center;border-radius:50%;background:#0bb45b;color:white;font-size:30px}
+ .student-learning-banner h2{margin:0!important;color:#138142!important;font-size:21px!important}
+ .student-learning-banner p{margin:2px 0 0;color:#163b2a;font-size:12px;line-height:1.35}
+ .student-bottom-nav{position:fixed!important;z-index:1100;left:0;right:0;bottom:0;display:grid!important;grid-template-columns:repeat(4,1fr);gap:0!important;margin:0!important;padding:8px 8px max(10px,env(safe-area-inset-bottom))!important;border:0!important;border-top:1px solid #e1e7ef!important;border-radius:0!important;background:#fff!important;box-shadow:0 -5px 18px #152b4812!important}
+ .student-bottom-nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0!important;min-height:54px!important;margin:0!important;padding:3px!important;background:transparent!important;color:#18283f!important;border-radius:0!important;box-shadow:none!important;font-size:12px!important;font-weight:500!important}
+ .student-bottom-nav button .nav-symbol{font-size:25px;line-height:1.1}
+ .student-bottom-nav button.active{color:#075bea!important}
+ .student-bottom-nav button.active:after{content:"";width:76%;height:3px;margin-top:3px;border-radius:4px;background:#075bea}
+ .student-bottom-nav.hidden{display:none!important}
+ #appMessage{color:#172b49!important}
+}
+@media(min-width:761px){
+ .mobile-menu-toggle,.header-notification,.header-profile{display:none!important}
+ .student-bottom-nav{display:none!important}
+}
+@media(max-width:380px){
+ .student-material-banner{gap:8px;padding:13px 10px}
+ .student-material-banner .book-icon{font-size:38px}
+ .student-material-banner h2{font-size:19px!important}
+ .student-material-banner button{padding:8px!important;font-size:10px!important}
+ .student-media-preview{height:95px}
+ .student-media-card h3{font-size:12px!important}
+}
+
 </style>
 </head>
 <body>
 
 <header class="academy-header">
-  <div class="brand-lockup"><div class="brand-copy"><h1>Mobile <span>Tech Room</span></h1><p>Learn. Repair. Innovate.</p></div></div>
+  <button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-label="Toggle menu">☰</button>
+  <div class="brand-lockup"><div class="brand-mark" aria-hidden="true">📱🎓</div><div class="brand-copy"><h1>Mobile <span>Tech Room</span></h1><p>Learn&nbsp; • &nbsp;Practice&nbsp; • &nbsp;Grow</p></div></div>
+  <div class="header-right">
+    <button id="notificationButton" class="header-notification" type="button" aria-label="Notifications">♟<span>2</span></button>
+    <button id="profileMenuButton" class="header-profile" type="button" aria-label="Profile">●⌄</button>
+    <button id="logoutButton" class="header-logout hidden" type="button">Logout</button>
+  </div>
   <label class="global-search-wrap"><span>⌕</span><input id="globalCourseSearch" type="search" placeholder="Search courses, lessons..." aria-label="Search courses and lessons"></label>
-  <div class="header-right"><button id="logoutButton" class="header-logout hidden" type="button">Logout</button></div>
 </header>
 
 <main>
@@ -808,6 +878,7 @@ html,body{overflow-anchor:none!important;scroll-behavior:auto!important;scrollba
 <nav id="navigation"></nav>
 <div id="page"></div>
 <div id="appMessage"></div>
+<nav id="studentBottomNav" class="student-bottom-nav hidden" aria-label="Main navigation"></nav>
 </section>
 </main>
 
@@ -1272,21 +1343,71 @@ page.innerHTML=`<div class="panel">Unable to load account: ${safe(e.message)}</d
 });
 
 function buildNavigation(){
+if(isStudent()){
+ const tabs=[["lessons","⌂","Lessons"],["media","▧","Media"],["courses","▰","My Courses"],["achievements","🏆","Achievements"],["settings","⚙","Settings"]];
+ $("navigation").innerHTML=tabs.map(([key,icon,label])=>`<button class="${currentTab===key?"active":"secondary"}" data-tab="${key}">${icon} &nbsp;${label}</button>`).join("");
+ $("studentBottomNav").classList.remove("hidden");
+ const bottom=[["dashboard","⌂","Home"],["courses","🎓","Courses"],["progress","▮","Progress"],["about","ⓘ","About"]];
+ $("studentBottomNav").innerHTML=bottom.map(([key,icon,label])=>`<button class="${currentTab===key?"active":""}" data-tab="${key}"><span class="nav-symbol">${icon}</span><span>${label}</span></button>`).join("");
+ $("navigation").classList.remove("hidden");
+ return;
+}
+$("studentBottomNav").classList.add("hidden");
 let tabs=[];
 if(isAdmin())tabs=["dashboard","students","lessons","instructors"];
 else if(isInstructor())tabs=["dashboard","lessons"];
-else if(isStudent())tabs=["dashboard","lessons"];
-
 const labels={dashboard:"⌂  Dashboard",students:"♙  Students",lessons:"▣  My Courses",instructors:"⚙  Instructors"};
-$("navigation").innerHTML=tabs.map(t=>
-`<button class="${currentTab===t?"active":"secondary"}" data-tab="${t}">${labels[t]||t}</button>`
-).join("");
+$("navigation").innerHTML=tabs.map(t=>`<button class="${currentTab===t?"active":"secondary"}" data-tab="${t}">${labels[t]||t}</button>`).join("");
+}
+
+function renderStudentSettings(){
+ const name=profile?.fullName||currentUser?.displayName||"Student";
+ page.innerHTML=`<section class="panel"><h2>Account Information</h2><p><strong>Name:</strong> ${safe(name)}</p><p><strong>Email:</strong> ${safe(profile?.email||currentUser?.email||"")}</p><p><strong>Phone:</strong> ${safe(profile?.phone||"Not provided")}</p><p><strong>Account Status:</strong> ${safe(profile?.status||"")}</p><button type="button" data-action="logout">Logout</button></section>`;
+}
+
+async function renderStudentMedia(filter="all"){
+ page.innerHTML="<div class='panel'>Loading lesson materials...</div>";
+ try{
+  await loadCourses();
+  const enrollSnap=await getDocs(collection(db,"users",currentUser.uid,"enrollments"));
+  const activeIds=new Set(enrollSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
+  const available=courses.filter(course=>course.accessType!=="paid"||activeIds.has(course.id));
+  const results=[];
+  for(const course of available){
+   const snap=await getDocs(collection(db,"courses",course.id,"lessons"));
+   snap.docs.forEach(docSnap=>{
+    const lesson={id:docSnap.id,courseId:course.id,courseTitle:course.title||"Course",...docSnap.data()};
+    const type=(lesson.type||"written").toLowerCase();
+    if(lesson.mediaUrl&&["image","video","audio","pdf"].includes(type)&&(filter==="all"||filter===type))results.push(lesson);
+   });
+  }
+  results.sort((a,b)=>{
+   const ta=a.createdAt?.toMillis?.()||0,tb=b.createdAt?.toMillis?.()||0;
+   return tb-ta;
+  });
+  const cards=results.map(item=>{
+   const type=(item.type||"file").toLowerCase();
+   const date=item.createdAt?.toDate?.().toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})||"Learning material";
+   const preview=type==="image"?`<img src="${safe(item.mediaUrl)}" alt="${safe(item.title||"Image")}" loading="lazy">`:`<span class="file-symbol">${type==="video"?"▶":type==="pdf"?"📕":"🎧"}</span>`;
+   const action=type==="image"?"View":type==="pdf"?"Download":"Play";
+   return `<article class="student-media-card"><div class="student-media-preview">${preview}<span class="student-media-type ${type}">${type==="pdf"?"▤ PDF":type==="audio"?"♫ Audio":type==="video"?"▶ Video":"▧ Image"}</span></div><h3>${safe(item.title||"Learning Material")}</h3><p class="student-media-meta">▦ ${safe(date)}</p><p class="student-media-meta">${safe(item.courseTitle)}</p><div class="student-media-action"><button type="button" data-action="view-media" data-media-type="${safe(type)}" data-media-url="${safe(item.mediaUrl)}" data-media-title="${safe(item.title||"Lesson material")}">${action}</button></div></article>`;
+  }).join("");
+  page.innerHTML=`<section class="student-material-banner"><span class="book-icon">📖</span><div><h2>Lesson Materials</h2><p>Access all learning resources in one place.</p></div><button type="button" data-tab="courses">← Back to Lessons</button></section>${results.length?`<div class="student-media-grid">${cards}</div>`:`<div class="panel"><h2>No Materials Yet</h2><p class="muted">Your available courses do not have uploaded image, video, audio or PDF materials yet.</p></div>`}<section class="student-learning-banner"><span class="check">✓</span><div><h2>Keep Learning!</h2><p>Technology is easy when you learn step by step.</p></div><span style="font-size:35px">🎓</span></section>`;
+ }catch(error){page.innerHTML=`<div class="panel error">Could not load lesson materials: ${safe(error.message)}</div>`;}
 }
 
 $("navigation").onclick=e=>{
 const b=e.target.closest("[data-tab]");
 if(b)showTab(b.dataset.tab);
 };
+$("studentBottomNav").onclick=e=>{
+const b=e.target.closest("[data-tab]");
+if(b)showTab(b.dataset.tab);
+};
+$("mobileMenuToggle").onclick=()=> $("navigation").classList.toggle("menu-open");
+$("profileMenuButton").onclick=()=>showTab("settings");
+$("notificationButton").onclick=()=>appMessage("You are all caught up with your learning materials.");
+
 const globalSearchField=$("globalCourseSearch");
 if(globalSearchField){
   globalSearchField.addEventListener("input",()=>{
@@ -1312,11 +1433,14 @@ currentTab=tab;
 buildNavigation();
 $("appMessage").innerHTML="";
 selectedCourse=null;
-
 if(tab==="dashboard")await renderDashboard();
-if(tab==="lessons")await renderCourses();
-if(tab==="students"&&isAdmin())await renderUsers("student");
-if(tab==="instructors"&&isAdmin())await renderUsers("instructor");
+if(tab==="lessons"&&isStudent())await renderStudentMedia("all");
+else if(tab==="media"&&isStudent())await renderStudentMedia("all");
+else if(tab==="courses"&&isStudent())await renderCourses();
+else if((tab==="achievements"||tab==="progress")&&isStudent())await renderDashboard();
+else if(tab==="settings"&&isStudent())renderStudentSettings();
+else if(tab==="about"&&isStudent())page.innerHTML=`<section class="panel"><h2>About Mobile Tech Room</h2><p>Learn • Practice • Grow</p><p class="muted">Your place to learn mobile technology skills step by step.</p></section>`;
+else if(tab==="lessons"||tab==="students"||tab==="instructors")await (tab==="lessons"?renderCourses():renderUsers(tab==="students"?"student":"instructor"));
 applyGlobalCourseSearch();
 }
 
