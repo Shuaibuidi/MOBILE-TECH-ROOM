@@ -2296,28 +2296,9 @@ async function loadCourses(){
 }
 
 function bindLessonFormControls({accessId=null,priceFieldId=null,priceId=null,typeId,writtenId,mediaId,contentId}) {
-  const access=accessId?$(accessId):null;
-  const priceField=priceFieldId?$(priceFieldId):null;
-  const price=priceId?$(priceId):null;
-  const type=$(typeId);
-  const written=$(writtenId);
-  const media=$(mediaId);
-  const content=contentId?$(contentId):null;
-  const update=()=>{
-    if(access&&priceField&&price){
-      const paid=access.value==="paid";
-      priceField.classList.toggle("hidden",!paid);
-      price.required=paid;
-      if(!paid)price.value="";
-    }
-    const isWritten=type.value==="written";
-    written.classList.toggle("hidden",!isWritten);
-    media.classList.toggle("hidden",isWritten);
-    if(content)content.setAttribute("aria-hidden",String(!isWritten));
-  };
-  if(access)access.addEventListener("change",update);
-  type.addEventListener("change",update);
-  update();
+  const access=accessId?$(accessId):null,priceField=priceFieldId?$(priceFieldId):null,price=priceId?$(priceId):null,media=$(mediaId);
+  const update=()=>{if(access&&priceField&&price){const paid=access.value==="paid";priceField.classList.toggle("hidden",!paid);price.required=paid;if(!paid)price.value="";}if(media)media.classList.remove("hidden");};
+  if(access)access.addEventListener("change",update);update();
 }
 
 function bindRichTextEditor(editorId,toolbarId){const editor=$(editorId),toolbar=$(toolbarId);if(!editor||!toolbar)return;toolbar.querySelectorAll('[data-rich-command]').forEach(button=>{button.addEventListener('mousedown',e=>e.preventDefault());button.onclick=()=>{editor.focus();document.execCommand(button.dataset.richCommand,false,null);};});const bindSelect=(id,command)=>{const el=$(id);if(el)el.onchange=()=>{editor.focus();document.execCommand(command,false,el.value);};};bindSelect(toolbarId+'Style','formatBlock');bindSelect(toolbarId+'Font','fontName');bindSelect(toolbarId+'Size','fontSize');const color=$(toolbarId+'Color'),highlight=$(toolbarId+'Highlight');if(color)color.oninput=()=>{editor.focus();document.execCommand('foreColor',false,color.value);};if(highlight)highlight.oninput=()=>{editor.focus();document.execCommand('hiliteColor',false,highlight.value);};}
@@ -2388,7 +2369,7 @@ try{
 const cid=await ensureCourse();
 const result=await uploadLessonMedia(f,cid,p=>st.textContent=`Uploading file... ${p}%`);
 $("lessonUrl").value=result.mediaUrl;
-$("lessonType").value=result.mime==="application/pdf"?"pdf":result.mime.startsWith("video/")?"video":result.mime.startsWith("audio/")?"audio":"image";
+$("lessonType").value=result.mime==="application/pdf"?"pdf":result.mime.startsWith("video/")?"video":"audio";
 $("lessonType").dispatchEvent(new Event("change"));
 st.textContent="Upload complete. Press Save Course and Lesson.";
 }catch(err){st.textContent=(err.code?err.code+": ":"")+(err.message||"Upload failed.");}
@@ -2468,7 +2449,7 @@ if(isStudent()){
    }
    const body=type==="written"?`<div class="lesson-body">${formatLessonContent(lesson.content||"")}</div>`:"";
    const done=completed.includes(lesson.id);
-   return `<li class="lesson-item reference-lesson-card student-published-lesson" data-student-lesson="${safe(lesson.id)}"><div class="reference-lesson-title-row"><div class="reference-round-icon">▣</div><div class="reference-lesson-title"><span>Title of the Lesson</span><h3>${safe(lesson.title||"Untitled lesson")}</h3></div><span class="reference-chevron">›</span></div>${lesson.topic?`<div class="reference-topic-row"><div class="reference-round-icon">☷</div><div class="reference-topic-content"><strong>Topic</strong><p>${safe(lesson.topic)}</p></div><span class="reference-chevron">›</span></div>`:""}${lesson.section?`<div class="reference-topic-row"><div class="reference-round-icon">§</div><div class="reference-topic-content"><strong>Section</strong><p>${safe(lesson.section)}</p></div></div>`:""}${lesson.learningOutcomes?`<div class="reference-topic-row"><div class="reference-round-icon">✓</div><div class="reference-topic-content"><strong>What you will learn</strong><p>${formatLessonContent(lesson.learningOutcomes)}</p></div></div>`:""}${body}${media}<div class="reference-next-row"><span class="reference-completion">${done?"✓ Lesson completed":"Continue your learning journey"}</span><button class="${done?"secondary":"student-lesson-done"}" data-action="student-complete" data-id="${safe(lesson.id)}">${done?"✓ Completed":index<lessons.length-1?"Next Lesson　›":"Complete Lesson　✓"}</button></div></li>`;
+   return `<li class="lesson-item reference-lesson-card student-published-lesson" data-student-lesson="${safe(lesson.id)}"><div class="reference-lesson-title-row"><div class="reference-round-icon">▣</div><div class="reference-lesson-title"><span>Lesson ${index+1}</span><h3>${safe(lesson.title||"Untitled lesson")}</h3></div><span class="reference-chevron">›</span></div>${lesson.topic?`<div class="reference-topic-row"><div class="reference-round-icon">☷</div><div class="reference-topic-content"><strong>Topic</strong><p>${safe(lesson.topic)}</p></div><span class="reference-chevron">›</span></div>`:""}${lesson.section?`<div class="reference-topic-row"><div class="reference-round-icon">§</div><div class="reference-topic-content"><strong>Section</strong><p>${safe(lesson.section)}</p></div></div>`:""}${lesson.learningOutcomes?`<div class="reference-topic-row"><div class="reference-round-icon">✓</div><div class="reference-topic-content"><strong>What you will learn</strong><p>${formatLessonContent(lesson.learningOutcomes)}</p></div></div>`:""}${body}${media}<div class="reference-next-row"><span class="reference-completion">${done?"✓ Lesson completed":"Continue your learning journey"}</span><button class="${done?"secondary":"student-lesson-done"}" data-action="student-complete" data-id="${safe(lesson.id)}">${done?"✓ Completed":index<lessons.length-1?"Next Lesson　›":"Complete Lesson　✓"}</button></div></li>`;
  };
  const percent=Math.round(completed.filter(id=>lessons.some(l=>l.id===id)).length/lessons.length*100);
  page.innerHTML=`<section class="panel"><button class="secondary" data-action="back-courses">← All Courses</button><h2>${safe(selectedCourse.title)}</h2><p>${formatLessonContent(selectedCourse.description||"Follow the lessons in order and practise each skill safely.")}</p><div class="learning-progress-label"><strong>${completed.filter(id=>lessons.some(l=>l.id===id)).length} of ${lessons.length} lessons completed</strong><strong>${percent}%</strong></div><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${percent}%"></div></div></section><section class="panel"><div class="student-course-heading"><h2>Lessons List</h2><span class="tag">${lessons.length} lessons</span></div><ol class="lesson-list">${lessons.map(renderStudentLesson).join("")}</ol></section>`;
@@ -2503,31 +2484,14 @@ html+=`
 <input id="lessonTopic" placeholder="Enter the topic (e.g. Android Basics)" required>
 <label class="muted" for="lessonSection">Section</label>
 <input id="lessonSection" placeholder="Enter the section (e.g. Introduction, Tools, Practical Steps)" required>
-<select id="lessonType">
-<option value="written">Written Lesson</option>
-<option value="video">Video</option>
-<option value="audio">Audio</option>
-<option value="pdf">PDF</option>
-<option value="image">Photo</option>
-</select>
-<div id="writtenLessonFields">
-<label for="lessonStyle" class="muted">Write the lesson document</label>
-<div class="editor-toolbar">
-<select id="lessonStyle" aria-label="Paragraph style"><option value="P">Normal paragraph</option><option value="H1">Title heading</option><option value="H2">Section heading</option><option value="H3">Small heading</option><option value="BLOCKQUOTE">Quote box</option></select>
-<select id="lessonFont" aria-label="Font family"><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option><option value="Verdana">Verdana</option><option value="Trebuchet MS">Trebuchet MS</option><option value="Courier New">Courier New</option><option value="Impact">Impact</option></select>
-<select id="lessonSize" aria-label="Font size"><option value="2">Small</option><option value="3" selected>Normal</option><option value="4">Large</option><option value="5">Extra large</option><option value="6">Huge</option></select>
-<button type="button" class="secondary" data-editor="bold"><b>B</b></button><button type="button" class="secondary" data-editor="italic"><i>I</i></button><button type="button" class="secondary" data-editor="underline"><u>U</u></button>
-<button type="button" class="secondary" data-editor="insertUnorderedList">• List</button>
-<button type="button" class="secondary" data-editor="justifyLeft">Left</button><button type="button" class="secondary" data-editor="justifyCenter">Center</button><button type="button" class="secondary" data-editor="justifyRight">Right</button>
-<label class="muted" for="lessonTextColor">Text</label><input id="lessonTextColor" type="color" value="#202938" aria-label="Text color">
-<label class="muted" for="lessonHighlight">Highlight</label><input id="lessonHighlight" type="color" value="#fff2a8" aria-label="Highlight color">
-</div>
-<div id="lessonContent" class="lesson-editor" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Write your lesson here..."></div>
-</div>
-<div id="mediaLessonFields" class="hidden">
-<input id="lessonUrl" type="url" placeholder="Optional HTTPS media link">
-<label class="muted" for="lessonFile">Choose a video, photo, audio or PDF file (maximum 50 MB)</label>
-<input id="lessonFile" type="file" accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.webm,.pdf,.mp3,.wav,.m4a,.ogg,.aac,image/*,video/*,audio/*,application/pdf">
+<label class="muted" for="lessonOutcomes">What students will learn in this lesson</label>
+${richEditorToolbar("lessonOutcomes")}
+<div id="lessonOutcomes" class="lesson-editor" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Describe the skills students will gain..."></div>
+<select id="lessonType"><option value="pdf" selected>PDF</option><option value="video">Video</option><option value="audio">Audio</option></select>
+<div id="mediaLessonFields">
+<input id="lessonUrl" type="url" placeholder="Optional HTTPS PDF, video or audio link">
+<label class="muted" for="lessonFile">Choose a PDF, video or audio file (maximum 50 MB)</label>
+<input id="lessonFile" type="file" accept=".pdf,.mp4,.webm,.mp3,.wav,.m4a,.ogg,.aac,application/pdf,video/*,audio/*">
 <button type="button" class="secondary" id="uploadLessonFile">Upload Selected File</button>
 <p id="uploadStatus" class="muted">Only approved administrators and instructors can upload.</p>
 </div>
@@ -2542,7 +2506,7 @@ if(lessons.length)html+="<ol class='lesson-list'>";
 lessons.forEach((l,i)=>{
 html+=`
 <li class="lesson-item reference-lesson-card">
-<div class="reference-lesson-title-row"><div class="reference-round-icon">▣</div><div class="reference-lesson-title"><span>Title of the Lesson</span><h3>${safe(l.title||"Untitled lesson")}</h3></div><span class="reference-chevron">›</span></div>
+<div class="reference-lesson-title-row"><div class="reference-round-icon">▣</div><div class="reference-lesson-title"><span>Lesson ${i+1}</span><h3>${safe(l.title||"Untitled lesson")}</h3></div><span class="reference-chevron">›</span></div>
 ${l.topic?`<div class="reference-topic-row"><div class="reference-round-icon">☷</div><div class="reference-topic-content"><strong>Topic</strong><p>${safe(l.topic)}</p></div><span class="reference-chevron">›</span></div>`:""}
 ${l.section?`<div class="reference-topic-row"><div class="reference-round-icon">§</div><div class="reference-topic-content"><strong>Section</strong><p>${safe(l.section)}</p></div></div>`:""}
 ${l.learningOutcomes?`<div class="reference-topic-row"><div class="reference-round-icon">✓</div><div class="reference-topic-content"><strong>What you will learn</strong><p>${formatLessonContent(l.learningOutcomes)}</p></div></div>`:""}
@@ -2555,26 +2519,16 @@ if(lessons.length)html+="</ol>";
 
 page.innerHTML=html;
 if(isStaff())bindLessonFormControls({typeId:"lessonType",writtenId:"writtenLessonFields",mediaId:"mediaLessonFields",contentId:"lessonContent"});
-const editor=$("lessonContent");
-const styleSelect=$("lessonStyle");
-const textColor=$("lessonTextColor");
-if(editor){
-  styleSelect.onchange=()=>{editor.focus();document.execCommand("formatBlock",false,styleSelect.value);};
-  $("lessonFont").onchange=()=>{editor.focus();document.execCommand("fontName",false,$("lessonFont").value);};
-  $("lessonSize").onchange=()=>{editor.focus();document.execCommand("fontSize",false,$("lessonSize").value);};
-  document.querySelectorAll("[data-editor]").forEach(btn=>btn.onclick=()=>{editor.focus();document.execCommand(btn.dataset.editor,false,null);});
-  textColor.oninput=()=>{editor.focus();document.execCommand("foreColor",false,textColor.value);};
-  $("lessonHighlight").oninput=()=>{editor.focus();document.execCommand("hiliteColor",false,$("lessonHighlight").value);};
-}
+bindRichTextEditor("lessonOutcomes","lessonOutcomesToolbar");
 const uploadButton=$("uploadLessonFile");
 if(uploadButton)uploadButton.onclick=async()=>{
   const file=$("lessonFile").files[0],status=$("uploadStatus");
-  if(!file){status.textContent="Please choose an image, video, audio file or PDF first.";return;}
+  if(!file){status.textContent="Please choose a PDF, video or audio file first.";return;}
   uploadButton.disabled=true;status.textContent="Uploading file... 0%";
   try{
     const result=await uploadLessonMedia(file,courseId,p=>status.textContent=`Uploading file... ${p}%`);
     $("lessonUrl").value=result.mediaUrl;
-    $("lessonType").value=result.mime==="application/pdf"?"pdf":result.mime.startsWith("video/")?"video":result.mime.startsWith("audio/")?"audio":"image";
+    $("lessonType").value=result.mime==="application/pdf"?"pdf":result.mime.startsWith("video/")?"video":"audio";
     $("lessonType").dispatchEvent(new Event("change"));
     status.textContent="Upload complete. Save Lesson to publish this material.";
   }catch(error){status.textContent=(error.code?error.code+": ":"")+(error.message||"Upload failed. Please try again.");}
@@ -2585,8 +2539,8 @@ if(form)form.onsubmit=async e=>{
 e.preventDefault();
 try{
 const url=$("lessonUrl").value.trim(),lessonType=$("lessonType").value;
-if(lessonType==="written"&&!$("lessonContent").innerText.trim()){appMessage("Write the lesson document before saving.","error");return;}
-if(lessonType!=="written"&&!url){appMessage("Upload the lesson file or enter its HTTPS link before saving.","error");return;}
+if(!$("lessonOutcomes").innerText.trim()){appMessage("Describe what students will learn in this lesson.","error");return;}
+if(!url){appMessage("Upload the lesson file or enter its HTTPS link before saving.","error");return;}
 if($("lessonFile").files.length&&!url){appMessage("Please upload the selected file before saving the lesson.","error");return;}
 if(url&&!/^https:\/\/.+/i.test(url)){
 appMessage("Please enter a valid HTTPS media link.","error");return;
@@ -2595,8 +2549,10 @@ await addDoc(collection(db,"courses",courseId,"lessons"),{
 title:$("lessonTitle").value.trim(),
 topic:$("lessonTopic").value.trim(),
 section:$("lessonSection").value.trim(),
+learningOutcomes:$("lessonOutcomes").innerHTML.trim(),
+lessonNumber:lessons.length+1,
 type:lessonType,
-content:lessonType==="written"?$("lessonContent").innerHTML.trim():"",
+content:"",
 mediaUrl:url,
 createdBy:currentUser.uid,
 createdAt:serverTimestamp()
