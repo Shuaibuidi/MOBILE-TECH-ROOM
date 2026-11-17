@@ -1336,7 +1336,7 @@ $("navigation").innerHTML="";
 return;
 }
 buildNavigation();
-await showTab("dashboard");
+await showTab(isStudent()?"lessons":"dashboard");
 }catch(e){
 page.innerHTML=`<div class="panel">Unable to load account: ${safe(e.message)}</div>`;
 }
@@ -1390,9 +1390,9 @@ async function renderStudentMedia(filter="all"){
    const date=item.createdAt?.toDate?.().toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})||"Learning material";
    const preview=type==="image"?`<img src="${safe(item.mediaUrl)}" alt="${safe(item.title||"Image")}" loading="lazy">`:`<span class="file-symbol">${type==="video"?"▶":type==="pdf"?"📕":"🎧"}</span>`;
    const action=type==="image"?"View":type==="pdf"?"Download":"Play";
-   return `<article class="student-media-card"><div class="student-media-preview">${preview}<span class="student-media-type ${type}">${type==="pdf"?"▤ PDF":type==="audio"?"♫ Audio":type==="video"?"▶ Video":"▧ Image"}</span></div><h3>${safe(item.title||"Learning Material")}</h3><p class="student-media-meta">▦ ${safe(date)}</p><p class="student-media-meta">${safe(item.courseTitle)}</p><div class="student-media-action"><button type="button" data-action="view-media" data-media-type="${safe(type)}" data-media-url="${safe(item.mediaUrl)}" data-media-title="${safe(item.title||"Lesson material")}">${action}</button></div></article>`;
+   return `<article class="student-media-card"><div class="student-media-preview">${preview}<span class="student-media-type ${type}">${type==="pdf"?"▤ PDF":type==="audio"?"♫ Audio":type==="video"?"▶ Video":"▧ Image"}</span></div><h3>${safe(item.title||"Learning Material")}</h3><p class="student-media-meta">▦ ${safe(date)}</p><p class="student-media-meta">${safe(item.courseTitle)}</p><div class="student-media-action"><button type="button" data-action="${type==="pdf"?"download-media":"view-media"}" data-media-type="${safe(type)}" data-media-url="${safe(item.mediaUrl)}" data-media-title="${safe(item.title||"Lesson material")}">${action}</button></div></article>`;
   }).join("");
-  page.innerHTML=`<section class="student-material-banner"><span class="book-icon">📖</span><div><h2>Lesson Materials</h2><p>Access all learning resources in one place.</p></div><button type="button" data-tab="courses">← Back to Lessons</button></section>${results.length?`<div class="student-media-grid">${cards}</div>`:`<div class="panel"><h2>No Materials Yet</h2><p class="muted">Your available courses do not have uploaded image, video, audio or PDF materials yet.</p></div>`}<section class="student-learning-banner"><span class="check">✓</span><div><h2>Keep Learning!</h2><p>Technology is easy when you learn step by step.</p></div><span style="font-size:35px">🎓</span></section>`;
+  page.innerHTML=`<section class="student-material-banner"><span class="book-icon">📖</span><div><h2>Lesson Materials</h2><p>Access all learning resources in one place.</p></div><button type="button" data-dashboard-tab="courses">← Back to Lessons</button></section>${results.length?`<div class="student-media-grid">${cards}</div>`:`<div class="panel"><h2>No Materials Yet</h2><p class="muted">Your available courses do not have uploaded image, video, audio or PDF materials yet.</p></div>`}<section class="student-learning-banner"><span class="check">✓</span><div><h2>Keep Learning!</h2><p>Technology is easy when you learn step by step.</p></div><span style="font-size:35px">🎓</span></section>`;
  }catch(error){page.innerHTML=`<div class="panel error">Could not load lesson materials: ${safe(error.message)}</div>`;}
 }
 
@@ -1404,7 +1404,7 @@ $("studentBottomNav").onclick=e=>{
 const b=e.target.closest("[data-tab]");
 if(b)showTab(b.dataset.tab);
 };
-$("mobileMenuToggle").onclick=()=> $("navigation").classList.toggle("menu-open");
+$("mobileMenuToggle").onclick=()=> $("navigation").classList.toggle("hidden");
 $("profileMenuButton").onclick=()=>showTab("settings");
 $("notificationButton").onclick=()=>appMessage("You are all caught up with your learning materials.");
 
@@ -2018,6 +2018,13 @@ const id=b.dataset.id;
 
 try{
 if(action==="download-lesson-pdf"){downloadLessonPdf(b);return;}
+if(action==="download-media"){
+ const url=b.dataset.mediaUrl||"";
+ if(!/^https:\/\/.+/i.test(url)){appMessage("This media link is not valid.","error");return;}
+ const link=document.createElement("a");link.href=url;link.target="_blank";link.rel="noopener noreferrer";link.download="";
+ document.body.append(link);link.click();link.remove();return;
+}
+if(action==="logout"){await signOut(auth);return;}
 if(action==="view-media"){
   const mediaUrl=b.dataset.mediaUrl||"",mediaType=b.dataset.mediaType||"",mediaTitle=b.dataset.mediaTitle||"Lesson media";
   if(!/^https:\/\/.+/i.test(mediaUrl)){appMessage("This media link is not valid.","error");return;}
