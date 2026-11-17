@@ -796,7 +796,7 @@ html,body{overflow-anchor:none!important;scroll-behavior:auto!important;scrollba
  .global-search-wrap{grid-area:search;display:none!important}
  main{max-width:100%!important;padding:10px 11px 100px!important}
  #appPanel{display:block!important}
- #navigation{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px!important;padding:0!important;margin:8px 0 16px!important;background:transparent!important;border:0!important;box-shadow:none!important}
+ #navigation{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px!important;padding:0!important;margin:8px 0 16px!important;background:transparent!important;border:0!important;box-shadow:none!important}
  #navigation button{min-width:0!important;min-height:58px!important;margin:0!important;padding:8px 4px!important;border:1px solid #e1e7f0!important;border-radius:28px!important;background:#f0f3f9!important;color:#18283f!important;font-size:11px!important;line-height:1.15!important;box-shadow:none!important}
  #navigation button.active{background:#075bea!important;color:#fff!important;border-color:#075bea!important}
  #navigation button:before{display:none!important}
@@ -1387,8 +1387,8 @@ async function renderStudentMedia(filter="all"){
   });
   const cards=results.map(item=>{
    const type=(item.type||"file").toLowerCase();
-   const date=item.createdAt?.toDate?.().toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"})||"Learning material";
-   const preview=type==="image"?`<img src="${safe(item.mediaUrl)}" alt="${safe(item.title||"Image")}" loading="lazy">`:`<span class="file-symbol">${type==="video"?"▶":type==="pdf"?"📕":"🎧"}</span>`;
+   const date=item.createdAt?.toDate?.().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})||"Learning material";
+   const preview=type==="image"?`<img src="${safe(item.mediaUrl)}" alt="${safe(item.title||"Image")}" loading="lazy">`:type==="video"?`<video src="${safe(item.mediaUrl)}" muted playsinline preload="metadata"></video>`:`<span class="file-symbol">${type==="pdf"?"📕":"🎧"}</span>`;
    const action=type==="image"?"View":type==="pdf"?"Download":"Play";
    return `<article class="student-media-card"><div class="student-media-preview">${preview}<span class="student-media-type ${type}">${type==="pdf"?"▤ PDF":type==="audio"?"♫ Audio":type==="video"?"▶ Video":"▧ Image"}</span></div><h3>${safe(item.title||"Learning Material")}</h3><p class="student-media-meta">▦ ${safe(date)}</p><p class="student-media-meta">${safe(item.courseTitle)}</p><div class="student-media-action"><button type="button" data-action="${type==="pdf"?"download-media":"view-media"}" data-media-type="${safe(type)}" data-media-url="${safe(item.mediaUrl)}" data-media-title="${safe(item.title||"Lesson material")}">${action}</button></div></article>`;
   }).join("");
