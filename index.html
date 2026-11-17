@@ -2326,8 +2326,7 @@ html+="<label class='muted'>5. What students will learn in this lesson</label>"+
 html+="<label class='muted'>6. Course access (covers every lesson)</label><select id='courseAccess'><option value='free'>Free</option><option value='paid'>Paid</option></select>";
 html+="<div id='coursePriceField' class='hidden'><label class='muted' for='coursePrice'>7. One-time course price (Malawi Kwacha – MK)</label><div class='input-prefix'><span>MK</span><input id='coursePrice' type='number' min='1' step='1' inputmode='numeric' placeholder='e.g. 25000'></div><small class='muted'>Enter the amount in Malawi Kwacha.</small></div>";
 html+="<hr><label class='muted'>8. Lesson material</label><select id='lessonType'><option value='pdf' selected>PDF document</option><option value='video'>Video</option><option value='audio'>Audio</option></select>";
-html+="<div id='mediaLessonFields'><label class='muted'>Upload the lesson PDF, video or audio (maximum 50 MB)</label><input id='lessonFile' type='file' accept='.pdf,.mp4,.webm,.mp3,.wav,.m4a,.ogg,.aac,application/pdf,video/*,audio/*'><button type='button' class='secondary' id='uploadLessonFile'>Upload Selected File</button><p id='uploadStatus' class='muted'>Choose a PDF, video or audio file and upload it before saving.</p>";
-html+="<label class='muted'>Or paste an HTTPS PDF, video or audio link</label><input id='lessonUrl' type='url' placeholder='Paste a PDF, video or audio link'></div><label class='muted' for='lessonResourceUrl'>Additional Learning Link (Optional)</label><input id='lessonResourceUrl' type='url' placeholder='Paste a website or learning resource link (optional)'><small class='muted'>Students will see an Open Learning Link button only when you enter a link here.</small><button type='submit'>9. Save Course and Lesson</button></form>";
+html+="<div id='mediaLessonFields'><input id='lessonUrl' type='hidden'><label class='muted'>Upload the lesson PDF, video or audio (maximum 50 MB)</label><input id='lessonFile' type='file' accept='.pdf,.mp4,.webm,.mp3,.wav,.m4a,.ogg,.aac,application/pdf,video/*,audio/*'><button type='button' class='secondary' id='uploadLessonFile'>Upload Selected File</button><p id='uploadStatus' class='muted'>Choose a PDF, video or audio file and upload it before saving.</p></div><label class='muted' for='lessonResourceUrl'>Additional Learning Link (Optional)</label><input id='lessonResourceUrl' type='url' placeholder='Paste a website or learning resource link (optional)'><small class='muted'>Students will see an Open Learning Link button only when you enter a link here.</small><button type='submit'>9. Save Course and Lesson</button></form>";
 }
 html+="</div>";
 if(isStudent()){
@@ -2387,7 +2386,7 @@ const url=val("lessonUrl"),resourceUrl=val("lessonResourceUrl");
 if(resourceUrl&&!/^https:\/\/.+/i.test(resourceUrl)){appMessage("Please enter a valid HTTPS learning link.","error");return;}
 if(!$("courseDescription").innerText.trim()){appMessage("Describe what this course covers.","error");return;}
 if(!$("lessonOutcomes").innerText.trim()){appMessage("Describe what students will learn in this lesson.","error");return;}
-if(!url){appMessage("Upload the lesson file or enter its HTTPS link before saving.","error");return;}
+if(!url){appMessage("Please upload the lesson file before saving.","error");return;}
 if($("lessonFile").files.length&&!url){appMessage("Please upload the selected file before saving.","error");return;}
 if(url&&!/^https:\/\/.+/i.test(url)){appMessage("Please enter a valid HTTPS link.","error");return;}
 const cid=await ensureCourse();
@@ -2494,7 +2493,7 @@ ${richEditorToolbar("lessonOutcomes")}
 <div id="lessonOutcomes" class="lesson-editor" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Describe the skills students will gain..."></div>
 <select id="lessonType"><option value="pdf" selected>PDF</option><option value="video">Video</option><option value="audio">Audio</option></select>
 <div id="mediaLessonFields">
-<input id="lessonUrl" type="url" placeholder="Optional HTTPS PDF, video or audio link">
+<input id="lessonUrl" type="hidden">
 <label class="muted" for="lessonFile">Choose a PDF, video or audio file (maximum 50 MB)</label>
 <input id="lessonFile" type="file" accept=".pdf,.mp4,.webm,.mp3,.wav,.m4a,.ogg,.aac,application/pdf,video/*,audio/*">
 <button type="button" class="secondary" id="uploadLessonFile">Upload Selected File</button>
@@ -2549,7 +2548,7 @@ try{
 const url=$("lessonUrl").value.trim(),resourceUrl=$("lessonResourceUrl").value.trim(),lessonType=$("lessonType").value;
 if(resourceUrl&&!/^https:\/\/.+/i.test(resourceUrl)){appMessage("Please enter a valid HTTPS learning link.","error");return;}
 if(!$("lessonOutcomes").innerText.trim()){appMessage("Describe what students will learn in this lesson.","error");return;}
-if(!url){appMessage("Upload the lesson file or enter its HTTPS link before saving.","error");return;}
+if(!url){appMessage("Please upload the lesson file before saving.","error");return;}
 if($("lessonFile").files.length&&!url){appMessage("Please upload the selected file before saving the lesson.","error");return;}
 if(url&&!/^https:\/\/.+/i.test(url)){
 appMessage("Please enter a valid HTTPS media link.","error");return;
