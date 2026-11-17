@@ -1201,6 +1201,83 @@ hr{border-color:#263f60!important}
   .media-file-card{min-height:190px!important}
 }
 
+
+
+/* Mobile layout repair — single fixed navigation, opaque background, safe-area spacing */
+@media (max-width:999px){
+  /* Hide the legacy navigation on phones; the dedicated four-tab bar is used instead. */
+  #navigation{display:none!important}
+  #mobileBottomNav{
+    display:flex!important;
+    position:fixed!important;
+    left:0!important;right:0!important;bottom:0!important;top:auto!important;
+    z-index:10000!important;
+    width:100%!important;max-width:100vw!important;
+    flex-direction:row!important;flex-wrap:nowrap!important;
+    align-items:stretch!important;justify-content:space-around!important;
+    gap:6px!important;margin:0!important;
+    padding:9px 9px calc(9px + env(safe-area-inset-bottom,0px))!important;
+    background:#ffffff!important;
+    opacity:1!important;
+    border:0!important;border-top:1px solid #dce5f1!important;
+    border-radius:18px 18px 0 0!important;
+    box-shadow:0 -8px 28px rgba(10,35,70,.18)!important;
+    overflow:visible!important;
+    backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  }
+  #mobileBottomNav button{
+    flex:1 1 0!important;min-width:0!important;min-height:62px!important;
+    display:flex!important;flex-direction:column!important;
+    align-items:center!important;justify-content:center!important;
+    gap:4px!important;margin:0!important;padding:7px 3px!important;
+    white-space:nowrap!important;line-height:1.15!important;
+    border:1px solid transparent!important;border-radius:13px!important;
+    background:#edf4ff!important;color:#174a8b!important;
+    box-shadow:none!important;font-size:12px!important;font-weight:800!important;
+  }
+  #mobileBottomNav button.active{
+    background:linear-gradient(135deg,#075bea,#078de8)!important;
+    color:#ffffff!important;border-color:#075bea!important;
+  }
+  #mobileBottomNav .bottom-nav-icon{display:block!important;font-size:23px!important;line-height:1!important}
+  #page,#appMessage{padding-bottom:0!important}
+  main{padding-bottom:0!important}
+  body{padding-bottom:calc(91px + env(safe-area-inset-bottom,0px))!important}
+}
+@media(max-width:600px){
+  .academy-header{
+    position:relative!important;top:auto!important;
+    min-height:0!important;
+    padding:calc(17px + env(safe-area-inset-top,0px)) 16px 15px!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    grid-template-rows:auto auto!important;
+    align-content:start!important;align-items:center!important;
+    gap:13px 10px!important;
+    background:linear-gradient(112deg,#07358f 0%,#075bea 66%,#078de0 100%)!important;
+    border-bottom:4px solid #ffca35!important;
+  }
+  .academy-header .brand-lockup h1{
+    font-size:clamp(22px,5.7vw,29px)!important;
+    line-height:1.15!important;white-space:nowrap!important;
+  }
+  .academy-header .brand-lockup p{
+    margin-top:5px!important;font-size:11px!important;
+    letter-spacing:.55px!important;line-height:1.3!important;
+  }
+  .academy-header .header-right{grid-column:2!important;grid-row:1!important}
+  .academy-header .global-search-wrap{
+    grid-column:1/-1!important;grid-row:2!important;
+    width:100%!important;max-width:none!important;height:48px!important;
+    min-height:48px!important;margin:0!important;
+  }
+  main{padding:13px 11px 12px!important}
+  .panel{padding:15px!important}
+  #mobileBottomNav button{min-height:60px!important;font-size:11px!important}
+}
+@media(min-width:1000px){
+  #mobileBottomNav{display:none!important}
+}
+
 </style>
 </head>
 <body>
