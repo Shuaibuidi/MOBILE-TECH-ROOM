@@ -1987,6 +1987,18 @@ const labels={dashboard:"⌂  Dashboard",students:"♙  Students",lessons:"▣  
 $("navigation").innerHTML=tabs.map(t=>
 `<button class="${currentTab===t?"active":"secondary"}" data-tab="${t}">${labels[t]||t}</button>`
 ).join("");
+
+// Give administrators their actual management sections in the phone navigation.
+// The previous generic mobile bar hid Students and Instructors on small screens.
+const bottomNav=$("mobileBottomNav");
+if(bottomNav){
+  const mobileTabs=isAdmin()
+    ? [["dashboard","⌂","Dashboard"],["students","♙","Students"],["lessons","▣","Courses"],["instructors","⚙","Instructors"]]
+    : [["dashboard","⌂","Home"],["lessons","▣","Courses"],["progress","▥","Progress"],["about","ⓘ","About"]];
+  bottomNav.innerHTML=mobileTabs.map(([tab,icon,label])=>
+    `<button type="button" data-dashboard-tab="${tab}" aria-label="${label}"><span class="bottom-nav-icon">${icon}</span><span>${label}</span></button>`
+  ).join("");
+}
 }
 
 $("navigation").onclick=e=>{
