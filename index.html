@@ -1348,7 +1348,13 @@ if(isStudent()){
  $("navigation").innerHTML=tabs.map(([key,icon,label])=>`<button class="${currentTab===key?"active":"secondary"}" data-tab="${key}">${icon} &nbsp;${label}</button>`).join("");
  $("studentBottomNav").classList.remove("hidden");
  const bottom=[["dashboard","⌂","Home"],["courses","🎓","Courses"],["progress","▮","Progress"],["about","ⓘ","About"]];
- $("studentBottomNav").innerHTML=bottom.map(([key,icon,label])=>`<button class="${((key==="dashboard"&&(currentTab==="dashboard"||currentTab==="lessons"||currentTab==="media"))||(key==="courses"&&currentTab==="courses")||((key==="progress"&&(currentTab==="progress"||currentTab==="achievements"))||(key==="about"&&currentTab==="about"))?"active":""}" data-tab="${key}"><span class="nav-symbol">${icon}</span><span>${label}</span></button>`).join("");
+ $("studentBottomNav").innerHTML=bottom.map(([key,icon,label])=>{
+  const active=(key==="dashboard"&&["dashboard","lessons","media"].includes(currentTab))
+    ||(key==="courses"&&currentTab==="courses")
+    ||(key==="progress"&&["progress","achievements"].includes(currentTab))
+    ||(key==="about"&&currentTab==="about");
+  return `<button class="${active?"active":""}" data-tab="${key}"><span class="nav-symbol">${icon}</span><span>${label}</span></button>`;
+ }).join("");
  $("navigation").classList.remove("hidden");
  return;
 }
