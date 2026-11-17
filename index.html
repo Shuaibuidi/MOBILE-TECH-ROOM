@@ -2307,7 +2307,7 @@ function bindLessonFormControls({accessId=null,priceFieldId=null,priceId=null,ty
 }
 
 function bindRichTextEditor(editorId,toolbarId){const editor=$(editorId),toolbar=$(toolbarId);if(!editor||!toolbar)return;toolbar.querySelectorAll('[data-rich-command],[data-rich-link]').forEach(button=>{button.addEventListener('mousedown',e=>e.preventDefault());button.onclick=()=>{editor.focus();if(button.dataset.richLink){const url=prompt('Paste the full website link (https://...)');if(!url)return;let parsed;try{parsed=new URL(url.trim());}catch(_){alert('Please enter a valid web link starting with https://');return;}if(!['http:','https:'].includes(parsed.protocol)){alert('Only http:// and https:// links are allowed.');return;}document.execCommand('createLink',false,parsed.href);return;}document.execCommand(button.dataset.richCommand,false,null);};});const bindSelect=(id,command)=>{const el=$(id);if(el)el.onchange=()=>{editor.focus();document.execCommand(command,false,el.value);};};bindSelect(toolbarId+'Style','formatBlock');bindSelect(toolbarId+'Font','fontName');bindSelect(toolbarId+'Size','fontSize');const color=$(toolbarId+'Color'),highlight=$(toolbarId+'Highlight');if(color)color.oninput=()=>{editor.focus();document.execCommand('foreColor',false,color.value);};if(highlight)highlight.oninput=()=>{editor.focus();document.execCommand('hiliteColor',false,highlight.value);};}
-function richEditorToolbar(prefix){return '<div class="editor-toolbar" id="'+prefix+'Toolbar"><select id="'+prefix+'ToolbarStyle"><option value="P">Paragraph</option><option value="H1">Title</option><option value="H2">Heading</option><option value="H3">Small heading</option><option value="BLOCKQUOTE">Quote</option></select><select id="'+prefix+'ToolbarFont"><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option><option value="Verdana">Verdana</option></select><select id="'+prefix+'ToolbarSize"><option value="2">Small</option><option value="3" selected>Normal</option><option value="4">Large</option><option value="5">Extra large</option></select><button type="button" class="secondary" data-rich-command="bold"><b>B</b></button><button type="button" class="secondary" data-rich-command="italic"><i>I</i></button><button type="button" class="secondary" data-rich-command="underline"><u>U</u></button><button type="button" class="secondary" data-rich-command="insertUnorderedList">• List</button><button type="button" class="secondary mtr-link-button" data-rich-link="true">🔗 Add Link</button><label class="muted">Text</label><input id="'+prefix+'ToolbarColor" type="color" value="#202938"><label class="muted">Highlight</label><input id="'+prefix+'ToolbarHighlight" type="color" value="#fff2a8"></div>';}
+function richEditorToolbar(prefix){return '<div class="editor-toolbar" id="'+prefix+'Toolbar"><select id="'+prefix+'ToolbarStyle"><option value="P">Paragraph</option><option value="H1">Title</option><option value="H2">Heading</option><option value="H3">Small heading</option><option value="BLOCKQUOTE">Quote</option></select><select id="'+prefix+'ToolbarFont"><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option><option value="Verdana">Verdana</option></select><select id="'+prefix+'ToolbarSize"><option value="2">Small</option><option value="3" selected>Normal</option><option value="4">Large</option><option value="5">Extra large</option></select><button type="button" class="secondary" data-rich-command="bold"><b>B</b></button><button type="button" class="secondary" data-rich-command="italic"><i>I</i></button><button type="button" class="secondary" data-rich-command="underline"><u>U</u></button><button type="button" class="secondary" data-rich-command="insertUnorderedList">• List</button><label class="muted">Text</label><input id="'+prefix+'ToolbarColor" type="color" value="#202938"><label class="muted">Highlight</label><input id="'+prefix+'ToolbarHighlight" type="color" value="#fff2a8"></div>';}
 async function renderCourses(){
 page.innerHTML="<div class='panel'>Loading courses...</div>";
 try{
@@ -2326,7 +2326,7 @@ html+="<label class='muted'>6. Course access (covers every lesson)</label><selec
 html+="<div id='coursePriceField' class='hidden'><label class='muted' for='coursePrice'>7. One-time course price (Malawi Kwacha – MK)</label><div class='input-prefix'><span>MK</span><input id='coursePrice' type='number' min='1' step='1' inputmode='numeric' placeholder='e.g. 25000'></div><small class='muted'>Enter the amount in Malawi Kwacha.</small></div>";
 html+="<hr><label class='muted'>8. Lesson material</label><select id='lessonType'><option value='pdf' selected>PDF document</option><option value='video'>Video</option><option value='audio'>Audio</option></select>";
 html+="<div id='mediaLessonFields'><label class='muted'>Upload the lesson PDF, video or audio (maximum 50 MB)</label><input id='lessonFile' type='file' accept='.pdf,.mp4,.webm,.mp3,.wav,.m4a,.ogg,.aac,application/pdf,video/*,audio/*'><button type='button' class='secondary' id='uploadLessonFile'>Upload Selected File</button><p id='uploadStatus' class='muted'>Choose a PDF, video or audio file and upload it before saving.</p>";
-html+="<label class='muted'>Or paste an HTTPS PDF, video or audio link</label><input id='lessonUrl' type='url' placeholder='Paste a PDF, video or audio link'></div><button type='submit'>9. Save Course and Lesson</button></form>";
+html+="<label class='muted'>Or paste an HTTPS PDF, video or audio link</label><input id='lessonUrl' type='url' placeholder='Paste a PDF, video or audio link'></div><label class='muted' for='lessonResourceUrl'>Additional Learning Link (Optional)</label><input id='lessonResourceUrl' type='url' placeholder='Paste a website or learning resource link (optional)'><small class='muted'>Students will see an Open Learning Link button only when you enter a link here.</small><button type='submit'>9. Save Course and Lesson</button></form>";
 }
 html+="</div>";
 if(isStudent()){
@@ -2382,14 +2382,15 @@ e.preventDefault();
 try{
 const accessType=$("courseAccess").value,lessonType=$("lessonType").value;
 if(accessType==="paid"&&(!val("coursePrice")||Number(val("coursePrice"))<=0)){appMessage("Enter a valid price for this paid course.","error");return;}
-const url=val("lessonUrl");
+const url=val("lessonUrl"),resourceUrl=val("lessonResourceUrl");
+if(resourceUrl&&!/^https:\/\/.+/i.test(resourceUrl)){appMessage("Please enter a valid HTTPS learning link.","error");return;}
 if(!$("courseDescription").innerText.trim()){appMessage("Describe what this course covers.","error");return;}
 if(!$("lessonOutcomes").innerText.trim()){appMessage("Describe what students will learn in this lesson.","error");return;}
 if(!url){appMessage("Upload the lesson file or enter its HTTPS link before saving.","error");return;}
 if($("lessonFile").files.length&&!url){appMessage("Please upload the selected file before saving.","error");return;}
 if(url&&!/^https:\/\/.+/i.test(url)){appMessage("Please enter a valid HTTPS link.","error");return;}
 const cid=await ensureCourse();
-await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:rich("lessonOutcomes"),lessonNumber:1,type:lessonType,content:"",mediaUrl:url,createdBy:currentUser.uid,createdAt:serverTimestamp()});
+await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:rich("lessonOutcomes"),lessonNumber:1,type:lessonType,content:"",mediaUrl:url,resourceUrl:resourceUrl,createdBy:currentUser.uid,createdAt:serverTimestamp()});
 await setDoc(doc(db,"courses",cid),{status:"published",updatedAt:serverTimestamp()},{merge:true});
 appMessage("Course and first lesson saved successfully.");
 await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:val("courseTitle"),description:rich("courseDescription")};await openCourse(cid);
@@ -2452,7 +2453,7 @@ if(isStudent()){
    }
    const body=type==="written"?`<div class="lesson-body">${formatLessonContent(lesson.content||"")}</div>`:"";
    const done=completed.includes(lesson.id);
-   return `<li class="lesson-item reference-lesson-card student-published-lesson" data-student-lesson="${safe(lesson.id)}"><div class="reference-lesson-title-row"><div class="reference-round-icon">▣</div><div class="reference-lesson-title"><span>Lesson ${index+1}</span><h3>${safe(lesson.title||"Untitled lesson")}</h3></div><span class="reference-chevron">›</span></div>${lesson.topic?`<div class="reference-topic-row"><div class="reference-round-icon">☷</div><div class="reference-topic-content"><strong>Topic</strong><p>${safe(lesson.topic)}</p></div><span class="reference-chevron">›</span></div>`:""}${lesson.section?`<div class="reference-topic-row"><div class="reference-round-icon">§</div><div class="reference-topic-content"><strong>Section</strong><p>${safe(lesson.section)}</p></div></div>`:""}${lesson.learningOutcomes?`<div class="reference-topic-row"><div class="reference-round-icon">✓</div><div class="reference-topic-content"><strong>What you will learn</strong><p>${formatLessonContent(lesson.learningOutcomes)}</p></div></div>`:""}${body}${media}<div class="reference-next-row"><span class="reference-completion">${done?"✓ Lesson completed":"Continue your learning journey"}</span><button class="${done?"secondary":"student-lesson-done"}" data-action="student-complete" data-id="${safe(lesson.id)}">${done?"✓ Completed":index<lessons.length-1?"Next Lesson　›":"Complete Lesson　✓"}</button></div></li>`;
+   return `<li class="lesson-item reference-lesson-card student-published-lesson" data-student-lesson="${safe(lesson.id)}"><div class="reference-lesson-title-row"><div class="reference-round-icon">▣</div><div class="reference-lesson-title"><span>Lesson ${index+1}</span><h3>${safe(lesson.title||"Untitled lesson")}</h3></div><span class="reference-chevron">›</span></div>${lesson.topic?`<div class="reference-topic-row"><div class="reference-round-icon">☷</div><div class="reference-topic-content"><strong>Topic</strong><p>${safe(lesson.topic)}</p></div><span class="reference-chevron">›</span></div>`:""}${lesson.section?`<div class="reference-topic-row"><div class="reference-round-icon">§</div><div class="reference-topic-content"><strong>Section</strong><p>${safe(lesson.section)}</p></div></div>`:""}${lesson.learningOutcomes?`<div class="reference-topic-row"><div class="reference-round-icon">✓</div><div class="reference-topic-content"><strong>What you will learn</strong><p>${formatLessonContent(lesson.learningOutcomes)}</p></div></div>`:""}${lesson.resourceUrl&&/^https:\/\//i.test(lesson.resourceUrl)?`<div class="reference-topic-row"><div class="reference-round-icon">↗</div><div class="reference-topic-content"><strong>Additional Learning Link</strong><p><a class="whatsapp-link" href="${safe(lesson.resourceUrl)}" target="_blank" rel="noopener noreferrer">Open Learning Link ↗</a></p></div></div>`:""}${body}${media}<div class="reference-next-row"><span class="reference-completion">${done?"✓ Lesson completed":"Continue your learning journey"}</span><button class="${done?"secondary":"student-lesson-done"}" data-action="student-complete" data-id="${safe(lesson.id)}">${done?"✓ Completed":index<lessons.length-1?"Next Lesson　›":"Complete Lesson　✓"}</button></div></li>`;
  };
  const percent=Math.round(completed.filter(id=>lessons.some(l=>l.id===id)).length/lessons.length*100);
  page.innerHTML=`<section class="panel"><button class="secondary" data-action="back-courses">← All Courses</button><h2>${safe(selectedCourse.title)}</h2><p>${formatLessonContent(selectedCourse.description||"Follow the lessons in order and practise each skill safely.")}</p><div class="learning-progress-label"><strong>${completed.filter(id=>lessons.some(l=>l.id===id)).length} of ${lessons.length} lessons completed</strong><strong>${percent}%</strong></div><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${percent}%"></div></div></section><section class="panel"><div class="student-course-heading"><h2>Lessons List</h2><span class="tag">${lessons.length} lessons</span></div><ol class="lesson-list">${lessons.map(renderStudentLesson).join("")}</ol></section>`;
@@ -2498,6 +2499,9 @@ ${richEditorToolbar("lessonOutcomes")}
 <button type="button" class="secondary" id="uploadLessonFile">Upload Selected File</button>
 <p id="uploadStatus" class="muted">Only approved administrators and instructors can upload.</p>
 </div>
+<label class="muted" for="lessonResourceUrl">Additional Learning Link (Optional)</label>
+<input id="lessonResourceUrl" type="url" placeholder="Paste a website or learning resource link (optional)">
+<small class="muted">Students will see an Open Learning Link button only when you enter a link here.</small>
 <button type="submit">Save Lesson</button>
 </form>
 </div>`;
@@ -2512,7 +2516,7 @@ html+=`
 <div class="reference-lesson-title-row"><div class="reference-round-icon">▣</div><div class="reference-lesson-title"><span>Lesson ${i+1}</span><h3>${safe(l.title||"Untitled lesson")}</h3></div><span class="reference-chevron">›</span></div>
 ${l.topic?`<div class="reference-topic-row"><div class="reference-round-icon">☷</div><div class="reference-topic-content"><strong>Topic</strong><p>${safe(l.topic)}</p></div><span class="reference-chevron">›</span></div>`:""}
 ${l.section?`<div class="reference-topic-row"><div class="reference-round-icon">§</div><div class="reference-topic-content"><strong>Section</strong><p>${safe(l.section)}</p></div></div>`:""}
-${l.learningOutcomes?`<div class="reference-topic-row"><div class="reference-round-icon">✓</div><div class="reference-topic-content"><strong>What you will learn</strong><p>${formatLessonContent(l.learningOutcomes)}</p></div></div>`:""}
+${l.learningOutcomes?`<div class="reference-topic-row"><div class="reference-round-icon">✓</div><div class="reference-topic-content"><strong>What you will learn</strong><p>${formatLessonContent(l.learningOutcomes)}</p></div></div>`:""}${l.resourceUrl&&/^https:\/\//i.test(l.resourceUrl)?`<div class="reference-topic-row"><div class="reference-round-icon">↗</div><div class="reference-topic-content"><strong>Additional Learning Link</strong><p><a class="whatsapp-link" href="${safe(l.resourceUrl)}" target="_blank" rel="noopener noreferrer">Open Learning Link ↗</a></p></div></div>`:""}
 ${(l.type||"written")==="written"?`<div class="reference-written-row"><div class="reference-round-icon">▤</div><div class="reference-topic-content"><strong>Lesson Content</strong><div class="lesson-body">${formatLessonContent(l.content||"")}</div></div></div><button type="button" class="secondary" data-action="download-lesson-pdf"><span>⬇ Download PDF</span></button>`:""}
 ${renderReferenceMedia(l)}
 ${isAdmin()?`<div class="actions reference-admin-actions"><button class="secondary" data-action="edit-lesson" data-id="${safe(l.id)}">Edit</button><button class="danger" data-action="delete-lesson" data-id="${safe(l.id)}">Delete</button></div>`:""}
@@ -2541,7 +2545,8 @@ const form=$("lessonForm");
 if(form)form.onsubmit=async e=>{
 e.preventDefault();
 try{
-const url=$("lessonUrl").value.trim(),lessonType=$("lessonType").value;
+const url=$("lessonUrl").value.trim(),resourceUrl=$("lessonResourceUrl").value.trim(),lessonType=$("lessonType").value;
+if(resourceUrl&&!/^https:\/\/.+/i.test(resourceUrl)){appMessage("Please enter a valid HTTPS learning link.","error");return;}
 if(!$("lessonOutcomes").innerText.trim()){appMessage("Describe what students will learn in this lesson.","error");return;}
 if(!url){appMessage("Upload the lesson file or enter its HTTPS link before saving.","error");return;}
 if($("lessonFile").files.length&&!url){appMessage("Please upload the selected file before saving the lesson.","error");return;}
@@ -2557,6 +2562,7 @@ lessonNumber:lessons.length+1,
 type:lessonType,
 content:"",
 mediaUrl:url,
+resourceUrl:resourceUrl,
 createdBy:currentUser.uid,
 createdAt:serverTimestamp()
 });
