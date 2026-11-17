@@ -1,4 +1,5 @@
 name: Build Mobile Tech Room APK
+# Build a review APK for pull requests before merging.
 
 on:
   workflow_dispatch:
