@@ -166,7 +166,7 @@ async function handleWebhook({ req, res, log }) {
     return res.json({ received: false, error: "Invalid JSON" }, 400);
   }
 
-  const txRef = String(payload.tx_ref || payload.data?.tx_ref || "").trim();
+  const txRef = String(payload.tx_ref || payload.data?.tx_ref || payload.data?.data?.tx_ref || payload.transaction?.tx_ref || "").trim();
   if (!txRef) return res.json({ received: true, ignored: true });
 
   const { db } = getFirebase();
@@ -188,7 +188,7 @@ async function handleWebhook({ req, res, log }) {
     }
   });
   const verified = await verifyResponse.json().catch(() => ({}));
-  const data = verified?.data || {};
+  const data = verified?.data?.data || verified?.data || {};
 
   const verifiedAmount = Number(data.amount);
   const isValid = verifyResponse.ok &&
@@ -197,7 +197,7 @@ async function handleWebhook({ req, res, log }) {
     String(data.tx_ref || "") === txRef &&
     String(data.currency || "").toUpperCase() === payment.currency &&
     Number.isFinite(verifiedAmount) &&
-    verifiedAmount === Number(payment.amount);
+    verifiedAmount >= Number(payment.amount);
 
   if (!isValid) {
     log("PayChangu transaction verification did not match expected payment: " + txRef);
