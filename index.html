@@ -1438,118 +1438,59 @@ footer{color:#71839a!important}
 }
 
 
-/* Lesson Materials gallery — reference screenshot layout */
-.media-file-grid{
-  display:grid!important;
-  grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  gap:12px!important;
-  padding:0!important;
-  margin:16px 0!important;
-  background:transparent!important;
-  border:0!important;
-}
-.media-file-card{
-  position:relative!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:stretch!important;
-  justify-content:flex-start!important;
-  gap:7px!important;
-  min-width:0!important;
-  min-height:0!important;
-  padding:8px!important;
-  margin:0!important;
-  border:1px solid #e1e8f2!important;
-  border-radius:17px!important;
-  background:#fff!important;
-  color:#172b49!important;
-  text-align:left!important;
-  box-shadow:0 5px 16px rgba(20,55,100,.10)!important;
-  white-space:normal!important;
-}
-.media-card-preview{
-  position:relative!important;
-  width:100%!important;
-  aspect-ratio:16/9!important;
-  overflow:hidden!important;
-  border-radius:12px!important;
-  background:#eaf2fd!important;
-}
-.media-card-image{
-  display:block!important;
-  width:100%!important;
-  height:100%!important;
-  object-fit:cover!important;
-}
-.media-card-placeholder{
-  display:grid!important;
-  width:100%!important;
-  height:100%!important;
-  place-items:center!important;
-  color:#fff!important;
-  font-size:43px!important;
-  font-weight:900!important;
-  background:linear-gradient(135deg,#0b58c7,#13a6e8)!important;
-}
-.media-card-video{background:linear-gradient(135deg,#1b3859,#07172c)!important}
-.media-card-audio{background:linear-gradient(135deg,#092e87,#6636c9 58%,#13a8df)!important}
-.media-card-pdf{background:linear-gradient(135deg,#dcecff,#f5f8ff)!important;color:#e33242!important}
-.media-card-type{
-  position:absolute!important;
-  top:8px!important;
-  right:8px!important;
-  padding:5px 9px!important;
-  border-radius:20px!important;
-  color:#fff!important;
-  background:#087cff!important;
-  font-size:10px!important;
-  font-weight:900!important;
-  letter-spacing:.4px!important;
-  box-shadow:0 2px 8px #001b3d30!important;
-}
-.media-card-type-video{background:#e51d2a!important}
-.media-card-type-audio{background:#7135db!important}
-.media-card-type-pdf{background:#df2638!important}
-.media-file-card .media-file-name{
-  display:block!important;
-  order:0!important;
-  width:100%!important;
-  color:#172b49!important;
-  font-size:13px!important;
-  font-weight:850!important;
-  line-height:1.3!important;
-  overflow-wrap:anywhere!important;
-}
-.media-file-card .media-card-meta{
-  display:block!important;
-  order:0!important;
-  color:#6b788b!important;
-  font-size:10px!important;
-  line-height:1.35!important;
-  font-weight:600!important;
-}
-.media-file-card .media-card-action{
-  display:block!important;
-  align-self:flex-end!important;
-  order:0!important;
-  min-width:86px!important;
-  padding:8px 13px!important;
-  border-radius:22px!important;
-  background:linear-gradient(110deg,#075bea,#078de8)!important;
-  color:#fff!important;
-  text-align:center!important;
-  font-size:12px!important;
-  font-weight:850!important;
-  box-shadow:0 4px 10px #075bea24!important;
-}
-.media-file-card:after{display:none!important;content:none!important}
-.student-published-lesson .media-file-grid{padding:0!important;background:transparent!important;border:0!important}
-@media(max-width:360px){
- .media-file-grid{gap:8px!important}
- .media-file-card{padding:6px!important}
- .media-file-card .media-file-name{font-size:11px!important}
- .media-file-card .media-card-meta{font-size:9px!important}
- .media-file-card .media-card-action{min-width:72px!important;padding:7px 10px!important;font-size:11px!important}
+/* Faithful lesson layout based on the user's supplied screenshot. Shared across roles and media types. */
+.reference-lesson-card{display:block!important;list-style:none!important;margin:16px 0!important;padding:15px 17px!important;border:1px solid #e1e6ef!important;border-radius:22px!important;background:#fff!important;box-shadow:0 4px 13px rgba(9,35,82,.12)!important;overflow:hidden!important}
+.reference-lesson-title-row,.reference-topic-row,.reference-written-row,.reference-media-row{display:flex!important;align-items:center!important;gap:15px!important;padding:7px 0!important}
+.reference-lesson-title-row{min-height:116px!important}
+.reference-topic-row{min-height:104px!important;border-top:1px solid #edf0f5!important}
+.reference-round-icon{width:76px!important;height:76px!important;flex:0 0 76px!important;display:flex!important;align-items:center!important;justify-content:center!important;border-radius:50%!important;background:#1048b7!important;color:#fff!important;font-size:32px!important;font-weight:900!important}
+.reference-lesson-title,.reference-topic-content,.reference-media-content{flex:1!important;min-width:0!important;border-left:3px solid #4a83d0!important;padding:5px 0 5px 18px!important}
+.reference-lesson-title>span{display:block!important;color:#112f72!important;font-size:17px!important;font-weight:850!important}
+.reference-lesson-title h3{margin:4px 0 0!important;color:#102653!important;font-size:clamp(22px,4.8vw,32px)!important;line-height:1.18!important;font-weight:800!important;overflow-wrap:anywhere!important}
+.reference-topic-content>strong,.reference-media-content>h3{display:block!important;margin:0 0 5px!important;color:#102f70!important;font-size:23px!important;font-weight:850!important}
+.reference-topic-content>p{margin:0!important;color:#111d39!important;font-size:19px!important;line-height:1.4!important;overflow-wrap:anywhere!important}
+.reference-chevron{flex:0 0 auto!important;color:#0648b9!important;font-size:46px!important;line-height:1!important;font-weight:400!important}
+.reference-media-row{align-items:flex-start!important;border-top:1px solid #edf0f5!important;margin-top:8px!important;padding-top:15px!important}
+.reference-media-row>.reference-round-icon{margin-top:4px!important}
+.reference-media-content>h3{margin-bottom:10px!important}
+.reference-media-content{padding-top:4px!important}
+.reference-media-player,.reference-media-image,.reference-media-pdf{display:block!important;width:100%!important;max-width:100%!important;border:0!important;border-radius:15px!important;background:#061a3b!important}
+.reference-media-player{aspect-ratio:16/9!important;max-height:650px!important;object-fit:contain!important}
+.reference-media-image{max-height:700px!important;object-fit:contain!important;background:#f2f5fa!important}
+.reference-image-link{display:block!important}
+.reference-media-pdf{height:min(75vh,760px)!important;background:#f3f6fb!important}
+.reference-pdf-viewer{display:flex!important;flex-direction:column!important;gap:9px!important}
+.reference-pdf-download{align-self:flex-end!important;display:inline-block!important;padding:10px 17px!important;border-radius:25px!important;background:#0755c9!important;color:#fff!important;font-weight:850!important;text-decoration:none!important}
+.reference-audio-player{display:flex!important;align-items:center!important;gap:14px!important;padding:16px!important;border-radius:15px!important;background:linear-gradient(110deg,#e5efff,#dceaff)!important}
+.reference-audio-art{width:65px!important;height:65px!important;flex:0 0 65px!important;display:grid!important;place-items:center!important;border-radius:50%!important;background:#1048b7!important;color:#fff!important;font-size:34px!important}
+.reference-audio-main{flex:1!important;min-width:0!important}
+.reference-audio-main>strong{display:block!important;margin-bottom:8px!important;color:#102f70!important}
+.reference-audio-main audio{display:block!important;width:100%!important;max-width:100%!important}
+.reference-media-availability{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;margin-top:10px!important;padding:8px 10px!important;border-radius:12px!important;background:#e4efff!important;color:#1045a5!important;font-size:14px!important;font-weight:800!important}
+.reference-media-availability strong{padding:6px 12px!important;border-radius:22px!important;background:#18a64b!important;color:white!important;white-space:nowrap!important}
+.reference-written-row{align-items:flex-start!important;border-top:1px solid #edf0f5!important;margin-top:10px!important}
+.reference-written-row .lesson-body{margin-top:8px!important}
+.reference-next-row{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;margin-top:18px!important;padding-top:12px!important;border-top:1px solid #edf0f5!important}
+.reference-completion{color:#143a83!important;font-weight:800!important;font-size:14px!important}
+.reference-next-row button{flex:1!important;min-height:58px!important;border:0!important;border-radius:28px!important;background:linear-gradient(110deg,#0758d4,#0642b7)!important;color:#fff!important;font-size:20px!important;font-weight:850!important;box-shadow:0 5px 12px #063c9b2b!important}
+.reference-next-row button.secondary{background:#e7efff!important;color:#1045a5!important;box-shadow:none!important}
+.reference-admin-actions{display:flex!important;gap:9px!important;margin-top:14px!important;padding-top:12px!important;border-top:1px solid #edf0f5!important}
+@media(max-width:520px){
+ .reference-lesson-card{padding:11px!important;border-radius:17px!important}
+ .reference-lesson-title-row,.reference-topic-row,.reference-written-row,.reference-media-row{gap:10px!important}
+ .reference-lesson-title-row{min-height:88px!important}
+ .reference-topic-row{min-height:76px!important}
+ .reference-round-icon{width:53px!important;height:53px!important;flex-basis:53px!important;font-size:23px!important}
+ .reference-lesson-title,.reference-topic-content,.reference-media-content{padding-left:11px!important}
+ .reference-lesson-title>span{font-size:13px!important}
+ .reference-lesson-title h3{font-size:21px!important}
+ .reference-topic-content>strong,.reference-media-content>h3{font-size:18px!important}
+ .reference-topic-content>p{font-size:15px!important}
+ .reference-chevron{font-size:36px!important}
+ .reference-media-availability{font-size:11px!important}
+ .reference-media-availability strong{padding:5px 8px!important}
+ .reference-next-row{align-items:stretch!important;flex-direction:column!important}
+ .reference-next-row button{width:100%!important;font-size:19px!important}
 }
 
 </style>
@@ -2368,8 +2309,7 @@ if(lessonType!=="written"&&!url){appMessage("Upload the lesson file or enter its
 if($("lessonFile").files.length&&!url){appMessage("Please upload the selected file before saving.","error");return;}
 if(url&&!/^https:\/\/.+/i.test(url)){appMessage("Please enter a valid HTTPS link.","error");return;}
 const cid=await ensureCourse();
-const selectedMediaFile=$("lessonFile")?.files?.[0]||null;
-await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:val("lessonOutcomes"),type:lessonType,content:lessonType==="written"?content:"",printable:lessonType==="written"?$("allowPrint").checked:false,mediaUrl:url,mediaFileName:selectedMediaFile?.name||"",mediaFileSize:selectedMediaFile?.size||0,createdBy:currentUser.uid,createdAt:serverTimestamp()});
+await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:val("lessonOutcomes"),type:lessonType,content:lessonType==="written"?content:"",printable:lessonType==="written"?$("allowPrint").checked:false,mediaUrl:url,createdBy:currentUser.uid,createdAt:serverTimestamp()});
 await setDoc(doc(db,"courses",cid),{status:"published",updatedAt:serverTimestamp()},{merge:true});
 appMessage("Course and first lesson saved successfully.");
 await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:val("courseTitle"),description:val("courseDescription")};await openCourse(cid);
@@ -2406,7 +2346,20 @@ async function renderLessons(courseId){
 page.innerHTML="<div class='panel'>Loading lessons...</div>";
 try{
 const snap=await getDocs(collection(db,"courses",courseId,"lessons"));
+
 const lessons=snap.docs.map(d=>({id:d.id,...d.data()}));
+const renderReferenceMedia=(lesson)=>{
+ const type=lesson.type||"written", url=lesson.mediaUrl||"", title=lesson.title||"Lesson media";
+ if(!url||!["video","audio","image","pdf"].includes(type))return "";
+ let player="";
+ if(type==="video")player=`<video class="reference-media-player" controls playsinline preload="metadata" src="${safe(url)}">Your browser cannot play this video.</video>`;
+ if(type==="audio")player=`<div class="reference-audio-player"><div class="reference-audio-art">♫</div><div class="reference-audio-main"><strong>${safe(title)}</strong><audio controls preload="metadata" src="${safe(url)}">Your browser cannot play this audio.</audio></div></div>`;
+ if(type==="image")player=`<a class="reference-image-link" href="${safe(url)}" target="_blank" rel="noopener noreferrer"><img class="reference-media-image" src="${safe(url)}" alt="${safe(title)}" loading="lazy"></a>`;
+ if(type==="pdf")player=`<div class="reference-pdf-viewer"><iframe class="reference-media-pdf" src="${safe(url)}#toolbar=1" title="${safe(title)}"></iframe><a class="reference-pdf-download" href="${safe(url)}" target="_blank" rel="noopener noreferrer" download>⬇ Download PDF</a></div>`;
+ const icon=type==="video"?"▶":type==="audio"?"♫":type==="image"?"▧":"PDF";
+ return `<div class="reference-media-row"><div class="reference-round-icon">${icon}</div><div class="reference-media-content"><h3>Media</h3>${player}<div class="reference-media-availability"><span>${type==="video"?"▣":type==="audio"?"♫":type==="image"?"▧":"PDF"} &nbsp; Lesson Media</span><strong>✓ Available</strong></div></div></div>`;
+};
+
 if(isStudent()){
  if(!lessons.length){page.innerHTML=`<div class="panel"><button class="secondary" data-action="back-courses">← Courses</button><h2>${safe(selectedCourse.title)}</h2><p class="muted">Your instructor has not added lessons yet.</p></div>`;return;}
  const progressKey=`mtr_progress_${currentUser.uid}_${courseId}`;
@@ -2415,18 +2368,11 @@ if(isStudent()){
    const type=lesson.type||"written";
    let media="";
    if(lesson.mediaUrl&&["video","audio","image","pdf"].includes(type)){
-     const mediaLabel=lesson.mediaFileName||lesson.title||"Learning material";
-     const mediaIcon=type==="video"?"▶":type==="audio"?"♫":"PDF";
-     const created=lesson.createdAt?.toDate?lesson.createdAt.toDate():lesson.createdAt?.seconds?new Date(lesson.createdAt.seconds*1000):null;
-     const dateLabel=created&&!Number.isNaN(created.getTime())?created.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}):"Date unavailable";
-     const sizeLabel=Number(lesson.mediaFileSize)>0?(lesson.mediaFileSize<1048576?(lesson.mediaFileSize/1024).toFixed(0)+" KB":(lesson.mediaFileSize/1048576).toFixed(1)+" MB"):"Size unavailable";
-     const preview=type==="image"?`<img class="media-card-image" src="${safe(lesson.mediaUrl)}" alt="${safe(mediaLabel)}" loading="lazy">`:`<div class="media-card-placeholder media-card-${type}"><span>${mediaIcon}</span></div>`;
-     const actionLabel=type==="image"?"View":type==="video"||type==="audio"?"Play":"Download";
-     media=`<div class="media-file-grid"><button type="button" class="media-file-card" data-action="view-media" data-media-type="${safe(type)}" data-media-url="${safe(lesson.mediaUrl)}" data-media-title="${safe(mediaLabel)}"><div class="media-card-preview">${preview}<span class="media-card-type media-card-type-${type}">${type.toUpperCase()}</span></div><span class="media-file-name">${safe(mediaLabel)}</span><span class="media-card-meta">▦ ${dateLabel} · ${sizeLabel}</span><span class="media-card-action">${actionLabel}</span></button></div>`;
+     media=renderReferenceMedia(lesson);
    }
    const body=type==="written"?`<div class="lesson-body">${formatLessonContent(lesson.content||"")}</div>`:"";
    const done=completed.includes(lesson.id);
-   return `<li class="lesson-item student-published-lesson" data-student-lesson="${safe(lesson.id)}"><div class="student-course-heading"><h3>${index+1}. ${safe(lesson.title||"Untitled lesson")}</h3><span class="tag">${done?"✓ COMPLETED":safe(type.toUpperCase())}</span></div>${lesson.topic?`<p><strong>Topic:</strong> ${safe(lesson.topic)}</p>`:""}${lesson.section?`<p><strong>Section:</strong> ${safe(lesson.section)}</p>`:""}${lesson.learningOutcomes?`<p><strong>What you'll learn:</strong> ${safe(lesson.learningOutcomes)}</p>`:""}${body}${media}<div class="student-lesson-actions"><span class="muted">${done?"You have completed this lesson.":"Study this lesson and mark it complete when finished."}</span><button class="${done?"secondary":"student-lesson-done"}" data-action="student-complete" data-id="${safe(lesson.id)}">${done?"✓ Completed":"Mark as Complete ✓"}</button></div></li>`;
+   return `<li class="lesson-item reference-lesson-card student-published-lesson" data-student-lesson="${safe(lesson.id)}"><div class="reference-lesson-title-row"><div class="reference-round-icon">▣</div><div class="reference-lesson-title"><span>Title of the Lesson</span><h3>${safe(lesson.title||"Untitled lesson")}</h3></div><span class="reference-chevron">›</span></div>${lesson.topic?`<div class="reference-topic-row"><div class="reference-round-icon">☷</div><div class="reference-topic-content"><strong>Topic</strong><p>${safe(lesson.topic)}</p></div><span class="reference-chevron">›</span></div>`:""}${lesson.section?`<div class="reference-topic-row"><div class="reference-round-icon">§</div><div class="reference-topic-content"><strong>Section</strong><p>${safe(lesson.section)}</p></div></div>`:""}${lesson.learningOutcomes?`<div class="reference-topic-row"><div class="reference-round-icon">✓</div><div class="reference-topic-content"><strong>What you will learn</strong><p>${safe(lesson.learningOutcomes)}</p></div></div>`:""}${body}${media}<div class="reference-next-row"><span class="reference-completion">${done?"✓ Lesson completed":"Continue your learning journey"}</span><button class="${done?"secondary":"student-lesson-done"}" data-action="student-complete" data-id="${safe(lesson.id)}">${done?"✓ Completed":index<lessons.length-1?"Next Lesson　›":"Complete Lesson　✓"}</button></div></li>`;
  };
  const percent=Math.round(completed.filter(id=>lessons.some(l=>l.id===id)).length/lessons.length*100);
  page.innerHTML=`<section class="panel"><button class="secondary" data-action="back-courses">← All Courses</button><h2>${safe(selectedCourse.title)}</h2><p>${safe(selectedCourse.description||"Follow the lessons in order and practise each skill safely.")}</p><div class="learning-progress-label"><strong>${completed.filter(id=>lessons.some(l=>l.id===id)).length} of ${lessons.length} lessons completed</strong><strong>${percent}%</strong></div><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${percent}%"></div></div></section><section class="panel"><div class="student-course-heading"><h2>Lesson Materials</h2><span class="tag">${lessons.length} lessons</span></div><ol class="lesson-list">${lessons.map(renderStudentLesson).join("")}</ol></section>`;
@@ -2437,7 +2383,7 @@ if(isStudent()){
    if(!completed.includes(lessonId))completed.push(lessonId);
    try{localStorage.setItem(progressKey,JSON.stringify(completed));}catch(_){appMessage("Lesson completed, but this browser could not save progress on this device.","error");}
    const card=button.closest(".student-published-lesson");
-   if(card){const tag=card.querySelector(".tag");if(tag)tag.textContent="✓ COMPLETED";button.textContent="✓ Completed";button.classList.remove("student-lesson-done");button.classList.add("secondary");}
+   if(card){const tag=card.querySelector(".tag");if(tag)tag.textContent="✓ COMPLETED";button.textContent="✓ Completed";button.classList.remove("student-lesson-done");button.classList.add("secondary");const label=card.querySelector(".reference-completion");if(label)label.textContent="✓ Lesson completed";const next=card.nextElementSibling;if(next&&next.classList.contains("student-published-lesson"))setTimeout(()=>next.scrollIntoView({behavior:"smooth",block:"start"}),250);}
    const count=completed.filter(id=>lessons.some(l=>l.id===id)).length;
    const label=page.querySelector(".learning-progress-label");if(label)label.innerHTML=`<strong>${count} of ${lessons.length} lessons completed</strong><strong>${Math.round(count/lessons.length*100)}%</strong>`;
    const bar=page.querySelector(".learning-progress-fill");if(bar)bar.style.width=Math.round(count/lessons.length*100)+"%";
@@ -2499,19 +2445,14 @@ if(!lessons.length)html+=`<div class="panel">No lessons have been added yet.</di
 if(lessons.length)html+="<ol class='lesson-list'>";
 lessons.forEach((l,i)=>{
 html+=`
-<li class="lesson-item">
-<h3>${safe(l.title)}</h3>
-${l.topic?`<p><strong>Topic:</strong> ${safe(l.topic)}</p>`:""}
-${l.section?`<p><strong>Section:</strong> ${safe(l.section)}</p>`:""}
-<span class="tag">${safe(l.type||"written")}</span>
-${(l.type||"written")==="written"?`<div class="lesson-body">${formatLessonContent(l.content||"")}</div>`: "" }
-${(l.type||"written")==="written"?`<button type="button" class="secondary" data-action="download-lesson-pdf"><span>⬇ Download PDF</span></button>`:""}
-${l.mediaUrl&&["image","video","audio","pdf"].includes(l.type)?`<div class="media-file-grid"><button type="button" class="media-file-card" data-action="view-media" data-media-type="${safe(l.type)}" data-media-url="${safe(l.mediaUrl)}" data-media-title="${safe(l.mediaFileName||l.title||"Learning material")}"><div class="media-card-preview">${l.type==="image"?`<img class="media-card-image" src="${safe(l.mediaUrl)}" alt="${safe(l.title||"Learning material")}" loading="lazy">`:`<div class="media-card-placeholder media-card-${safe(l.type)}"><span>${l.type==="video"?"▶":l.type==="audio"?"♫":"PDF"}</span></div>`}<span class="media-card-type media-card-type-${safe(l.type)}">${safe(l.type.toUpperCase())}</span></div><span class="media-file-name">${safe(l.mediaFileName||l.title||"Learning material")}</span><span class="media-card-meta">▦ ${l.createdAt?.toDate?l.createdAt.toDate().toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}):"Date unavailable"} · ${Number(l.mediaFileSize)>0?(l.mediaFileSize<1048576?(l.mediaFileSize/1024).toFixed(0)+" KB":(l.mediaFileSize/1048576).toFixed(1)+" MB"):"Size unavailable"}</span><span class="media-card-action">${l.type==="image"?"View":l.type==="pdf"?"Download":"Play"}</span></button></div>`:(l.mediaUrl?`<p><a href="${safe(l.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open learning material</a></p>`:"")}
-${isAdmin()?`
-<div class="actions">
-<button class="secondary" data-action="edit-lesson" data-id="${safe(l.id)}">Edit</button>
-<button class="danger" data-action="delete-lesson" data-id="${safe(l.id)}">Delete</button>
-</div>`:""}
+<li class="lesson-item reference-lesson-card">
+<div class="reference-lesson-title-row"><div class="reference-round-icon">▣</div><div class="reference-lesson-title"><span>Title of the Lesson</span><h3>${safe(l.title||"Untitled lesson")}</h3></div><span class="reference-chevron">›</span></div>
+${l.topic?`<div class="reference-topic-row"><div class="reference-round-icon">☷</div><div class="reference-topic-content"><strong>Topic</strong><p>${safe(l.topic)}</p></div><span class="reference-chevron">›</span></div>`:""}
+${l.section?`<div class="reference-topic-row"><div class="reference-round-icon">§</div><div class="reference-topic-content"><strong>Section</strong><p>${safe(l.section)}</p></div></div>`:""}
+${l.learningOutcomes?`<div class="reference-topic-row"><div class="reference-round-icon">✓</div><div class="reference-topic-content"><strong>What you will learn</strong><p>${safe(l.learningOutcomes)}</p></div></div>`:""}
+${(l.type||"written")==="written"?`<div class="reference-written-row"><div class="reference-round-icon">▤</div><div class="reference-topic-content"><strong>Lesson Content</strong><div class="lesson-body">${formatLessonContent(l.content||"")}</div></div></div><button type="button" class="secondary" data-action="download-lesson-pdf"><span>⬇ Download PDF</span></button>`:""}
+${renderReferenceMedia(l)}
+${isAdmin()?`<div class="actions reference-admin-actions"><button class="secondary" data-action="edit-lesson" data-id="${safe(l.id)}">Edit</button><button class="danger" data-action="delete-lesson" data-id="${safe(l.id)}">Delete</button></div>`:""}
 </li>`;
 });
 if(lessons.length)html+="</ol>";
@@ -2561,8 +2502,6 @@ section:$("lessonSection").value.trim(),
 type:lessonType,
 content:lessonType==="written"?$("lessonContent").innerHTML.trim():"",
 mediaUrl:url,
-mediaFileName:$("lessonFile")?.files?.[0]?.name||"",
-mediaFileSize:$("lessonFile")?.files?.[0]?.size||0,
 createdBy:currentUser.uid,
 createdAt:serverTimestamp()
 });
