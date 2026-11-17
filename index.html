@@ -722,6 +722,62 @@ html,body{overflow-anchor:none!important;scroll-behavior:auto!important;scrollba
 .media-file-name{grid-column:2!important;grid-row:1!important;align-self:end!important;font-size:13px!important}
 .media-file-kind{grid-column:2!important;grid-row:2!important;align-self:start!important}
 .media-file-card:after{grid-column:2!important;grid-row:3!important;display:none!important}
+
+/* Reference-layout correction: restore the two-column lesson material cards.
+   Presentation only; no authentication, Firestore, uploads, or navigation logic changed. */
+@media(max-width:999px){
+  #appPanel{display:block!important}
+  #navigation{z-index:2000!important}
+  #page{padding-bottom:88px!important}
+}
+.media-file-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:12px!important;
+  padding:12px!important;
+}
+.media-file-card{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  gap:8px!important;
+  min-width:0!important;
+  min-height:190px!important;
+  width:100%!important;
+  padding:10px!important;
+  border-radius:15px!important;
+  text-align:left!important;
+}
+.media-file-card .media-file-thumb,
+.media-file-card .media-file-icon{
+  order:-1!important;
+  display:grid!important;
+  place-items:center!important;
+  width:100%!important;
+  height:112px!important;
+  flex:none!important;
+  object-fit:cover!important;
+  border-radius:10px!important;
+}
+.media-file-card:has(.media-file-thumb) .media-file-icon{display:none!important}
+.media-file-name{order:1!important;width:100%!important;overflow-wrap:anywhere!important}
+.media-file-kind{order:2!important}
+.media-file-card:after{
+  display:block!important;
+  order:3!important;
+  align-self:flex-start!important;
+  content:"Open Material  ›"!important;
+  color:#075bea!important;
+  font-size:11px!important;
+  font-weight:700!important;
+}
+@media(max-width:360px){
+  .media-file-grid{gap:8px!important;padding:8px!important}
+  .media-file-card{padding:8px!important;min-height:170px!important}
+  .media-file-card .media-file-thumb,.media-file-card .media-file-icon{height:92px!important}
+}
+
 </style>
 </head>
 <body>
