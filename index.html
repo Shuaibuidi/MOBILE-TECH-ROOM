@@ -851,8 +851,8 @@ html,body{overflow-anchor:none!important;scroll-behavior:auto!important;scrollba
   <button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-label="Toggle menu">☰</button>
   <div class="brand-lockup"><div class="brand-mark" aria-hidden="true">📱🎓</div><div class="brand-copy"><h1>Mobile <span>Tech Room</span></h1><p>Learn&nbsp; • &nbsp;Practice&nbsp; • &nbsp;Grow</p></div></div>
   <div class="header-right">
-    <button id="notificationButton" class="header-notification" type="button" aria-label="Notifications">♟<span>2</span></button>
-    <button id="profileMenuButton" class="header-profile" type="button" aria-label="Profile">●⌄</button>
+    <button id="notificationButton" class="header-notification" type="button" aria-label="Notifications">🔔<span>2</span></button>
+    <button id="profileMenuButton" class="header-profile" type="button" aria-label="Profile">👤⌄</button>
     <button id="logoutButton" class="header-logout hidden" type="button">Logout</button>
   </div>
   <label class="global-search-wrap"><span>⌕</span><input id="globalCourseSearch" type="search" placeholder="Search courses, lessons..." aria-label="Search courses and lessons"></label>
@@ -1348,7 +1348,7 @@ if(isStudent()){
  $("navigation").innerHTML=tabs.map(([key,icon,label])=>`<button class="${currentTab===key?"active":"secondary"}" data-tab="${key}">${icon} &nbsp;${label}</button>`).join("");
  $("studentBottomNav").classList.remove("hidden");
  const bottom=[["dashboard","⌂","Home"],["courses","🎓","Courses"],["progress","▮","Progress"],["about","ⓘ","About"]];
- $("studentBottomNav").innerHTML=bottom.map(([key,icon,label])=>`<button class="${currentTab===key?"active":""}" data-tab="${key}"><span class="nav-symbol">${icon}</span><span>${label}</span></button>`).join("");
+ $("studentBottomNav").innerHTML=bottom.map(([key,icon,label])=>`<button class="${((key==="dashboard"&&(currentTab==="dashboard"||currentTab==="lessons"||currentTab==="media"))||(key==="courses"&&currentTab==="courses")||((key==="progress"&&(currentTab==="progress"||currentTab==="achievements"))||(key==="about"&&currentTab==="about"))?"active":""}" data-tab="${key}"><span class="nav-symbol">${icon}</span><span>${label}</span></button>`).join("");
  $("navigation").classList.remove("hidden");
  return;
 }
