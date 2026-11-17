@@ -2357,10 +2357,7 @@ const ensureCourse=async()=>{
   if(!savedCourse.exists())throw new Error("Course draft could not be verified. Check Firestore course permissions.");
   return draftCourseId;
 };
-$("lessonStyle").onchange=()=>{editor.focus();document.execCommand("formatBlock",false,$("lessonStyle").value);};
-$("lessonFont").onchange=()=>{editor.focus();document.execCommand("fontName",false,$("lessonFont").value);};
-$("lessonSize").onchange=()=>{editor.focus();document.execCommand("fontSize",false,$("lessonSize").value);};
-document.querySelectorAll("[data-editor]").forEach(b=>b.onclick=()=>{editor.focus();document.execCommand(b.dataset.editor,false,null);});
+
 $("uploadLessonFile").onclick=async()=>{
 const f=$("lessonFile").files[0],st=$("uploadStatus"),btn=$("uploadLessonFile");
 if(!f){st.textContent="Please choose a file first.";return;}
@@ -2381,6 +2378,7 @@ try{
 const accessType=$("courseAccess").value,lessonType=$("lessonType").value;
 if(accessType==="paid"&&(!val("coursePrice")||Number(val("coursePrice"))<=0)){appMessage("Enter a valid price for this paid course.","error");return;}
 const url=val("lessonUrl");
+if(!$("courseDescription").innerText.trim()){appMessage("Describe what this course covers.","error");return;}
 if(!$("lessonOutcomes").innerText.trim()){appMessage("Describe what students will learn in this lesson.","error");return;}
 if(!url){appMessage("Upload the lesson file or enter its HTTPS link before saving.","error");return;}
 if($("lessonFile").files.length&&!url){appMessage("Please upload the selected file before saving.","error");return;}
@@ -2389,7 +2387,7 @@ const cid=await ensureCourse();
 await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:rich("lessonOutcomes"),lessonNumber:1,type:lessonType,content:"",mediaUrl:url,createdBy:currentUser.uid,createdAt:serverTimestamp()});
 await setDoc(doc(db,"courses",cid),{status:"published",updatedAt:serverTimestamp()},{merge:true});
 appMessage("Course and first lesson saved successfully.");
-await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:val("courseTitle"),description:val("courseDescription")};await openCourse(cid);
+await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:val("courseTitle"),description:rich("courseDescription")};await openCourse(cid);
 }catch(err){appMessage("Could not save course and lesson: "+(err.code?err.code+": ":"")+err.message,"error");}
 };
 }
