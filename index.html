@@ -1278,6 +1278,132 @@ hr{border-color:#263f60!important}
   #mobileBottomNav{display:none!important}
 }
 
+
+
+/* GLOBAL LIGHT THEME + STICKY HEADER FOR EVERY ROLE
+   Shared app shell: applies to administrators, instructors and students. */
+:root{
+  color-scheme:light!important;
+  --mtr-bg:#f3f7fc!important;
+  --mtr-panel:#ffffff!important;
+  --mtr-panel-2:#f7faff!important;
+  --mtr-line:#dce6f2!important;
+  --mtr-blue:#075bea!important;
+  --mtr-blue-bright:#078de8!important;
+  --mtr-text:#18304f!important;
+  --mtr-muted:#647893!important;
+  --mtr-gold:#ffca35!important;
+  --mtr-yellow:#ffca35!important;
+  --gold:#ffca35!important;
+}
+html,body{
+  background:#f3f7fc!important;
+  color:#18304f!important;
+}
+body{background-image:none!important}
+.academy-header{
+  position:sticky!important;
+  position:-webkit-sticky!important;
+  top:0!important;
+  z-index:5000!important;
+  background:linear-gradient(110deg,#07358f 0%,#075bea 65%,#078de0 100%)!important;
+  color:#fff!important;
+  border:0!important;
+  border-bottom:4px solid #ffca35!important;
+  box-shadow:0 5px 18px rgba(7,45,105,.18)!important;
+  transform:none!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+}
+.academy-header .brand-lockup h1,
+.academy-header .brand-lockup h1 span{color:#fff!important}
+.academy-header .brand-lockup h1 span{color:#ffdc36!important}
+.academy-header .brand-lockup p{color:#eef5ff!important}
+.academy-header .global-search-wrap{
+  background:#fff!important;border:1px solid #d9e6f5!important;
+  box-shadow:0 2px 8px rgba(9,45,95,.08)!important;
+}
+.academy-header .global-search-wrap span{color:#075bea!important}
+.academy-header .global-search-wrap input{background:transparent!important;color:#18304f!important}
+.academy-header .global-search-wrap input::placeholder{color:#8999ad!important}
+.academy-header .header-logout{background:#fff!important;color:#075bea!important;border:1px solid #d9e6f5!important}
+#appPanel{color:#18304f!important}
+.panel,.card,.lesson-item,.dashboard-stat,.course-quick-stat,
+.learning-shell,.learning-main,.learning-playlist,.student-course,
+.student-course-info,.student-course-search{
+  background:#fff!important;color:#18304f!important;
+  border-color:#dce6f2!important;
+  box-shadow:0 5px 18px rgba(25,55,95,.07)!important;
+}
+.panel h2,.panel h3,.card h2,.card h3,.lesson-item h3,
+.student-course-info h3,.learning-top h2,.learning-main h2,
+.learning-playlist h3,#page h2,#page h3{color:#183b68!important}
+.panel p,.card p,.lesson-item p,.student-course-info p,
+.muted,.dashboard-stat span,.course-quick-stat span,
+.learning-main p,.learning-playlist p{color:#647893!important}
+input,select,textarea,.lesson-editor,.student-course-search{
+  background:#fff!important;color:#18304f!important;
+  border:1px solid #cbd9e9!important;
+}
+input::placeholder,textarea::placeholder{color:#8b9bb0!important}
+input:focus,select:focus,textarea:focus{
+  border-color:#3987ed!important;box-shadow:0 0 0 3px rgba(7,91,234,.12)!important;
+}
+.lesson-editor{color:#18304f!important}
+.editor-toolbar{background:#f1f6fd!important;border-color:#dce6f2!important}
+.editor-toolbar label{color:#526982!important}
+.editor-toolbar button,button.secondary,.playlist-item,.learning-back{
+  background:#edf4ff!important;color:#174a8b!important;
+  border:1px solid #d5e4f7!important;box-shadow:none!important;
+}
+button:not(.secondary):not(.danger){
+  background:linear-gradient(110deg,#075bea,#078de8)!important;color:#fff!important;
+}
+button.danger{background:#fff0f1!important;color:#b42335!important;border:1px solid #f3c5cb!important}
+#navigation{background:#fff!important;border-color:#dce6f2!important;box-shadow:0 5px 18px rgba(25,55,95,.07)!important}
+#navigation button{color:#174a8b!important}
+#navigation button.active{background:#075bea!important;color:#fff!important;border-color:#075bea!important}
+.dashboard-hero{
+  background:linear-gradient(110deg,#07358f 0%,#075bea 62%,#078de8 100%)!important;
+  border:1px solid #075bea!important;
+}
+.dashboard-hero h2,.dashboard-hero p,.dashboard-hero strong{color:#fff!important}
+.dashboard-stat strong,.course-quick-stat strong{color:#075bea!important}
+.tag{background:#edf4ff!important;color:#1756a0!important;border-color:#d5e4f7!important}
+.lesson-body{background:#fff!important;color:#26364d!important;border-color:#dce6f2!important}
+.lesson-body h1,.lesson-body h2,.lesson-body h3{color:#0753a7!important}
+.lesson-body blockquote{background:#edf5ff!important;color:#34506f!important;border-left-color:#087cff!important}
+.media-file-grid{background:#f4f8fd!important;border-color:#dce6f2!important}
+.media-file-card{background:#fff!important;color:#18304f!important;border-color:#dce6f2!important}
+.media-file-name{color:#18304f!important}
+.media-file-kind{color:#647893!important}
+.media-file-card:after{color:#075bea!important}
+.uppercase-accent{color:#075bea!important}
+a{color:#075bea!important}
+hr{border-color:#dce6f2!important}
+footer{color:#71839a!important}
+.learning-media{background:#e9eff7!important}
+.learning-progress-track{background:#e1eaf5!important}
+.playlist-item{background:#f4f8fd!important;color:#24415f!important}
+.playlist-item.active{background:#e5f0ff!important;color:#0753b8!important;border-color:#83b8fa!important}
+.playlist-item small{color:#647893!important}
+.media-lightbox{background:rgba(12,28,50,.92)!important}
+@media(max-width:999px){
+  .academy-header{top:0!important;z-index:5000!important}
+  #mobileBottomNav{z-index:4500!important;background:#fff!important}
+}
+@media(max-width:600px){
+  .academy-header{
+    position:sticky!important;position:-webkit-sticky!important;
+    top:0!important;z-index:5000!important;
+    padding:calc(12px + env(safe-area-inset-top,0px)) 16px 13px!important;
+    min-height:0!important;
+    background:linear-gradient(110deg,#07358f 0%,#075bea 65%,#078de0 100%)!important;
+  }
+  .academy-header .brand-lockup h1{color:#fff!important}
+  .academy-header .brand-lockup h1 span{color:#ffdc36!important}
+  .academy-header .brand-lockup p{color:#eef5ff!important}
+}
+
 </style>
 </head>
 <body>
