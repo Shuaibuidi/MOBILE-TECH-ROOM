@@ -1459,7 +1459,7 @@ footer{color:#71839a!important}
 .reference-media-player{aspect-ratio:16/9!important;max-height:650px!important;object-fit:contain!important}
 .reference-media-image{max-height:700px!important;object-fit:contain!important;background:#f2f5fa!important}
 .reference-image-link{display:block!important}
-.reference-media-pdf{height:min(52vh,520px)!important;max-height:520px!important;background:#f3f6fb!important;border-radius:12px!important}@media(max-width:600px){.reference-media-pdf{height:46vh!important;max-height:420px!important}}
+.reference-media-pdf{height:min(78vh,900px)!important;min-height:560px!important;max-height:none!important;background:#f3f6fb!important;border-radius:12px!important}@media(max-width:600px){.reference-media-pdf{height:76vh!important;min-height:65vh!important;max-height:none!important}}
 .reference-pdf-viewer{display:flex!important;flex-direction:column!important;gap:9px!important}
 .reference-pdf-download{align-self:flex-end!important;display:inline-block!important;padding:10px 17px!important;border-radius:25px!important;background:#0755c9!important;color:#fff!important;font-weight:850!important;text-decoration:none!important}
 .reference-audio-player{display:flex!important;align-items:center!important;gap:14px!important;padding:16px!important;border-radius:15px!important;background:linear-gradient(110deg,#e5efff,#dceaff)!important}
@@ -2436,7 +2436,7 @@ const renderReferenceMedia=(lesson)=>{
  if(type==="video")player=`<video class="reference-media-player" controls playsinline preload="metadata" src="${safe(url)}">Your browser cannot play this video.</video>`;
  if(type==="audio")player=`<div class="reference-audio-player"><div class="reference-audio-art">♫</div><div class="reference-audio-main"><strong>${safe(title)}</strong><audio controls preload="metadata" src="${safe(url)}">Your browser cannot play this audio.</audio></div></div>`;
  if(type==="image")player=`<a class="reference-image-link" href="${safe(url)}" target="_blank" rel="noopener noreferrer"><img class="reference-media-image" src="${safe(url)}" alt="${safe(title)}" loading="lazy"></a>`;
- if(type==="pdf")player=`<div class="reference-pdf-viewer"><iframe class="reference-media-pdf" src="${safe(url)}#toolbar=1" title="${safe(title)}"></iframe><a class="reference-pdf-download" href="${safe(url)}" target="_blank" rel="noopener noreferrer" download>⬇ Download PDF</a></div>`;
+ if(type==="pdf")player=`<div class="reference-pdf-viewer"><iframe class="reference-media-pdf" src="${safe(url)}#toolbar=1" title="${safe(title)}" loading="lazy" allow="fullscreen"></iframe><a class="reference-pdf-download" href="${safe(url)}" target="_blank" rel="noopener noreferrer" download>⬇ Download PDF</a></div>`;
  const icon=type==="video"?"▶":type==="audio"?"♫":type==="image"?"▧":"PDF";
  return `<div class="reference-media-row"><div class="reference-round-icon">${icon}</div><div class="reference-media-content"><h3>Media</h3>${player}<div class="reference-media-availability"><span>${type==="video"?"▣":type==="audio"?"♫":type==="image"?"▧":"PDF"} &nbsp; Lesson Media</span><strong>✓ Available</strong></div></div></div>`;
 };
