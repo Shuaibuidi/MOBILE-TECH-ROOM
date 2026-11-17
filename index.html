@@ -1070,6 +1070,137 @@ hr{border-color:#263f60!important}
 }
 #authButton:disabled{opacity:.65!important;cursor:wait!important}
 
+
+/* ===== Reference-inspired Mobile Tech Room interface ===== */
+.academy-header{
+  background:linear-gradient(105deg,#07358f 0%,#075bea 66%,#078de0 100%)!important;
+  border-bottom:4px solid #ffca35!important;
+  min-height:88px!important;
+  box-shadow:0 7px 22px rgba(5,48,128,.22)!important;
+}
+.academy-header .brand-lockup h1{color:#fff!important;font-weight:900!important;letter-spacing:-.5px!important}
+.academy-header .brand-lockup h1 span{color:#ffdc36!important}
+.academy-header .brand-lockup p{color:#edf5ff!important;letter-spacing:1.2px!important}
+.academy-header .global-search-wrap{background:#fff!important;border:1px solid #d9e8ff!important;border-radius:30px!important}
+.academy-header .global-search-wrap span{color:#075bea!important}
+.academy-header .global-search-wrap input{color:#18365f!important}
+.academy-header .header-logout{background:#fff!important;color:#075bea!important}
+#navigation{
+  display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;
+  gap:9px!important;padding:8px!important;margin:0 0 18px!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;
+}
+#navigation button{
+  flex:1 1 145px!important;min-width:0!important;min-height:48px!important;
+  justify-content:center!important;text-align:center!important;
+  padding:11px 15px!important;border:1px solid #dce6f3!important;
+  border-radius:28px!important;background:#fff!important;color:#243b5b!important;
+  box-shadow:0 3px 10px rgba(20,55,100,.05)!important;font-size:14px!important;
+}
+#navigation button:before{display:none!important}
+#navigation button.active{
+  background:linear-gradient(110deg,#075bea,#078de8)!important;color:#fff!important;
+  border-color:#075bea!important;box-shadow:0 6px 16px #075bea30!important;
+}
+#page>.panel:first-child:not(.dashboard-hero){margin-top:0}
+.dashboard-hero{
+  background:linear-gradient(110deg,#07358f,#075bea 60%,#079de8)!important;
+  border-radius:19px!important;box-shadow:0 10px 24px #075bea24!important;
+}
+.dashboard-hero:after{display:none!important}
+.dashboard-hero .uppercase-accent{color:#ffe36b!important}
+.dashboard-stats,.course-quick-stats{gap:12px!important}
+.dashboard-stat,.course-quick-stat{border-radius:16px!important;box-shadow:0 5px 16px #17395e0c!important}
+.media-file-grid{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:13px!important;padding:0!important;background:transparent!important;border:0!important;
+}
+.media-file-card{
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  justify-content:flex-start!important;gap:8px!important;min-width:0!important;
+  min-height:230px!important;padding:10px!important;margin:0!important;
+  background:#fff!important;color:#172b49!important;border:1px solid #dce7f5!important;
+  border-radius:17px!important;box-shadow:0 6px 18px rgba(18,52,91,.11)!important;
+  text-align:left!important;white-space:normal!important;
+}
+.media-file-card .media-file-icon,.media-file-card .media-file-thumb{
+  display:grid!important;place-items:center!important;width:100%!important;height:132px!important;
+  flex:0 0 132px!important;grid-column:auto!important;grid-row:auto!important;
+  object-fit:cover!important;border-radius:12px!important;margin:0!important;
+  background:linear-gradient(135deg,#d9ecff,#8fc8f5)!important;color:#075bea!important;
+  font-size:42px!important;box-shadow:none!important;
+}
+.media-file-card .media-file-thumb{display:block!important}
+.media-file-card:has(.media-file-thumb) .media-file-icon{display:none!important}
+.media-file-card .media-file-name{
+  display:block!important;width:100%!important;color:#172b49!important;
+  font-size:14px!important;font-weight:850!important;line-height:1.35!important;
+  overflow-wrap:anywhere!important;grid-column:auto!important;grid-row:auto!important;
+}
+.media-file-card .media-file-kind{
+  display:block!important;color:#62758f!important;font-size:11px!important;
+  font-weight:600!important;grid-column:auto!important;grid-row:auto!important;
+}
+.media-file-card:after{
+  content:"View  →"!important;display:block!important;align-self:flex-end!important;
+  margin-top:auto!important;padding:9px 18px!important;border-radius:24px!important;
+  background:#075bea!important;color:#fff!important;font-size:12px!important;font-weight:800!important;
+}
+.student-published-lesson .media-file-grid{background:transparent!important;border:0!important;padding:0!important}
+.progress-course-row{padding:15px 0;border-bottom:1px solid #e5edf6}
+.progress-course-row:last-child{border-bottom:0}
+.progress-course-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}
+.progress-course-row button{margin-top:8px}
+.about-feature{text-align:center;padding:28px!important}
+.about-emblem{display:grid;place-items:center;width:76px;height:76px;margin:0 auto 12px;border-radius:22px;background:linear-gradient(135deg,#075bea,#12a9e8);font-size:38px}
+.about-values{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px}
+.about-values span{padding:8px 17px;border-radius:22px;background:#eaf3ff;color:#0753b8;font-weight:800}
+.about-format-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.about-format-grid div{display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 7px;border:1px solid #e1eaf4;border-radius:13px;background:#f8fbff;font-size:24px}
+.about-format-grid strong{font-size:12px;color:#194c89}
+.about-format-grid small{font-size:10px;color:#71839a;text-align:center}
+.mobile-bottom-nav{display:none}
+@media(max-width:999px){
+  #appPanel{display:block!important;padding-bottom:88px!important}
+  #navigation{flex-wrap:nowrap!important;overflow-x:auto!important;white-space:nowrap!important;scrollbar-width:none!important;padding:5px 1px 11px!important}
+  #navigation::-webkit-scrollbar{display:none}
+  #navigation button{flex:0 0 auto!important;min-width:125px!important}
+  .mobile-bottom-nav{
+    position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:3000!important;
+    display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:0!important;padding:8px 8px calc(8px + env(safe-area-inset-bottom))!important;
+    background:rgba(255,255,255,.98)!important;border-top:1px solid #dce7f5!important;
+    box-shadow:0 -6px 22px rgba(15,45,85,.10)!important;
+  }
+  .mobile-bottom-nav button{
+    display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+    gap:2px!important;min-width:0!important;min-height:55px!important;margin:0!important;padding:5px 2px!important;
+    background:transparent!important;color:#243b5b!important;border:0!important;border-radius:10px!important;
+    box-shadow:none!important;font-size:11px!important;font-weight:700!important;
+  }
+  .mobile-bottom-nav button.active{background:#edf4ff!important;color:#075bea!important}
+  .bottom-nav-icon{font-size:23px!important;line-height:1.15!important;font-weight:900!important}
+  #page{padding-bottom:12px!important}
+}
+@media(max-width:600px){
+  .academy-header{grid-template-columns:1fr auto!important;gap:8px!important;padding:12px!important}
+  .academy-header .global-search-wrap{grid-column:1/-1!important;grid-row:2!important}
+  .academy-header .brand-lockup h1{font-size:21px!important}
+  .academy-header .brand-lockup p{font-size:11px!important}
+  main{padding:12px 10px 24px!important}
+  #navigation button{font-size:12px!important;min-height:43px!important}
+  .media-file-grid{gap:9px!important}
+  .media-file-card{min-height:205px!important;padding:8px!important}
+  .media-file-card .media-file-icon,.media-file-card .media-file-thumb{height:105px!important;flex-basis:105px!important}
+  .media-file-card .media-file-name{font-size:12px!important}
+  .media-file-card:after{padding:8px 14px!important;font-size:11px!important}
+  .about-format-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:360px){
+  .media-file-card .media-file-icon,.media-file-card .media-file-thumb{height:90px!important;flex-basis:90px!important}
+  .media-file-card{min-height:190px!important}
+}
+
 </style>
 </head>
 <body>
@@ -1100,6 +1231,12 @@ hr{border-color:#263f60!important}
 <nav id="navigation"></nav>
 <div id="page"></div>
 <div id="appMessage"></div>
+<nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Main navigation">
+  <button type="button" data-dashboard-tab="dashboard"><span class="bottom-nav-icon">⌂</span><span>Home</span></button>
+  <button type="button" data-dashboard-tab="lessons"><span class="bottom-nav-icon">▣</span><span>Courses</span></button>
+  <button type="button" data-dashboard-tab="progress"><span class="bottom-nav-icon">▥</span><span>Progress</span></button>
+  <button type="button" data-dashboard-tab="about"><span class="bottom-nav-icon">ⓘ</span><span>About</span></button>
+</nav>
 </section>
 </main>
 
@@ -1619,6 +1756,10 @@ if(tab==="dashboard")await renderDashboard();
 if(tab==="lessons")await renderCourses();
 if(tab==="students"&&isAdmin())await renderUsers("student");
 if(tab==="instructors"&&isAdmin())await renderUsers("instructor");
+if(tab==="progress")await renderProgress();
+if(tab==="about")renderAbout();
+const bottomNav=$("mobileBottomNav");
+if(bottomNav)bottomNav.querySelectorAll("[data-dashboard-tab]").forEach(b=>b.classList.toggle("active",b.dataset.dashboardTab===tab));
 applyGlobalCourseSearch();
 }
 
@@ -1664,6 +1805,43 @@ async function renderDashboard(){
   page.innerHTML=`<section class="dashboard-hero"><h2>Welcome, ${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats">${stats.map(x=>`<div class="dashboard-stat"><strong>${safe(x.value)}</strong><span>${safe(x.label)}</span></div>`).join("")}</div>${isAdmin()?"":`<section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions">${quickActions}</div></section>`}<section class="panel"><h3>Account Information</h3><p><strong>Name:</strong> ${safe(name)}</p><p><strong>Role:</strong> <span class="tag">${safe(role.toUpperCase())}</span></p>${isAdmin()?"":`<p><strong>Account status:</strong> <span class="tag">${safe(status.toUpperCase())}</span></p>`}</section>`;
 }
 
+
+
+async function renderProgress(){
+  page.innerHTML="<div class='panel'>Loading your progress...</div>";
+  try{
+    await loadCourses();
+    if(isStudent()){
+      const enrollmentSnap=await getDocs(collection(db,"users",currentUser.uid,"enrollments"));
+      const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
+      const visible=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
+      const rows=await Promise.all(visible.map(async c=>{
+        let total=0,done=0;
+        try{
+          const snap=await getDocs(collection(db,"courses",c.id,"lessons"));
+          total=snap.size;
+          const saved=JSON.parse(localStorage.getItem(`mtr_progress_${currentUser.uid}_${c.id}`)||"[]");
+          done=Array.isArray(saved)?saved.filter(id=>snap.docs.some(d=>d.id===id)).length:0;
+        }catch(_){}
+        return {course:c,total,done};
+      }));
+      const total=rows.reduce((n,r)=>n+r.total,0),done=rows.reduce((n,r)=>n+r.done,0);
+      const pct=total?Math.round(done/total*100):0;
+      page.innerHTML=`<section class="dashboard-hero"><p class="uppercase-accent">YOUR LEARNING JOURNEY</p><h2>My Progress</h2><p>Every lesson completed takes you one step closer to becoming a skilled technician.</p></section>
+      <div class="dashboard-stats"><div class="dashboard-stat"><strong>${visible.length}</strong><span>Courses available</span></div><div class="dashboard-stat"><strong>${done}</strong><span>Lessons completed</span></div><div class="dashboard-stat"><strong>${total}</strong><span>Total lessons</span></div><div class="dashboard-stat"><strong>${pct}%</strong><span>Overall progress</span></div></div>
+      <section class="panel"><h2>Course progress</h2>${rows.length?rows.map(r=>`<div class="progress-course-row"><div class="progress-course-head"><strong>${safe(r.course.title)}</strong><span>${r.done}/${r.total}</span></div><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${r.total?Math.round(r.done/r.total*100):0}%"></div></div><button data-dashboard-tab="lessons" class="secondary">Continue learning</button></div>`).join(""):"<p class='muted'>No courses are available yet.</p>"}</section>`;
+    }else{
+      const totals=await Promise.all(courses.map(async c=>{try{return (await getDocs(collection(db,"courses",c.id,"lessons"))).size}catch(_){return 0}}));
+      page.innerHTML=`<section class="dashboard-hero"><p class="uppercase-accent">ACADEMY OVERVIEW</p><h2>Learning Progress</h2><p>Review the courses and lesson materials currently available in Mobile Tech Room.</p></section><div class="dashboard-stats"><div class="dashboard-stat"><strong>${courses.length}</strong><span>Courses</span></div><div class="dashboard-stat"><strong>${totals.reduce((a,b)=>a+b,0)}</strong><span>Lessons</span></div><div class="dashboard-stat"><strong>${courses.filter(c=>c.status==="published").length}</strong><span>Published courses</span></div></div><section class="panel"><h2>Course activity</h2>${courses.map((c,i)=>`<div class="progress-course-row"><strong>${safe(c.title)}</strong><p class="muted">${totals[i]} lessons · ${safe(c.status||"draft")}</p></div>`).join("")||"<p class='muted'>No courses found.</p>"}</section>`;
+    }
+  }catch(e){page.innerHTML=`<section class="panel error">Could not load progress: ${safe(e.message)}</section>`;}
+}
+
+function renderAbout(){
+  page.innerHTML=`<section class="dashboard-hero"><p class="uppercase-accent">ABOUT THE ACADEMY</p><h2>Mobile Tech Room</h2><p>Learn. Repair. Innovate.</p></section>
+  <section class="panel about-feature"><div class="about-emblem">📱</div><h2>Practical technology skills, step by step.</h2><p>Mobile Tech Room is a learning platform for mobile phone technology, troubleshooting, flashing, unlocking and repair skills.</p><div class="about-values"><span>Learn</span><span>Practice</span><span>Grow</span></div></section>
+  <section class="panel"><h2>Learn with every format</h2><div class="about-format-grid"><div>🖼️<strong>Images</strong><small>Visual guides</small></div><div>▶️<strong>Videos</strong><small>Practical lessons</small></div><div>📄<strong>PDFs</strong><small>Study manuals</small></div><div>🎧<strong>Audio</strong><small>Listen and learn</small></div></div></section>`;
+}
 
 async function loadCourses(){
   let q;
