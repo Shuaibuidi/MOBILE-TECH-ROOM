@@ -556,12 +556,163 @@ footer{color:#8192a7!important;padding:28px 16px!important}
  .course-quick-stats,.dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 
+
+/* =========================================================
+   SCREENSHOT-MATCH VISUAL THEME
+   CSS-only presentation update. Existing app logic, IDs,
+   event handlers, authentication and data workflows remain intact.
+   ========================================================= */
+:root{
+ --shot-blue:#075bea;--shot-blue-dark:#07358d;--shot-cyan:#079de8;
+ --shot-ink:#172b49;--shot-muted:#62758f;--shot-line:#dce7f5;
+ --shot-bg:#f4f8fd;
+}
+html,body{background:var(--shot-bg)!important;color:var(--shot-ink)!important}
+body{font-family:Arial,Helvetica,sans-serif!important;line-height:1.5}
+.academy-header{
+ background:linear-gradient(110deg,#06358d 0%,#075bea 65%,#078fe4 100%)!important;
+ color:#fff!important;border:0!important;border-bottom:3px solid #ffca35!important;
+ box-shadow:0 5px 18px #073b8b25!important;backdrop-filter:none!important;
+}
+.brand-lockup{gap:12px!important}
+.brand-lockup:before{
+ content:"🎓";display:grid;place-items:center;flex:0 0 48px;height:48px;
+ border-radius:12px;background:#ffffff18;font-size:31px;
+}
+.brand-lockup h1{color:#fff!important;font-weight:800!important;letter-spacing:-.4px!important;text-shadow:none!important}.brand-lockup h1 span{color:#ffca35!important}
+.brand-lockup h1:after{content:"";display:inline}
+.brand-lockup p{color:#eaf3ff!important;font-weight:700!important;letter-spacing:.25px!important}
+.global-search-wrap{
+ background:#fff!important;border:1px solid #dbe8fb!important;border-radius:30px!important;
+ box-shadow:none!important;
+}
+.global-search-wrap span{color:#075bea!important}
+.global-search-wrap input{color:#172b49!important}
+.header-logout{background:#fff!important;color:#075bea!important;border:1px solid #dce9fb!important;box-shadow:none!important}
+main{max-width:1480px!important;background:transparent!important}
+#authPanel,.panel,.card,.lesson-item,.dashboard-stat,.learning-shell,.learning-main,.learning-playlist{
+ background:#fff!important;color:#172b49!important;border:1px solid var(--shot-line)!important;
+ box-shadow:0 6px 20px #12345b12!important;
+}
+#authPanel h2,#page h2,.panel h2{color:#123d7b!important}
+#page h3,.panel h3{color:#194c89!important}
+.muted,footer{color:var(--shot-muted)!important}
+input,textarea,select,#page input,#page textarea,#page select{
+ background:#fff!important;color:#172b49!important;border:1px solid #cbd9eb!important;
+ border-radius:11px!important;
+}
+button{
+ background:linear-gradient(110deg,#075bea,#078de8)!important;color:#fff!important;
+ border:0!important;border-radius:24px!important;box-shadow:0 4px 12px #075bea22!important;
+}
+button.secondary,.playlist-item,.learning-back{
+ background:#f0f4fb!important;color:#233b5d!important;border:1px solid #dce5f1!important;box-shadow:none!important;
+}
+button.danger{background:#fff0f1!important;color:#bf3548!important;border:1px solid #ffd9de!important}
+#navigation{
+ background:transparent!important;border:0!important;box-shadow:none!important;
+}
+#navigation button{
+ background:#f0f3f9!important;color:#26364d!important;border:1px solid #e0e6f0!important;
+ border-radius:28px!important;text-align:center!important;font-size:13px!important;font-weight:700!important;
+ box-shadow:none!important;
+}
+#navigation button:before{display:none!important}
+#navigation button.active{
+ background:#075bea!important;color:#fff!important;border-color:#075bea!important;
+ box-shadow:0 5px 13px #075bea30!important;
+}
+.dashboard-hero{
+ background:linear-gradient(110deg,#06358d,#075bea 62%,#079de8)!important;
+ border:0!important;border-radius:20px!important;box-shadow:0 9px 22px #075bea22!important;
+}
+.dashboard-hero h2,.dashboard-hero p,.dashboard-hero strong{color:#fff!important}
+.dashboard-stat,.course-quick-stat{background:#fff!important;border:1px solid var(--shot-line)!important}
+.dashboard-stat strong,.course-quick-stat strong{color:#075bea!important}
+.dashboard-stat span,.course-quick-stat span{color:#62758f!important}
+.student-course{background:#fff!important;color:#172b49!important;border:1px solid var(--shot-line)!important;box-shadow:0 6px 18px #12345b12!important}
+.student-course-info h3{color:#172b49!important}
+.student-course-info p{color:#62758f!important}
+.student-course-info button{background:linear-gradient(110deg,#075bea,#078de8)!important;color:#fff!important}
+.learning-shell{background:#f5f8fd!important}
+.learning-main,.learning-playlist{background:#fff!important}
+.learning-top h2,.learning-main h2,.learning-playlist h3{color:#174578!important}
+.playlist-item.active{background:#e5f0ff!important;border-color:#83b8fa!important;color:#0753b8!important}
+.lesson-body{background:#fff!important;color:#26364d!important}
+.tag{background:#e8f1ff!important;color:#0753b8!important;border:1px solid #d4e4fc!important}
+a{color:#075bea!important}
+.media-file-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:11px!important}
+.media-file-card{
+ display:flex!important;flex-direction:column!important;align-items:stretch!important;
+ justify-content:flex-start!important;gap:7px!important;min-width:0!important;
+ min-height:0!important;padding:9px!important;background:#fff!important;color:#172b49!important;
+ border:1px solid #e0e7f1!important;border-radius:16px!important;
+ box-shadow:0 5px 16px #12345b12!important;text-align:left!important;
+}
+.media-file-card:after{content:"Open Material  ›"!important;align-self:flex-end!important;color:#075bea!important;font-size:11px!important}
+.media-file-thumb{display:block!important;order:-1!important;width:100%!important;height:112px!important;flex:none!important;object-fit:cover!important;border-radius:11px!important}
+.media-file-icon{
+ display:grid!important;order:0!important;place-items:center!important;width:100%!important;height:112px!important;
+ flex:none!important;border-radius:11px!important;font-size:40px!important;
+ background:linear-gradient(135deg,#dcecff,#b8dcff)!important;color:#075bea!important;
+}
+.media-file-name{order:1!important;width:100%!important;color:#172b49!important;font-size:13px!important;line-height:1.3!important;overflow-wrap:anywhere!important}
+.media-file-kind{order:2!important;color:#62758f!important;font-size:10px!important}
+.student-published-lesson .media-file-grid{background:#f4f8fd!important;border-color:#dce7f5!important}
+footer{color:#8192a7!important}
+@media(min-width:1000px){
+ #appPanel{grid-template-columns:230px minmax(0,1fr)!important;gap:20px 24px!important}
+ #navigation{background:#fff!important;border:1px solid var(--shot-line)!important;border-radius:18px!important;box-shadow:0 6px 18px #12345b10!important;padding:12px!important}
+ #navigation button{text-align:left!important;border-radius:13px!important}
+}
+@media(max-width:999px){
+ #appPanel{display:grid!important;grid-template-columns:1fr!important;grid-template-areas:"content" "message"!important;gap:12px!important}
+ #navigation{
+  position:fixed!important;z-index:2000!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;
+  display:flex!important;flex-direction:row!important;justify-content:space-around!important;align-items:stretch!important;
+  gap:4px!important;margin:0!important;padding:8px 7px calc(8px + env(safe-area-inset-bottom))!important;
+  background:#fff!important;border:0!important;border-top:1px solid #e0e8f2!important;border-radius:0!important;
+  box-shadow:0 -5px 20px #12345b12!important;overflow-x:auto!important;white-space:nowrap!important;
+ }
+ #navigation button{
+  flex:1 1 0!important;min-width:0!important;min-height:54px!important;padding:8px 4px!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  font-size:11px!important;border-radius:12px!important;
+ }
+ #navigation button.active{box-shadow:none!important}
+ #page{padding-bottom:78px!important}
+ main{padding-bottom:10px!important}
+}
+@media(max-width:600px){
+ .academy-header{grid-template-columns:minmax(0,1fr) auto!important;gap:9px!important;padding:11px 13px!important;min-height:72px!important}
+ .brand-lockup:before{flex-basis:42px;height:42px;font-size:27px}
+ .brand-lockup h1{font-size:20px!important;white-space:nowrap!important}
+ .brand-lockup p{font-size:10px!important;letter-spacing:.25px!important}
+ .global-search-wrap{grid-column:1/-1!important;grid-row:2!important;height:39px!important;max-width:none!important}
+ .header-right{grid-column:2!important;grid-row:1!important}
+ main{padding:15px 11px 10px!important}
+ #navigation button{font-size:11px!important;padding:7px 3px!important}
+ .panel{padding:15px!important;border-radius:16px!important}
+ .dashboard-hero{min-height:175px!important;padding:23px 19px!important}
+ .course-quick-stats,.dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+ .course-quick-stat,.dashboard-stat{padding:13px!important}
+ .media-file-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+ .media-file-card{padding:8px!important;border-radius:14px!important}
+ .media-file-thumb,.media-file-icon{height:112px!important}
+ .media-file-name{font-size:12px!important}
+ .student-course-cover{height:110px!important}
+}
+@media(max-width:360px){
+ .brand-lockup h1{font-size:17px!important}
+ .media-file-thumb,.media-file-icon{height:95px!important}
+}
+
 </style>
 </head>
 <body>
 
 <header class="academy-header">
-  <div class="brand-lockup"><div class="brand-copy"><h1>Mobile Tech Room</h1><p>Learn. Repair. Innovate.</p></div></div>
+  <div class="brand-lockup"><div class="brand-copy"><h1>Mobile <span>Tech Room</span></h1><p>Learn. Repair. Innovate.</p></div></div>
   <label class="global-search-wrap"><span>⌕</span><input id="globalCourseSearch" type="search" placeholder="Search courses, lessons..." aria-label="Search courses and lessons"></label>
   <div class="header-right"><button id="logoutButton" class="header-logout hidden" type="button">Logout</button></div>
 </header>
