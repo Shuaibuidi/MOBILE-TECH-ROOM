@@ -289,6 +289,104 @@ button:hover{transform:none!important}
 .media-lightbox-pdf{display:block;width:100%;height:min(72vh,760px);border:0;border-radius:10px;background:#fff}
 @media(max-width:420px){.media-file-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.media-file-card{min-height:108px;padding:8px}.media-file-thumb{height:64px}.media-file-name{font-size:11px}}
 
+/* =========================================================
+   MOBILE TECH ROOM — unified blue & white app-wide redesign
+   Visual-only overrides: existing IDs, handlers and workflows
+   are intentionally unchanged.
+   ========================================================= */
+:root{color-scheme:light;--bg:#f3f7fd;--surface:#fff;--surface2:#edf4fc;--line:#dce7f5;--text:#142b4c;--muted:#5d708b;--blue:#075bea;--cyan:#079de8;--green:#16a765;--gold:#ffca35}
+html{background:#f3f7fd}
+body{background:linear-gradient(180deg,#edf5ff 0,#f7faff 280px,#f3f7fd 100%);color:#172b49;font-family:Arial,Helvetica,sans-serif;line-height:1.55}
+.academy-header{background:linear-gradient(110deg,#06358d,#075bea 62%,#079de8)!important;border:0!important;border-bottom:4px solid #ffca35!important;box-shadow:0 7px 22px #073b8b26!important;color:#fff!important}
+.academy-header h1{color:#fff!important;font-size:clamp(22px,3vw,30px)!important;letter-spacing:.1px!important;text-shadow:none!important}
+.academy-header h1 span,.academy-header .brand-copy strong{color:#ffca35!important}
+.academy-header p{color:#e6f2ff!important}
+.academy-header .global-search-wrap{background:#fff!important;border:1px solid #d9e8ff!important;border-radius:30px!important}
+.academy-header .global-search-wrap input{background:transparent!important;color:#18365f!important}
+.academy-header .header-logout{background:#fff!important;color:#075bea!important}
+main{max-width:1480px;margin:auto;padding:24px clamp(12px,2.5vw,34px) 40px}
+#authPanel{background:#fff!important;color:#172b49!important;border:1px solid #dce7f5!important;box-shadow:0 12px 32px #12345b12!important}
+#authPanel h2,#page h2{color:#123d7b!important}
+#page h3{color:#194c89!important}
+.panel,.card,.lesson-item,.dashboard-stat,.learning-shell,.learning-main,.learning-playlist{background:#fff!important;color:#172b49!important;border:1px solid #dce7f5!important;box-shadow:0 7px 22px #12345b12!important}
+.panel{border-radius:18px!important}
+#page p,#page label{color:inherit}
+.muted,footer{color:#62758f!important}
+input,textarea,select{background:#fff!important;color:#172b49!important;border:1px solid #cbd9eb!important;border-radius:11px!important;box-shadow:inset 0 1px 2px #17365b08}
+input::placeholder,textarea::placeholder{color:#8a9bb1!important}
+input:focus,textarea:focus,select:focus{border-color:#1683f5!important;box-shadow:0 0 0 3px #1683f51c!important}
+button{background:linear-gradient(110deg,#075bea,#078de8)!important;color:#fff!important;border:0!important;border-radius:12px!important;box-shadow:0 5px 14px #075bea26!important}
+button:hover{filter:brightness(1.05);box-shadow:0 8px 18px #075bea30!important}
+button.secondary,.playlist-item,.learning-back{background:#edf4fc!important;color:#174578!important;border:1px solid #d6e4f5!important;box-shadow:none!important}
+button.danger{background:linear-gradient(110deg,#e34d5b,#bd3048)!important;color:#fff!important}
+button:disabled{opacity:.5}
+#navigation{background:#fff!important;border:1px solid #dce7f5!important;border-radius:18px!important;box-shadow:0 8px 22px #12345b10!important;padding:10px!important}
+#navigation button{background:transparent!important;color:#34506f!important;border:1px solid transparent!important;box-shadow:none!important;text-align:left}
+#navigation button.active{background:#075bea!important;color:#fff!important;box-shadow:0 5px 14px #075bea2c!important}
+#navigation button::before{color:inherit!important}
+#appMessage,#message{color:#34506f!important}
+.tag{background:#e8f1ff!important;color:#0753b8!important;border:1px solid #d4e4fc!important;border-radius:20px!important}
+.success{color:#138b58!important}.warning{color:#a56a00!important}.error{color:#c52f42!important}
+.dashboard-hero{background:linear-gradient(120deg,#06358d,#075bea 58%,#079de8)!important;border:0!important;color:#fff!important;box-shadow:0 10px 24px #075bea22!important}
+.dashboard-hero h2,.dashboard-hero p{color:#fff!important}
+.dashboard-stat{background:#fff!important;border:1px solid #dce7f5!important}
+.dashboard-stat strong{color:#075bea!important}.dashboard-stat span{color:#62758f!important}
+.dashboard-actions button{min-height:48px}
+.card,.lesson-item{border-radius:16px!important}
+.lesson-item{border-left:4px solid #087cff!important}
+.lesson-list{gap:12px}
+.student-course{background:#fff!important;border:1px solid #dce7f5!important;box-shadow:0 8px 22px #12345b14!important}
+.student-course-info h3{color:#173b70!important}
+.student-course-info p{color:#62758f!important}
+.student-course-info .tag{background:#e8f1ff!important;color:#0753b8!important}
+.student-course-info button{background:linear-gradient(110deg,#075bea,#078de8)!important;color:#fff!important}
+.student-course-heading h2{color:#123d7b!important}
+.learning-shell{background:#f0f6ff!important;color:#172b49!important;border-radius:20px!important}
+.learning-main,.learning-playlist{background:#fff!important;border:1px solid #dce7f5!important}
+.learning-top h2,.learning-main h2,.learning-playlist h3{color:#174578!important}
+.learning-progress-track{background:#e4edf8!important}
+.learning-progress-fill{background:linear-gradient(90deg,#075bea,#09a4e9)!important}
+.playlist-item{background:#f5f8fd!important;color:#29476b!important}
+.playlist-item.active{background:#e5f0ff!important;border-color:#83b8fa!important;color:#0753b8!important}
+.playlist-item .playlist-number{background:#dceaff!important;color:#0753b8!important}
+.playlist-item small{color:#70839d!important}
+.learning-controls .complete-button{background:linear-gradient(110deg,#139c63,#22bd7b)!important;color:#fff!important}
+.lesson-body{background:#fff!important;color:#26364d!important;border:1px solid #e3ebf5!important}
+.lesson-body h1,.lesson-body h2,.lesson-body h3{color:#0753a7!important}
+.lesson-body blockquote{background:#edf5ff!important;color:#34506f!important;border-left-color:#087cff!important}
+.lesson-editor{background:#fff!important;color:#202938!important;border-color:#80b8fa!important}
+.editor-toolbar button{background:#edf4fc!important;color:#174578!important;box-shadow:none!important}
+.media-lightbox{background:#06152ceF!important}
+footer{text-align:center;padding:22px 12px!important}
+hr{border-color:#dce7f5!important}
+a{color:#075bea}
+@media(min-width:1000px){
+ #appPanel{grid-template-columns:245px minmax(0,1fr)!important;column-gap:24px!important}
+ #navigation{background:#fff!important;min-height:calc(100vh - 150px)!important;top:100px!important}
+ #navigation button{min-height:50px!important}
+ #page{min-width:0}
+}
+@media(max-width:999px){
+ #navigation{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;gap:7px!important;margin:0 0 15px!important;min-height:0!important}
+ #navigation button{flex:1 1 125px!important;min-width:0!important;text-align:center!important}
+}
+@media(max-width:600px){
+ .academy-header{grid-template-columns:1fr auto!important;gap:8px!important;padding:13px 12px!important}
+ .academy-header .global-search-wrap{grid-column:1/-1!important;grid-row:2!important}
+ .academy-header h1{font-size:21px!important}
+ main{padding:12px 10px 28px!important}
+ .panel{padding:14px!important;border-radius:15px!important}
+ #navigation button{font-size:12px!important;padding:10px 7px!important}
+ .dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .course-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+ .student-course-cover{height:105px!important}
+ .student-course-info{padding:11px!important}
+ .student-course-info h3{font-size:14px!important}
+ .student-course-info p{font-size:12px!important;min-height:0!important}
+ .lesson-list{grid-template-columns:1fr!important;padding-left:22px!important}
+ .learning-shell{padding:10px!important}
+}
+@media(max-width:380px){.course-grid{grid-template-columns:1fr!important}}
 </style>
 </head>
 <body>
@@ -483,105 +581,6 @@ article blockquote{margin:16px 0;padding:12px 16px;border-left:4px solid var(--g
 article img{max-width:100%;height:auto}article table{width:100%;border-collapse:collapse;max-width:100%;font-size:14px}article td,article th{border:1px solid #d7e0e5;padding:7px;text-align:left}article pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f3f6f8;padding:12px;border-radius:6px}
 @page{size:A4 portrait;margin:14mm}
 @media print{html,body{background:#fff!important;padding:0!important;margin:0!important}.sheet{max-width:none;min-height:0;margin:0;padding:0;box-shadow:none}.brand,*{-webkit-print-color-adjust:exact;print-color-adjust:exact}h1,h2,h3,blockquote{break-after:avoid}p,li,table,img,blockquote{break-inside:avoid}}
-
-/* =========================================================
-   MOBILE TECH ROOM — unified blue & white app-wide redesign
-   Visual-only overrides: existing IDs, handlers and workflows
-   are intentionally unchanged.
-   ========================================================= */
-:root{color-scheme:light;--bg:#f3f7fd;--surface:#fff;--surface2:#edf4fc;--line:#dce7f5;--text:#142b4c;--muted:#5d708b;--blue:#075bea;--cyan:#079de8;--green:#16a765;--gold:#ffca35}
-html{background:#f3f7fd}
-body{background:linear-gradient(180deg,#edf5ff 0,#f7faff 280px,#f3f7fd 100%);color:#172b49;font-family:Arial,Helvetica,sans-serif;line-height:1.55}
-.academy-header{background:linear-gradient(110deg,#06358d,#075bea 62%,#079de8)!important;border:0!important;border-bottom:4px solid #ffca35!important;box-shadow:0 7px 22px #073b8b26!important;color:#fff!important}
-.academy-header h1{color:#fff!important;font-size:clamp(22px,3vw,30px)!important;letter-spacing:.1px!important;text-shadow:none!important}
-.academy-header h1 span,.academy-header .brand-copy strong{color:#ffca35!important}
-.academy-header p{color:#e6f2ff!important}
-.academy-header .global-search-wrap{background:#fff!important;border:1px solid #d9e8ff!important;border-radius:30px!important}
-.academy-header .global-search-wrap input{background:transparent!important;color:#18365f!important}
-.academy-header .header-logout{background:#fff!important;color:#075bea!important}
-main{max-width:1480px;margin:auto;padding:24px clamp(12px,2.5vw,34px) 40px}
-#authPanel{background:#fff!important;color:#172b49!important;border:1px solid #dce7f5!important;box-shadow:0 12px 32px #12345b12!important}
-#authPanel h2,#page h2{color:#123d7b!important}
-#page h3{color:#194c89!important}
-.panel,.card,.lesson-item,.dashboard-stat,.learning-shell,.learning-main,.learning-playlist{background:#fff!important;color:#172b49!important;border:1px solid #dce7f5!important;box-shadow:0 7px 22px #12345b12!important}
-.panel{border-radius:18px!important}
-#page p,#page label{color:inherit}
-.muted,footer{color:#62758f!important}
-input,textarea,select{background:#fff!important;color:#172b49!important;border:1px solid #cbd9eb!important;border-radius:11px!important;box-shadow:inset 0 1px 2px #17365b08}
-input::placeholder,textarea::placeholder{color:#8a9bb1!important}
-input:focus,textarea:focus,select:focus{border-color:#1683f5!important;box-shadow:0 0 0 3px #1683f51c!important}
-button{background:linear-gradient(110deg,#075bea,#078de8)!important;color:#fff!important;border:0!important;border-radius:12px!important;box-shadow:0 5px 14px #075bea26!important}
-button:hover{filter:brightness(1.05);box-shadow:0 8px 18px #075bea30!important}
-button.secondary,.playlist-item,.learning-back{background:#edf4fc!important;color:#174578!important;border:1px solid #d6e4f5!important;box-shadow:none!important}
-button.danger{background:linear-gradient(110deg,#e34d5b,#bd3048)!important;color:#fff!important}
-button:disabled{opacity:.5}
-#navigation{background:#fff!important;border:1px solid #dce7f5!important;border-radius:18px!important;box-shadow:0 8px 22px #12345b10!important;padding:10px!important}
-#navigation button{background:transparent!important;color:#34506f!important;border:1px solid transparent!important;box-shadow:none!important;text-align:left}
-#navigation button.active{background:#075bea!important;color:#fff!important;box-shadow:0 5px 14px #075bea2c!important}
-#navigation button::before{color:inherit!important}
-#appMessage,#message{color:#34506f!important}
-.tag{background:#e8f1ff!important;color:#0753b8!important;border:1px solid #d4e4fc!important;border-radius:20px!important}
-.success{color:#138b58!important}.warning{color:#a56a00!important}.error{color:#c52f42!important}
-.dashboard-hero{background:linear-gradient(120deg,#06358d,#075bea 58%,#079de8)!important;border:0!important;color:#fff!important;box-shadow:0 10px 24px #075bea22!important}
-.dashboard-hero h2,.dashboard-hero p{color:#fff!important}
-.dashboard-stat{background:#fff!important;border:1px solid #dce7f5!important}
-.dashboard-stat strong{color:#075bea!important}.dashboard-stat span{color:#62758f!important}
-.dashboard-actions button{min-height:48px}
-.card,.lesson-item{border-radius:16px!important}
-.lesson-item{border-left:4px solid #087cff!important}
-.lesson-list{gap:12px}
-.student-course{background:#fff!important;border:1px solid #dce7f5!important;box-shadow:0 8px 22px #12345b14!important}
-.student-course-info h3{color:#173b70!important}
-.student-course-info p{color:#62758f!important}
-.student-course-info .tag{background:#e8f1ff!important;color:#0753b8!important}
-.student-course-info button{background:linear-gradient(110deg,#075bea,#078de8)!important;color:#fff!important}
-.student-course-heading h2{color:#123d7b!important}
-.learning-shell{background:#f0f6ff!important;color:#172b49!important;border-radius:20px!important}
-.learning-main,.learning-playlist{background:#fff!important;border:1px solid #dce7f5!important}
-.learning-top h2,.learning-main h2,.learning-playlist h3{color:#174578!important}
-.learning-progress-track{background:#e4edf8!important}
-.learning-progress-fill{background:linear-gradient(90deg,#075bea,#09a4e9)!important}
-.playlist-item{background:#f5f8fd!important;color:#29476b!important}
-.playlist-item.active{background:#e5f0ff!important;border-color:#83b8fa!important;color:#0753b8!important}
-.playlist-item .playlist-number{background:#dceaff!important;color:#0753b8!important}
-.playlist-item small{color:#70839d!important}
-.learning-controls .complete-button{background:linear-gradient(110deg,#139c63,#22bd7b)!important;color:#fff!important}
-.lesson-body{background:#fff!important;color:#26364d!important;border:1px solid #e3ebf5!important}
-.lesson-body h1,.lesson-body h2,.lesson-body h3{color:#0753a7!important}
-.lesson-body blockquote{background:#edf5ff!important;color:#34506f!important;border-left-color:#087cff!important}
-.lesson-editor{background:#fff!important;color:#202938!important;border-color:#80b8fa!important}
-.editor-toolbar button{background:#edf4fc!important;color:#174578!important;box-shadow:none!important}
-.media-lightbox{background:#06152ceF!important}
-footer{text-align:center;padding:22px 12px!important}
-hr{border-color:#dce7f5!important}
-a{color:#075bea}
-@media(min-width:1000px){
- #appPanel{grid-template-columns:245px minmax(0,1fr)!important;column-gap:24px!important}
- #navigation{background:#fff!important;min-height:calc(100vh - 150px)!important;top:100px!important}
- #navigation button{min-height:50px!important}
- #page{min-width:0}
-}
-@media(max-width:999px){
- #navigation{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;gap:7px!important;margin:0 0 15px!important;min-height:0!important}
- #navigation button{flex:1 1 125px!important;min-width:0!important;text-align:center!important}
-}
-@media(max-width:600px){
- .academy-header{grid-template-columns:1fr auto!important;gap:8px!important;padding:13px 12px!important}
- .academy-header .global-search-wrap{grid-column:1/-1!important;grid-row:2!important}
- .academy-header h1{font-size:21px!important}
- main{padding:12px 10px 28px!important}
- .panel{padding:14px!important;border-radius:15px!important}
- #navigation button{font-size:12px!important;padding:10px 7px!important}
- .dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
- .course-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
- .student-course-cover{height:105px!important}
- .student-course-info{padding:11px!important}
- .student-course-info h3{font-size:14px!important}
- .student-course-info p{font-size:12px!important;min-height:0!important}
- .lesson-list{grid-template-columns:1fr!important;padding-left:22px!important}
- .learning-shell{padding:10px!important}
-}
-@media(max-width:380px){.course-grid{grid-template-columns:1fr!important}}
 
 </style></head><body><main class="sheet"><header class="brand"><div class="brand-name">MOBILE TECH ROOM</div><div class="brand-tag">LEARN • REPAIR • INNOVATE</div></header>
 <p class="kicker">MOBILE TECH LESSON</p><h1>${safe(cleanTitle)}</h1><article>${content}</article></main>
