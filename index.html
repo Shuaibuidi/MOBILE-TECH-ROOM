@@ -1437,6 +1437,121 @@ footer{color:#71839a!important}
   .student-dashboard-hero .student-platform-title{font-size:10px!important;letter-spacing:0!important}
 }
 
+
+/* Lesson Materials gallery — reference screenshot layout */
+.media-file-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:12px!important;
+  padding:0!important;
+  margin:16px 0!important;
+  background:transparent!important;
+  border:0!important;
+}
+.media-file-card{
+  position:relative!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  gap:7px!important;
+  min-width:0!important;
+  min-height:0!important;
+  padding:8px!important;
+  margin:0!important;
+  border:1px solid #e1e8f2!important;
+  border-radius:17px!important;
+  background:#fff!important;
+  color:#172b49!important;
+  text-align:left!important;
+  box-shadow:0 5px 16px rgba(20,55,100,.10)!important;
+  white-space:normal!important;
+}
+.media-card-preview{
+  position:relative!important;
+  width:100%!important;
+  aspect-ratio:16/9!important;
+  overflow:hidden!important;
+  border-radius:12px!important;
+  background:#eaf2fd!important;
+}
+.media-card-image{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+}
+.media-card-placeholder{
+  display:grid!important;
+  width:100%!important;
+  height:100%!important;
+  place-items:center!important;
+  color:#fff!important;
+  font-size:43px!important;
+  font-weight:900!important;
+  background:linear-gradient(135deg,#0b58c7,#13a6e8)!important;
+}
+.media-card-video{background:linear-gradient(135deg,#1b3859,#07172c)!important}
+.media-card-audio{background:linear-gradient(135deg,#092e87,#6636c9 58%,#13a8df)!important}
+.media-card-pdf{background:linear-gradient(135deg,#dcecff,#f5f8ff)!important;color:#e33242!important}
+.media-card-type{
+  position:absolute!important;
+  top:8px!important;
+  right:8px!important;
+  padding:5px 9px!important;
+  border-radius:20px!important;
+  color:#fff!important;
+  background:#087cff!important;
+  font-size:10px!important;
+  font-weight:900!important;
+  letter-spacing:.4px!important;
+  box-shadow:0 2px 8px #001b3d30!important;
+}
+.media-card-type-video{background:#e51d2a!important}
+.media-card-type-audio{background:#7135db!important}
+.media-card-type-pdf{background:#df2638!important}
+.media-file-card .media-file-name{
+  display:block!important;
+  order:0!important;
+  width:100%!important;
+  color:#172b49!important;
+  font-size:13px!important;
+  font-weight:850!important;
+  line-height:1.3!important;
+  overflow-wrap:anywhere!important;
+}
+.media-file-card .media-card-meta{
+  display:block!important;
+  order:0!important;
+  color:#6b788b!important;
+  font-size:10px!important;
+  line-height:1.35!important;
+  font-weight:600!important;
+}
+.media-file-card .media-card-action{
+  display:block!important;
+  align-self:flex-end!important;
+  order:0!important;
+  min-width:86px!important;
+  padding:8px 13px!important;
+  border-radius:22px!important;
+  background:linear-gradient(110deg,#075bea,#078de8)!important;
+  color:#fff!important;
+  text-align:center!important;
+  font-size:12px!important;
+  font-weight:850!important;
+  box-shadow:0 4px 10px #075bea24!important;
+}
+.media-file-card:after{display:none!important;content:none!important}
+.student-published-lesson .media-file-grid{padding:0!important;background:transparent!important;border:0!important}
+@media(max-width:360px){
+ .media-file-grid{gap:8px!important}
+ .media-file-card{padding:6px!important}
+ .media-file-card .media-file-name{font-size:11px!important}
+ .media-file-card .media-card-meta{font-size:9px!important}
+ .media-file-card .media-card-action{min-width:72px!important;padding:7px 10px!important;font-size:11px!important}
+}
+
 </style>
 </head>
 <body>
@@ -2253,7 +2368,8 @@ if(lessonType!=="written"&&!url){appMessage("Upload the lesson file or enter its
 if($("lessonFile").files.length&&!url){appMessage("Please upload the selected file before saving.","error");return;}
 if(url&&!/^https:\/\/.+/i.test(url)){appMessage("Please enter a valid HTTPS link.","error");return;}
 const cid=await ensureCourse();
-await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:val("lessonOutcomes"),type:lessonType,content:lessonType==="written"?content:"",printable:lessonType==="written"?$("allowPrint").checked:false,mediaUrl:url,createdBy:currentUser.uid,createdAt:serverTimestamp()});
+const selectedMediaFile=$("lessonFile")?.files?.[0]||null;
+await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:val("lessonOutcomes"),type:lessonType,content:lessonType==="written"?content:"",printable:lessonType==="written"?$("allowPrint").checked:false,mediaUrl:url,mediaFileName:selectedMediaFile?.name||"",mediaFileSize:selectedMediaFile?.size||0,createdBy:currentUser.uid,createdAt:serverTimestamp()});
 await setDoc(doc(db,"courses",cid),{status:"published",updatedAt:serverTimestamp()},{merge:true});
 appMessage("Course and first lesson saved successfully.");
 await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:val("courseTitle"),description:val("courseDescription")};await openCourse(cid);
@@ -2299,10 +2415,14 @@ if(isStudent()){
    const type=lesson.type||"written";
    let media="";
    if(lesson.mediaUrl&&["video","audio","image","pdf"].includes(type)){
-     const mediaLabel=lesson.title||"Learning material";
-     const mediaIcon=type==="video"?"▶":type==="audio"?"♫":type==="pdf"?"PDF":"▧";
-     const imageThumb=type==="image"?`<img class="media-file-thumb" src="${safe(lesson.mediaUrl)}" alt="" loading="lazy">`:"";
-     media=`<div class="media-file-grid"><button type="button" class="media-file-card" data-action="view-media" data-media-type="${safe(type)}" data-media-url="${safe(lesson.mediaUrl)}" data-media-title="${safe(mediaLabel)}"><span class="media-file-icon">${mediaIcon}</span>${imageThumb}<span class="media-file-name">${safe(mediaLabel)}</span><span class="media-file-kind">${safe(type.toUpperCase())} · Tap to open</span></button></div>`;
+     const mediaLabel=lesson.mediaFileName||lesson.title||"Learning material";
+     const mediaIcon=type==="video"?"▶":type==="audio"?"♫":"PDF";
+     const created=lesson.createdAt?.toDate?lesson.createdAt.toDate():lesson.createdAt?.seconds?new Date(lesson.createdAt.seconds*1000):null;
+     const dateLabel=created&&!Number.isNaN(created.getTime())?created.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}):"Date unavailable";
+     const sizeLabel=Number(lesson.mediaFileSize)>0?(lesson.mediaFileSize<1048576?(lesson.mediaFileSize/1024).toFixed(0)+" KB":(lesson.mediaFileSize/1048576).toFixed(1)+" MB"):"Size unavailable";
+     const preview=type==="image"?`<img class="media-card-image" src="${safe(lesson.mediaUrl)}" alt="${safe(mediaLabel)}" loading="lazy">`:`<div class="media-card-placeholder media-card-${type}"><span>${mediaIcon}</span></div>`;
+     const actionLabel=type==="image"?"View":type==="video"||type==="audio"?"Play":"Download";
+     media=`<div class="media-file-grid"><button type="button" class="media-file-card" data-action="view-media" data-media-type="${safe(type)}" data-media-url="${safe(lesson.mediaUrl)}" data-media-title="${safe(mediaLabel)}"><div class="media-card-preview">${preview}<span class="media-card-type media-card-type-${type}">${type.toUpperCase()}</span></div><span class="media-file-name">${safe(mediaLabel)}</span><span class="media-card-meta">▦ ${dateLabel} · ${sizeLabel}</span><span class="media-card-action">${actionLabel}</span></button></div>`;
    }
    const body=type==="written"?`<div class="lesson-body">${formatLessonContent(lesson.content||"")}</div>`:"";
    const done=completed.includes(lesson.id);
@@ -2386,7 +2506,7 @@ ${l.section?`<p><strong>Section:</strong> ${safe(l.section)}</p>`:""}
 <span class="tag">${safe(l.type||"written")}</span>
 ${(l.type||"written")==="written"?`<div class="lesson-body">${formatLessonContent(l.content||"")}</div>`: "" }
 ${(l.type||"written")==="written"?`<button type="button" class="secondary" data-action="download-lesson-pdf"><span>⬇ Download PDF</span></button>`:""}
-${l.mediaUrl&&["image","video","audio","pdf"].includes(l.type)?`<div class="media-file-grid"><button type="button" class="media-file-card" data-action="view-media" data-media-type="${safe(l.type)}" data-media-url="${safe(l.mediaUrl)}" data-media-title="${safe(l.title)}"><span class="media-file-icon">${l.type==="video"?"▶":l.type==="audio"?"♫":l.type==="pdf"?"PDF":"▧"}</span>${l.type==="image"?`<img class="media-file-thumb" src="${safe(l.mediaUrl)}" alt="" loading="lazy">`:""}<span class="media-file-name">${safe(l.title||"Learning material")}</span><span class="media-file-kind">${safe(l.type.toUpperCase())} · Tap to open</span></button></div>`:(l.mediaUrl?`<p><a href="${safe(l.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open learning material</a></p>`:"")}
+${l.mediaUrl&&["image","video","audio","pdf"].includes(l.type)?`<div class="media-file-grid"><button type="button" class="media-file-card" data-action="view-media" data-media-type="${safe(l.type)}" data-media-url="${safe(l.mediaUrl)}" data-media-title="${safe(l.mediaFileName||l.title||"Learning material")}"><div class="media-card-preview">${l.type==="image"?`<img class="media-card-image" src="${safe(l.mediaUrl)}" alt="${safe(l.title||"Learning material")}" loading="lazy">`:`<div class="media-card-placeholder media-card-${safe(l.type)}"><span>${l.type==="video"?"▶":l.type==="audio"?"♫":"PDF"}</span></div>`}<span class="media-card-type media-card-type-${safe(l.type)}">${safe(l.type.toUpperCase())}</span></div><span class="media-file-name">${safe(l.mediaFileName||l.title||"Learning material")}</span><span class="media-card-meta">▦ ${l.createdAt?.toDate?l.createdAt.toDate().toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}):"Date unavailable"} · ${Number(l.mediaFileSize)>0?(l.mediaFileSize<1048576?(l.mediaFileSize/1024).toFixed(0)+" KB":(l.mediaFileSize/1048576).toFixed(1)+" MB"):"Size unavailable"}</span><span class="media-card-action">${l.type==="image"?"View":l.type==="pdf"?"Download":"Play"}</span></button></div>`:(l.mediaUrl?`<p><a href="${safe(l.mediaUrl)}" target="_blank" rel="noopener noreferrer">Open learning material</a></p>`:"")}
 ${isAdmin()?`
 <div class="actions">
 <button class="secondary" data-action="edit-lesson" data-id="${safe(l.id)}">Edit</button>
@@ -2441,6 +2561,8 @@ section:$("lessonSection").value.trim(),
 type:lessonType,
 content:lessonType==="written"?$("lessonContent").innerHTML.trim():"",
 mediaUrl:url,
+mediaFileName:$("lessonFile")?.files?.[0]?.name||"",
+mediaFileSize:$("lessonFile")?.files?.[0]?.size||0,
 createdBy:currentUser.uid,
 createdAt:serverTimestamp()
 });
