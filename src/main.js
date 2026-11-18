@@ -54,7 +54,8 @@ function safeEqualHex(a, b) {
 }
 
 async function createCheckout({ req, res, log }) {
-  const token = getBearer(req);
+  const body = parseRequestBody(req);
+  const token = (typeof body.firebaseIdToken === "string" ? body.firebaseIdToken.trim() : "") || getBearer(req);
   if (!token) return json(res, { success: false, error: "Please sign in before paying." }, 401);
 
   const { auth, db } = getFirebase();
@@ -65,7 +66,6 @@ async function createCheckout({ req, res, log }) {
     return json(res, { success: false, error: "Your sign-in has expired. Please sign in again." }, 401);
   }
 
-  const body = parseRequestBody(req);
   const courseId = typeof body.courseId === "string" ? body.courseId.trim() : "";
   if (!courseId || courseId.length > 150) {
     return json(res, { success: false, error: "A valid course ID is required." }, 400);
