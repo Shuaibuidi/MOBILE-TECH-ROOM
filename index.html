@@ -2400,6 +2400,28 @@ await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:va
 }catch(e){page.innerHTML="<div class='panel error'>Could not load courses: "+safe(e.message)+"</div>";}
 }
 
+async function startPayChanguCheckout(courseId){
+  if(!currentUser){appMessage("Please sign in again before making a payment.","error");return;}
+  const button=page.querySelector('[data-action="pay-course"]');
+  if(button){button.disabled=true;button.textContent="Connecting to PayChangu...";}
+  try{
+    const token=await currentUser.getIdToken(true);
+    const response=await fetch("https://starter-function-52z5.sgp.appwrite.run",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+      body:JSON.stringify({action:"create-checkout",courseId})
+    });
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok||!result.success)throw new Error(result.error||"Could not start PayChangu checkout. Please try again.");
+    if(result.alreadyEnrolled){appMessage(result.message||"You already have access to this course.");await openCourse(courseId);return;}
+    if(typeof result.checkoutUrl!=="string"||!result.checkoutUrl.startsWith("https://"))throw new Error("PayChangu returned an invalid checkout link.");
+    window.location.assign(result.checkoutUrl);
+  }catch(error){
+    appMessage(error.message||"Payment could not be started. Please try again.","error");
+    if(button){button.disabled=false;button.textContent="Try PayChangu Again";}
+  }
+}
+
 async function openCourse(id){
 selectedCourse=courses.find(c=>c.id===id);
 if(!selectedCourse){appMessage("Course not found.","error");return}
@@ -2411,8 +2433,8 @@ if(!enrollment.exists()||enrollment.data().status!=="active"){
 page.innerHTML=`<div class="panel">
 <h2>${safe(selectedCourse.title)}</h2>
 <p>This is a paid course. One payment gives access to every lesson in this course.</p>
-<p class="muted">Request this course and pay once. After the Admin verifies your payment, all lessons in this course will unlock together.</p>
-<a class="whatsapp-link" href="https://wa.me/265999290495?text=${encodeURIComponent("Hello Mobile Tech Room Admin, I want to join this course.\nStudent name: "+(profile.fullName||currentUser.displayName||"")+"\nEmail: "+(profile.email||currentUser.email)+"\nPhone: "+(profile.phone||"Not provided")+"\nCourse: "+(selectedCourse.title||"")+"\nCourse price: MK "+Number(selectedCourse.price??0).toLocaleString("en-US")+"\nPlease guide me on payment.")}" target="_blank" rel="noopener noreferrer">Request This Course on WhatsApp</a>
+<p class="muted">Pay securely with PayChangu. Once your payment is confirmed, access to every lesson in this course will be activated automatically.</p>
+<button data-action="pay-course" data-id="${safe(id)}">Pay MK ${safe(Number(selectedCourse.price??0).toLocaleString("en-US"))} with PayChangu</button>
 <button class="secondary" data-action="back-courses">Back to Lessons</button>
 </div>`;
 return;
@@ -2801,6 +2823,7 @@ if(action==="view-media"){
   document.body.append(viewer);
   return;
 }
+if(action==="pay-course")await startPayChanguCheckout(id);
 if(action==="open-course")await openCourse(id);
     if(action==="manage-enrollments"&&isAdmin())await manageStudentEnrollments(id);
     if(action==="back-students"&&isAdmin())await renderUsers("student");
