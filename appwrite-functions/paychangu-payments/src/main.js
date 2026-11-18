@@ -24,7 +24,7 @@ function getFirebase() {
 
 function json(res, body, status = 200) {
   return res.json(body, status, {
-    "Access-Control-Allow-Origin": APP_URL.replace(/\/$/, ""),
+    "Access-Control-Allow-Origin": APP_ORIGIN,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Vary": "Origin"
@@ -253,7 +253,7 @@ export default async ({ req, res, log, error }) => {
   try {
     if (req.method === "OPTIONS") {
       return res.text("", 204, {
-        "Access-Control-Allow-Origin": APP_URL.replace(/\/$/, ""),
+        "Access-Control-Allow-Origin": APP_ORIGIN,
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
         "Vary": "Origin"
