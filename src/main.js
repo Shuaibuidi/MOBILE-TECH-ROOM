@@ -30,6 +30,17 @@ function json(res, body, status = 200) {
   });
 }
 
+function parseRequestBody(req) {
+  // Avoid Appwrite's bodyJson getter: it throws for form-encoded requests.
+  const raw = typeof req.bodyText === "string" ? req.bodyText : "";
+  if (!raw.trim()) return req.body && typeof req.body === "object" ? req.body : {};
+  const contentType = String(req.headers?.["content-type"] || req.headers?.["Content-Type"] || "").toLowerCase();
+  if (contentType.includes("application/json") || /^[\\s]*[\\[{]/.test(raw)) {
+    try { return JSON.parse(raw); } catch { throw new Error("Request body contains invalid JSON."); }
+  }
+  return Object.fromEntries(new URLSearchParams(raw));
+}
+
 function getBearer(req) {
   const value = req.headers?.authorization || req.headers?.Authorization || "";
   return value.startsWith("Bearer ") ? value.slice(7).trim() : "";
@@ -54,7 +65,7 @@ async function createCheckout({ req, res, log }) {
     return json(res, { success: false, error: "Your sign-in has expired. Please sign in again." }, 401);
   }
 
-  const body = req.bodyJson || {};
+  const body = parseRequestBody(req);
   const courseId = typeof body.courseId === "string" ? body.courseId.trim() : "";
   if (!courseId || courseId.length > 150) {
     return json(res, { success: false, error: "A valid course ID is required." }, 400);
@@ -263,7 +274,7 @@ export default async ({ req, res, log, error }) => {
 
     if (req.query?.action === "webhook") return await handleWebhook({ req, res, log });
 
-    const body = req.bodyJson || {};
+    const body = parseRequestBody(req);
     if (body.action !== "create-checkout") {
       return json(res, { success: false, error: "Unknown action." }, 400);
     }
