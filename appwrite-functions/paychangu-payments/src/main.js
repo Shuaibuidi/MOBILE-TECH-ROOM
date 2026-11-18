@@ -195,60 +195,61 @@ async function createCheckout({ req, res, log }) {
   return checkoutReply(req, res, { success: true, checkoutUrl, tx_ref: txRef });
 }
 
-async function handleWebhook({ req, res, log }) {
-  const secret = process.env.PAYCHANGU_SECRET_KEY;
-  if (!secret) throw new Error("Missing PAYCHANGU_SECRET_KEY environment variable.");
 
-  const rawBody = req.bodyText || "";
-  const signature = req.headers?.signature || req.headers?.Signature || "";
-  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
-  if (!safeEqualHex(expected, signature)) {
-    log("Rejected PayChangu webhook: invalid signature.");
-    return res.json({ received: false, error: "Invalid signature" }, 401);
-  }
-
-  let payload;
-  try { payload = JSON.parse(rawBody); } catch {
-    return res.json({ received: false, error: "Invalid JSON" }, 400);
-  }
-
-  const txRef = String(payload.tx_ref || payload.data?.tx_ref || payload.data?.data?.tx_ref || payload.transaction?.tx_ref || "").trim();
-  if (!txRef) return res.json({ received: true, ignored: true });
-
-  const { db } = getFirebase();
+async function verifyAndApplyPayment({ db, txRef, apiSecret, log, terminalFailure = false }) {
   const paymentRef = db.collection("payments").doc(txRef);
   const paymentSnap = await paymentRef.get();
-  if (!paymentSnap.exists) {
-    log("Signed PayChangu webhook has no matching payment intent: " + txRef);
-    return res.json({ received: true, ignored: true });
-  }
+  if (!paymentSnap.exists) return { found: false, status: "not_found" };
 
   const payment = paymentSnap.data();
-  if (payment.status === "paid") return res.json({ received: true, alreadyProcessed: true });
+  if (payment.status === "paid") return { found: true, status: "paid", alreadyProcessed: true };
 
   const verifyResponse = await fetch(PAYCHANGU_VERIFY_URL + encodeURIComponent(txRef), {
     method: "GET",
-    headers: {
-      "Accept": "application/json",
-      "Authorization": `Bearer ${secret}`
-    }
+    headers: { "Accept": "application/json", "Authorization": `Bearer ${apiSecret}` }
   });
+  if (!verifyResponse.ok) {
+    throw new Error("PayChangu verification endpoint returned HTTP " + verifyResponse.status);
+  }
+
   const verified = await verifyResponse.json().catch(() => ({}));
   const data = verified?.data?.data || verified?.data || {};
-
+  const verifiedStatus = String(data.status || "").toLowerCase();
+  const returnedRef = String(data.tx_ref || "");
   const verifiedAmount = Number(data.amount);
-  const isValid = verifyResponse.ok &&
-    verified.status === "success" &&
-    data.status === "success" &&
-    String(data.tx_ref || "") === txRef &&
-    String(data.currency || "").toUpperCase() === payment.currency &&
+  const commonMatch = verified.status === "success" &&
+    returnedRef === txRef &&
+    String(data.currency || "").toUpperCase() === String(payment.currency || "").toUpperCase();
+
+  const isValidSuccess = commonMatch &&
+    verifiedStatus === "success" &&
     Number.isFinite(verifiedAmount) &&
     verifiedAmount >= Number(payment.amount);
 
-  if (!isValid) {
-    log("PayChangu transaction verification did not match expected payment: " + txRef);
-    await paymentRef.set({ verificationStatus: data.status || verified.status || "unverified", lastVerifiedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
-    return res.json({ received: true, verified: false });
+  if (!isValidSuccess) {
+    const markFailed = terminalFailure && commonMatch && verifiedStatus === "failed";
+    await db.runTransaction(async (transaction) => {
+      const latestPayment = await transaction.get(paymentRef);
+      if (!latestPayment.exists || latestPayment.data().status === "paid") return;
+      const changes = {
+        verificationStatus: verifiedStatus || verified.status || "unverified",
+        lastVerifiedAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+      if (markFailed) {
+        changes.status = "failed";
+        changes.failureReason = "checkout_cancelled_or_attempts_exhausted";
+        changes.failedAt = admin.firestore.FieldValue.serverTimestamp();
+        changes.checkoutReturnStatus = "failed";
+      }
+      transaction.set(paymentRef, changes, { merge: true });
+    });
+    const latest = await paymentRef.get();
+    return {
+      found: true,
+      status: latest.data()?.status || "pending",
+      verified: false,
+      verificationStatus: verifiedStatus || "unverified"
+    };
   }
 
   const userRef = db.collection("users").doc(payment.uid);
@@ -264,11 +265,17 @@ async function handleWebhook({ req, res, log }) {
       transaction.get(courseRef)
     ]);
     if (!latestUser.exists || latestUser.data().role !== "student" || latestUser.data().status !== "approved") {
-      transaction.update(paymentRef, { status: "verified_but_not_enrolled", verifiedAt: admin.firestore.FieldValue.serverTimestamp() });
+      transaction.update(paymentRef, {
+        status: "verified_but_not_enrolled",
+        verifiedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
       return;
     }
     if (!latestCourse.exists || latestCourse.data().status !== "published" || latestCourse.data().accessType !== "paid") {
-      transaction.update(paymentRef, { status: "verified_but_course_unavailable", verifiedAt: admin.firestore.FieldValue.serverTimestamp() });
+      transaction.update(paymentRef, {
+        status: "verified_but_course_unavailable",
+        verifiedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
       return;
     }
 
@@ -287,11 +294,114 @@ async function handleWebhook({ req, res, log }) {
     transaction.update(paymentRef, {
       status: "paid",
       verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
-      paychanguReference: String(data.reference || "")
+      paychanguReference: String(data.reference || ""),
+      verificationStatus: "success"
     });
   });
 
-  return res.json({ received: true, verified: true });
+  const latest = await paymentRef.get();
+  return { found: true, status: latest.data()?.status || "paid", verified: true };
+}
+
+async function handlePaymentReturn({ req, res, body, log }) {
+  const token = (typeof body.firebaseIdToken === "string" ? body.firebaseIdToken.trim() : "") || getBearer(req);
+  if (!token) return json(res, { success: false, error: "Please sign in to confirm your payment." }, 401);
+
+  const { auth, db } = getFirebase();
+  let decoded;
+  try {
+    decoded = await auth.verifyIdToken(token);
+  } catch {
+    return json(res, { success: false, error: "Your sign-in has expired. Please sign in again." }, 401);
+  }
+
+  const txRef = typeof body.tx_ref === "string" ? body.tx_ref.trim() : "";
+  if (!txRef || txRef.length > 200) {
+    return json(res, { success: false, error: "A valid payment reference is required." }, 400);
+  }
+
+  const paymentRef = db.collection("payments").doc(txRef);
+  const paymentSnap = await paymentRef.get();
+  if (!paymentSnap.exists) return json(res, { success: false, error: "Payment record not found." }, 404);
+  if (paymentSnap.data().uid !== decoded.uid) {
+    return json(res, { success: false, error: "This payment does not belong to your account." }, 403);
+  }
+
+  const apiSecret = process.env.PAYCHANGU_SECRET_KEY;
+  if (!apiSecret) throw new Error("Missing PAYCHANGU_SECRET_KEY environment variable.");
+
+  const terminalFailure = String(body.returnStatus || "").toLowerCase() === "failed";
+  const result = await verifyAndApplyPayment({
+    db, txRef, apiSecret, log, terminalFailure
+  });
+  return json(res, {
+    success: true,
+    status: result.status,
+    verified: Boolean(result.verified),
+    alreadyProcessed: Boolean(result.alreadyProcessed)
+  });
+}
+
+async function handleWebhook({ req, res, log }) {
+  const webhookSecret = process.env.PAYCHANGU_WEBHOOK_SECRET;
+  const apiSecret = process.env.PAYCHANGU_SECRET_KEY;
+  if (!webhookSecret) throw new Error("Missing PAYCHANGU_WEBHOOK_SECRET environment variable.");
+  if (!apiSecret) throw new Error("Missing PAYCHANGU_SECRET_KEY environment variable.");
+
+  const rawBody = req.bodyText || "";
+  const signature = req.headers?.signature || req.headers?.Signature || "";
+  const expected = crypto.createHmac("sha256", webhookSecret).update(rawBody).digest("hex");
+  if (!safeEqualHex(expected, signature)) {
+    log("Rejected PayChangu webhook: invalid signature.");
+    return json(res, { received: false, error: "Invalid signature" }, 401);
+  }
+
+  let payload;
+  try { payload = JSON.parse(rawBody); } catch {
+    return json(res, { received: false, error: "Invalid JSON" }, 400);
+  }
+
+  const txRef = String(
+    payload.tx_ref ||
+    payload.data?.tx_ref ||
+    payload.data?.data?.tx_ref ||
+    payload.transaction?.tx_ref ||
+    ""
+  ).trim();
+  if (!txRef) return json(res, { received: true, ignored: true });
+
+  const { db } = getFirebase();
+  const paymentRef = db.collection("payments").doc(txRef);
+  const paymentSnap = await paymentRef.get();
+  if (!paymentSnap.exists) {
+    log("Signed PayChangu webhook has no matching payment intent: " + txRef);
+    return json(res, { received: true, ignored: true });
+  }
+  if (paymentSnap.data().status === "paid") {
+    return json(res, { received: true, alreadyProcessed: true });
+  }
+
+  const eventStatus = String(
+    payload.status || payload.data?.status || payload.data?.data?.status || ""
+  ).toLowerCase();
+
+  // PayChangu can send a failed event for an individual attempt while checkout
+  // remains open for another attempt. Record it, but do not close the payment.
+  if (eventStatus === "failed") {
+    await paymentRef.set({
+      lastWebhookStatus: "failed",
+      lastFailedAttemptAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  }
+
+  const result = await verifyAndApplyPayment({
+    db, txRef, apiSecret, log, terminalFailure: false
+  });
+  return json(res, {
+    received: true,
+    verified: Boolean(result.verified),
+    status: result.status
+  });
 }
 
 export default async ({ req, res, log, error }) => {
@@ -319,6 +429,9 @@ export default async ({ req, res, log, error }) => {
       if (!Object.keys(body).length && req.bodyText) {
         try { body = JSON.parse(req.bodyText); } catch { body = {}; }
       }
+    }
+    if (body.action === "verify-payment-return") {
+      return await handlePaymentReturn({ req, res, body, log });
     }
     if (body.action !== "create-checkout") {
       return json(res, { success: false, error: "Unknown action." }, 400);
