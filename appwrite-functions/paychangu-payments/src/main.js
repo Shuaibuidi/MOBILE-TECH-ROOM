@@ -310,9 +310,15 @@ export default async ({ req, res, log, error }) => {
 
     if (req.query?.action === "webhook") return await handleWebhook({ req, res, log });
 
-    let body = req.bodyJson || {};
-    if (!Object.keys(body).length && req.bodyText) {
-      try { body = JSON.parse(req.bodyText); } catch { body = {}; }
+    let body = {};
+    const contentType = req.headers?.["content-type"] || "";
+    if (contentType.includes("application/x-www-form-urlencoded")) {
+      body = Object.fromEntries(new URLSearchParams(req.bodyText || ""));
+    } else {
+      body = req.bodyJson || {};
+      if (!Object.keys(body).length && req.bodyText) {
+        try { body = JSON.parse(req.bodyText); } catch { body = {}; }
+      }
     }
     if (body.action !== "create-checkout") {
       return json(res, { success: false, error: "Unknown action." }, 400);
