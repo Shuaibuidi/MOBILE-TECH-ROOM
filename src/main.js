@@ -157,7 +157,8 @@ async function createCheckout({ req, res, log }) {
   }
 
   await paymentRef.update({ checkoutUrl, status: "pending" });
-  return json(res, { success: true, checkoutUrl, tx_ref: txRef });
+  // The browser submits this request as a form POST, so redirect it directly to hosted checkout.
+  return res.redirect(checkoutUrl, 303);
 }
 
 async function handleWebhook({ req, res, log }) {
