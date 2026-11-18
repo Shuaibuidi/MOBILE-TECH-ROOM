@@ -252,10 +252,11 @@ async function handleWebhook({ req, res, log }) {
 export default async ({ req, res, log, error }) => {
   try {
     if (req.method === "OPTIONS") {
-      return res.text("", 204, {
+      return res.text("OK", 200, {
         "Access-Control-Allow-Origin": APP_ORIGIN,
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Max-Age": "86400",
         "Vary": "Origin"
       });
     }
