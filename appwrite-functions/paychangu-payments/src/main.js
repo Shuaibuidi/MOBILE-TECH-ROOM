@@ -164,8 +164,8 @@ async function createCheckout({ req, res, log }) {
         email: String(user.email || decoded.email || ""),
         first_name: firstName,
         last_name: lastName,
-        callback_url: APP_URL + "?payment=return",
-        return_url: APP_URL + "?payment=cancelled",
+        callback_url: "https://starter-function-52z5.sgp.appwrite.run/?action=payment-return",
+        return_url: "https://starter-function-52z5.sgp.appwrite.run/?action=payment-return",
         tx_ref: txRef,
         customization: {
           title: "Mobile Tech Room",
@@ -342,6 +342,36 @@ async function handlePaymentReturn({ req, res, body, log }) {
   });
 }
 
+async function handleGatewayReturn({ req, res, txRef, returnStatus, log }) {
+  const safeTxRef = String(txRef || "").trim();
+  if (!safeTxRef || safeTxRef.length > 200) {
+    return res.redirect(APP_URL + "?payment=checking", 303);
+  }
+
+  try {
+    const { db } = getFirebase();
+    const apiSecret = process.env.PAYCHANGU_SECRET_KEY;
+    if (!apiSecret) throw new Error("Missing PAYCHANGU_SECRET_KEY environment variable.");
+
+    const paymentSnap = await db.collection("payments").doc(safeTxRef).get();
+    if (!paymentSnap.exists) {
+      log("PayChangu return received for an unknown transaction reference.");
+      return res.redirect(APP_URL + "?payment=checking", 303);
+    }
+
+    const terminalFailure = String(returnStatus || "").toLowerCase() === "failed";
+    const result = await verifyAndApplyPayment({
+      db, txRef: safeTxRef, apiSecret, log, terminalFailure
+    });
+    const destinationStatus = result.status === "paid" ? "paid"
+      : result.status === "failed" ? "failed" : "pending";
+    return res.redirect(APP_URL + "?payment=" + destinationStatus, 303);
+  } catch (e) {
+    log("PayChangu return verification error: " + String(e?.stack || e));
+    return res.redirect(APP_URL + "?payment=checking", 303);
+  }
+}
+
 async function handleWebhook({ req, res, log }) {
   const webhookSecret = process.env.PAYCHANGU_WEBHOOK_SECRET;
   const apiSecret = process.env.PAYCHANGU_SECRET_KEY;
@@ -416,9 +446,23 @@ export default async ({ req, res, log, error }) => {
       });
     }
 
+    const action = req.query?.action || "";
+    if (action === "payment-return" && (req.method === "GET" || req.method === "POST")) {
+      let returnBody = req.bodyJson || {};
+      const contentType = req.headers?.["content-type"] || "";
+      if (contentType.includes("application/x-www-form-urlencoded")) {
+        returnBody = Object.fromEntries(new URLSearchParams(req.bodyText || ""));
+      } else if (!Object.keys(returnBody).length && req.bodyText) {
+        try { returnBody = JSON.parse(req.bodyText); } catch { returnBody = {}; }
+      }
+      const txRef = req.query?.tx_ref || req.query?.txRef || returnBody.tx_ref || returnBody.txRef || "";
+      const returnStatus = req.query?.status || returnBody.status || "";
+      return await handleGatewayReturn({ req, res, txRef, returnStatus, log });
+    }
+
     if (req.method !== "POST") return json(res, { success: false, error: "Use POST." }, 405);
 
-    if (req.query?.action === "webhook") return await handleWebhook({ req, res, log });
+    if (action === "webhook") return await handleWebhook({ req, res, log });
 
     let body = {};
     const contentType = req.headers?.["content-type"] || "";
