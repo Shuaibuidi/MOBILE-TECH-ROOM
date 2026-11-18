@@ -19,11 +19,10 @@ Configure these on this new function only:
 
 - `APPWRITE_ENDPOINT`
 - `APPWRITE_PROJECT_ID`
-- `APPWRITE_API_KEY` (must have permission to create file tokens)
 - `APPWRITE_BUCKET_ID`
 - `FIREBASE_SERVICE_ACCOUNT_JSON` (the same private Firebase service account JSON already configured on the upload function)
 
-Never place service account JSON or the Appwrite API key in the website.
+In this function's **Scopes** settings, enable only the `tokens.write` scope needed to create short-lived file tokens. The function uses Appwrite's per-execution key automatically; do not create or paste a separate Appwrite API key for this function. Never place service account JSON or any API key in the website.
 
 ## Request
 
