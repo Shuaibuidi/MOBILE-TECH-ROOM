@@ -2406,16 +2406,23 @@ async function startPayChanguCheckout(courseId){
   if(button){button.disabled=true;button.textContent="Connecting to PayChangu...";}
   try{
     const token=await currentUser.getIdToken(true);
-    const response=await fetch("https://starter-function-52z5.sgp.appwrite.run",{
-      method:"POST",
-      headers:{"Content-Type":"text/plain;charset=UTF-8"},
-      body:JSON.stringify({action:"create-checkout",courseId,firebaseIdToken:token})
-    });
-    const result=await response.json().catch(()=>({}));
-    if(!response.ok||!result.success)throw new Error(result.error||"Could not start PayChangu checkout. Please try again.");
-    if(result.alreadyEnrolled){appMessage(result.message||"You already have access to this course.");await openCourse(courseId);return;}
-    if(typeof result.checkoutUrl!=="string"||!result.checkoutUrl.startsWith("https://"))throw new Error("PayChangu returned an invalid checkout link.");
-    window.location.assign(result.checkoutUrl);
+    const form=document.createElement("form");
+    form.method="POST";
+    form.action="https://starter-function-52z5.sgp.appwrite.run";
+    form.style.display="none";
+    for(const [name,value] of Object.entries({
+      action:"create-checkout",
+      courseId,
+      firebaseIdToken:token
+    })){
+      const field=document.createElement("input");
+      field.type="hidden";
+      field.name=name;
+      field.value=value;
+      form.appendChild(field);
+    }
+    document.body.appendChild(form);
+    form.submit();
   }catch(error){
     appMessage(error.message||"Payment could not be started. Please try again.","error");
     if(button){button.disabled=false;button.textContent="Try PayChangu Again";}
