@@ -274,7 +274,10 @@ export default async ({ req, res, log, error }) => {
 
     if (req.method !== "POST") return json(res, { success: false, error: "Use POST." }, 405);
 
-    if (req.query?.action === "webhook") return await handleWebhook({ req, res, log });
+    const requestUrl = new URL(req.url || "/", "http://localhost");
+    const requestAction = req.query?.action || requestUrl.searchParams.get("action") ||
+      new URLSearchParams(req.queryString || "").get("action");
+    if (requestAction === "webhook") return await handleWebhook({ req, res, log });
 
     const body = parseRequestBody(req);
     if (body.action !== "create-checkout") {
