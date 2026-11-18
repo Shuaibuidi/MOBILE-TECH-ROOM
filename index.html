@@ -2404,17 +2404,31 @@ await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:va
 async function handlePayChanguReturn(){
   const params=new URLSearchParams(window.location.search);
   const payment=params.get("payment");
-  if(!["paid","failed","pending","checking"].includes(payment))return;
+  const pendingKey="mtr_paychangu_return_pending";
+  const hadPendingCheckout=sessionStorage.getItem(pendingKey)==="1";
 
-  if(payment==="paid"){
-    appMessage("Payment confirmed. Your course access is active. Open My Courses to continue.","success");
-    try{await renderDashboard();}catch(_){}
-  }else if(payment==="failed"){
-    appMessage("This payment was cancelled or did not complete. You can try again from the course page.","warning");
-  }else{
-    appMessage("Your payment is still being confirmed. Please check My Courses again shortly.","warning");
+  if(["paid","failed","pending","checking"].includes(payment)){
+    sessionStorage.removeItem(pendingKey);
+    if(payment==="paid"){
+      appMessage("Payment confirmed. Your course access is active. Open My Courses to continue.","success");
+      try{await renderDashboard();}catch(_){}
+    }else if(payment==="failed"){
+      appMessage("This payment was cancelled or did not complete. You can try again from the course page.","warning");
+    }else{
+      appMessage("Your payment is still being confirmed. Please check My Courses again shortly. Do not pay again until you check My Courses.","warning");
+    }
+    window.history.replaceState({},document.title,window.location.pathname+window.location.hash);
+    return;
   }
-  window.history.replaceState({},document.title,window.location.pathname+window.location.hash);
+
+  // The phone browser's Back button can return from hosted checkout without
+  // triggering PayChangu's callback/return redirect. Preserve a clear status
+  // message so the student is not silently dropped at the dashboard.
+  if(hadPendingCheckout){
+    sessionStorage.removeItem(pendingKey);
+    appMessage("You returned from PayChangu without a payment confirmation. Your payment may still be processing. Check My Courses before trying again.","warning");
+    try{await renderDashboard();}catch(_){}
+  }
 }
 
 async function startPayChanguCheckout(courseId){
@@ -2439,6 +2453,7 @@ async function startPayChanguCheckout(courseId){
       form.appendChild(field);
     }
     document.body.appendChild(form);
+    sessionStorage.setItem("mtr_paychangu_return_pending","1");
     form.submit();
   }catch(error){
     appMessage(error.message||"Payment could not be started. Please try again.","error");
