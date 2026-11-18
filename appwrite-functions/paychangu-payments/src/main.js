@@ -51,7 +51,7 @@ async function createCheckout({ req, res, log }) {
   const token = typeof body.firebaseIdToken === "string" ? body.firebaseIdToken : getBearer(req);
   if (!token) {
     log("PayChangu checkout auth diagnostic: Firebase token missing. bodyJson keys=" + Object.keys(req.bodyJson || {}).join(",") + "; bodyTextLength=" + String(req.bodyText || "").length);
-    return json(res, { success: false, error: "Please sign in before paying." }, 401);
+    return json(res, { success: false, code: "FIREBASE_TOKEN_MISSING", error: "Please sign in before paying." }, 401);
   }
   log("PayChangu checkout auth diagnostic: Firebase token received; verifying.");
 
@@ -61,7 +61,7 @@ async function createCheckout({ req, res, log }) {
     decoded = await auth.verifyIdToken(token);
   } catch (authError) {
     log("PayChangu checkout Firebase token verification failed: " + String(authError?.code || authError?.message || "unknown verification error"));
-    return json(res, { success: false, error: "Your sign-in has expired. Please sign in again." }, 401);
+    return json(res, { success: false, code: String(authError?.code || "FIREBASE_TOKEN_INVALID"), error: "Your sign-in has expired. Please sign in again.", diagnostic: String(authError?.code || "unknown") }, 401);
   }
 
   const courseId = typeof body.courseId === "string" ? body.courseId.trim() : "";
