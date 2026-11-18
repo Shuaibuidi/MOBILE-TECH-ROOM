@@ -44,7 +44,11 @@ function safeEqualHex(a, b) {
 }
 
 async function createCheckout({ req, res, log }) {
-  const token = getBearer(req);
+  let body = req.bodyJson || {};
+  if (!Object.keys(body).length && req.bodyText) {
+    try { body = JSON.parse(req.bodyText); } catch { body = {}; }
+  }
+  const token = typeof body.firebaseIdToken === "string" ? body.firebaseIdToken : getBearer(req);
   if (!token) return json(res, { success: false, error: "Please sign in before paying." }, 401);
 
   const { auth, db } = getFirebase();
@@ -55,7 +59,6 @@ async function createCheckout({ req, res, log }) {
     return json(res, { success: false, error: "Your sign-in has expired. Please sign in again." }, 401);
   }
 
-  const body = req.bodyJson || {};
   const courseId = typeof body.courseId === "string" ? body.courseId.trim() : "";
   if (!courseId || courseId.length > 150) {
     return json(res, { success: false, error: "A valid course ID is required." }, 400);
@@ -265,7 +268,10 @@ export default async ({ req, res, log, error }) => {
 
     if (req.query?.action === "webhook") return await handleWebhook({ req, res, log });
 
-    const body = req.bodyJson || {};
+    let body = req.bodyJson || {};
+    if (!Object.keys(body).length && req.bodyText) {
+      try { body = JSON.parse(req.bodyText); } catch { body = {}; }
+    }
     if (body.action !== "create-checkout") {
       return json(res, { success: false, error: "Unknown action." }, 400);
     }
