@@ -23,7 +23,8 @@ function getFirebase() {
 }
 
 function json(res, body, status = 200) {
-  return res.json(body, status, {
+  return res.text(JSON.stringify(body), status, {
+    "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": APP_ORIGIN,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
