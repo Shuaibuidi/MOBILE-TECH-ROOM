@@ -179,7 +179,7 @@ async function handleWebhook({ req, res, log }) {
     return res.json({ received: false, error: "Invalid JSON" }, 400);
   }
 
-  const txRef = String(payload.tx_ref || payload.reference || payload.data?.tx_ref || payload.data?.reference || payload.data?.data?.tx_ref || payload.data?.data?.reference || payload.transaction?.tx_ref || payload.transaction?.reference || "").trim();
+  const txRef = String(payload.tx_ref || payload.data?.tx_ref || payload.data?.data?.tx_ref || payload.transaction?.tx_ref || "").trim();
   if (!txRef) return res.json({ received: true, ignored: true });
 
   const { db } = getFirebase();
