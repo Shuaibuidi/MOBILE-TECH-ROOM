@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import admin from "firebase-admin";
 
 const APP_URL = "https://shuaibuidi.github.io/MOBILE-TECH-ROOM/";
+const APP_ORIGIN = new URL(APP_URL).origin;
 const CURRENCY = "MWK";
 const PAYCHANGU_PAYMENT_URL = "https://api.paychangu.com/payment";
 const PAYCHANGU_VERIFY_URL = "https://api.paychangu.com/verify-payment/";
