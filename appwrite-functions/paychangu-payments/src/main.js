@@ -52,15 +52,39 @@ function safeEqualHex(a, b) {
   return left.length === right.length && crypto.timingSafeEqual(left, right);
 }
 
+function checkoutReply(req, res, body, status = 200) {
+  const contentType = req.headers?.["content-type"] || "";
+  if (contentType.includes("application/x-www-form-urlencoded")) {
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[char]);
+    const message = body.alreadyEnrolled
+      ? "You already have access to this course."
+      : (body.error || "Payment could not be started.");
+    return res.text(
+      `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mobile Tech Room payment</title></head><body style="font-family:Arial,sans-serif;padding:28px;line-height:1.5"><h2>Mobile Tech Room</h2><p>${escapeHtml(message)}</p><p><a href="${APP_URL}">Return to Mobile Tech Room</a></p></body></html>`,
+      status,
+      { "Content-Type": "text/html; charset=utf-8" }
+    );
+  }
+  return json(res, body, status);
+}
+
 async function createCheckout({ req, res, log }) {
-  let body = req.bodyJson || {};
-  if (!Object.keys(body).length && req.bodyText) {
-    try { body = JSON.parse(req.bodyText); } catch { body = {}; }
+  let body = {};
+  const contentType = req.headers?.["content-type"] || "";
+  if (contentType.includes("application/x-www-form-urlencoded")) {
+    body = Object.fromEntries(new URLSearchParams(req.bodyText || ""));
+  } else {
+    body = req.bodyJson || {};
+    if (!Object.keys(body).length && req.bodyText) {
+      try { body = JSON.parse(req.bodyText); } catch { body = {}; }
+    }
   }
   const token = typeof body.firebaseIdToken === "string" ? body.firebaseIdToken : getBearer(req);
   if (!token) {
     log("PayChangu checkout auth diagnostic: Firebase token missing. bodyJson keys=" + Object.keys(req.bodyJson || {}).join(",") + "; bodyTextLength=" + String(req.bodyText || "").length);
-    return json(res, { success: false, code: "FIREBASE_TOKEN_MISSING", error: "Please sign in before paying." }, 401);
+    return checkoutReply(req, res, { success: false, code: "FIREBASE_TOKEN_MISSING", error: "Please sign in before paying." }, 401);
   }
   log("PayChangu checkout auth diagnostic: Firebase token received; verifying.");
 
@@ -70,39 +94,39 @@ async function createCheckout({ req, res, log }) {
     decoded = await auth.verifyIdToken(token);
   } catch (authError) {
     log("PayChangu checkout Firebase token verification failed: " + String(authError?.code || authError?.message || "unknown verification error"));
-    return json(res, { success: false, code: String(authError?.code || "FIREBASE_TOKEN_INVALID"), error: "Your sign-in has expired. Please sign in again.", diagnostic: String(authError?.code || "unknown") }, 401);
+    return checkoutReply(req, res, { success: false, code: String(authError?.code || "FIREBASE_TOKEN_INVALID"), error: "Your sign-in has expired. Please sign in again.", diagnostic: String(authError?.code || "unknown") }, 401);
   }
 
   const courseId = typeof body.courseId === "string" ? body.courseId.trim() : "";
   if (!courseId || courseId.length > 150) {
-    return json(res, { success: false, error: "A valid course ID is required." }, 400);
+    return checkoutReply(req, res, { success: false, error: "A valid course ID is required." }, 400);
   }
 
   const userRef = db.collection("users").doc(decoded.uid);
   const courseRef = db.collection("courses").doc(courseId);
   const [userSnap, courseSnap] = await Promise.all([userRef.get(), courseRef.get()]);
-  if (!userSnap.exists) return json(res, { success: false, error: "Student profile not found." }, 403);
+  if (!userSnap.exists) return checkoutReply(req, res, { success: false, error: "Student profile not found." }, 403);
 
   const user = userSnap.data();
   if (user.role !== "student" || user.status !== "approved") {
-    return json(res, { success: false, error: "Only approved student accounts can purchase courses." }, 403);
+    return checkoutReply(req, res, { success: false, error: "Only approved student accounts can purchase courses." }, 403);
   }
-  if (!courseSnap.exists) return json(res, { success: false, error: "Course not found." }, 404);
+  if (!courseSnap.exists) return checkoutReply(req, res, { success: false, error: "Course not found." }, 404);
 
   const course = courseSnap.data();
   if (course.status !== "published" || course.accessType !== "paid") {
-    return json(res, { success: false, error: "This course is not available for paid enrolment." }, 400);
+    return checkoutReply(req, res, { success: false, error: "This course is not available for paid enrolment." }, 400);
   }
 
   const amount = Number(course.price);
   if (!Number.isSafeInteger(amount) || amount <= 0) {
-    return json(res, { success: false, error: "The course price is invalid. Please contact the administrator." }, 400);
+    return checkoutReply(req, res, { success: false, error: "The course price is invalid. Please contact the administrator." }, 400);
   }
 
   const enrollmentRef = userRef.collection("enrollments").doc(courseId);
   const enrollmentSnap = await enrollmentRef.get();
   if (enrollmentSnap.exists && enrollmentSnap.data()?.status === "active") {
-    return json(res, { success: true, alreadyEnrolled: true, message: "You already have access to this course." });
+    return checkoutReply(req, res, { success: true, alreadyEnrolled: true, message: "You already have access to this course." });
   }
 
   const secret = process.env.PAYCHANGU_SECRET_KEY;
@@ -160,11 +184,15 @@ async function createCheckout({ req, res, log }) {
   if (!response.ok || result.status !== "success" || typeof checkoutUrl !== "string" || !checkoutUrl.startsWith("https://")) {
     await paymentRef.update({ status: "initiation_failed" });
     log("PayChangu checkout initiation failed: " + JSON.stringify({ httpStatus: response.status, response: result }));
-    return json(res, { success: false, error: "PayChangu could not start checkout. Please try again or contact the administrator." }, 502);
+    return checkoutReply(req, res, { success: false, error: "PayChangu could not start checkout. Please try again or contact the administrator." }, 502);
   }
 
   await paymentRef.update({ checkoutUrl, status: "pending" });
-  return json(res, { success: true, checkoutUrl, tx_ref: txRef });
+  const contentType = req.headers?.["content-type"] || "";
+  if (contentType.includes("application/x-www-form-urlencoded")) {
+    return res.redirect(checkoutUrl, 303);
+  }
+  return checkoutReply(req, res, { success: true, checkoutUrl, tx_ref: txRef });
 }
 
 async function handleWebhook({ req, res, log }) {
