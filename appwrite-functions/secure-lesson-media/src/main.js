@@ -57,7 +57,7 @@ function fileIdFromMediaUrl(value) {
 
 export default async ({ req, res, log, error }) => {
   try {
-    if (req.method === "OPTIONS") return res.empty(204, corsHeaders());
+    if (req.method === "OPTIONS") return res.text("", 204, corsHeaders());
     if (req.method !== "GET") return json(res, { success: false, error: "Use GET." }, 405);
 
     const token = getBearer(req);
@@ -112,13 +112,13 @@ export default async ({ req, res, log, error }) => {
 
     const endpoint = process.env.APPWRITE_ENDPOINT;
     const projectId = process.env.APPWRITE_PROJECT_ID;
-    const apiKey = process.env.APPWRITE_API_KEY;
+    const functionKey = req.headers?.["x-appwrite-key"];
     const bucketId = process.env.APPWRITE_BUCKET_ID;
-    if (!endpoint || !projectId || !apiKey || !bucketId) {
-      throw new Error("Appwrite media function environment variables are incomplete.");
+    if (!endpoint || !projectId || !functionKey || !bucketId) {
+      throw new Error("Appwrite media function configuration is incomplete.");
     }
 
-    const client = new Client().setEndpoint(endpoint).setProject(projectId).setKey(apiKey);
+    const client = new Client().setEndpoint(endpoint).setProject(projectId).setKey(functionKey);
     const tokens = new Tokens(client);
     const expire = new Date(Date.now() + TOKEN_LIFETIME_MS).toISOString();
     const fileToken = await tokens.createFileToken({ bucketId, fileId, expire });
