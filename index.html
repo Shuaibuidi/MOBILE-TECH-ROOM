@@ -2408,8 +2408,8 @@ async function startPayChanguCheckout(courseId){
     const token=await currentUser.getIdToken(true);
     const response=await fetch("https://starter-function-52z5.sgp.appwrite.run",{
       method:"POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
-      body:JSON.stringify({action:"create-checkout",courseId})
+      headers:{"Content-Type":"text/plain;charset=UTF-8"},
+      body:JSON.stringify({action:"create-checkout",courseId,firebaseIdToken:token})
     });
     const result=await response.json().catch(()=>({}));
     if(!response.ok||!result.success)throw new Error(result.error||"Could not start PayChangu checkout. Please try again.");
