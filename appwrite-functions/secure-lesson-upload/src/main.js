@@ -2,7 +2,8 @@ import Busboy from "busboy";
 import { Readable } from "node:stream";
 import crypto from "node:crypto";
 import admin from "firebase-admin";
-import { Client, ID, InputFile, Permission, Role, Storage } from "node-appwrite";
+import { Client, ID, Permission, Role, Storage } from "node-appwrite";
+import { InputFile } from "node-appwrite/file";
 
 const APP_ORIGIN = "https://shuaibuidi.github.io";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -145,7 +146,7 @@ export default async ({ req, res, log, error }) => {
     const file = await storage.createFile({
       bucketId,
       fileId: ID.unique(),
-      file: InputFile.fromBuffer(uploaded.buffer, filename, mime),
+      file: InputFile.fromBuffer(uploaded.buffer, filename),
       permissions: [Permission.read(Role.any())]
     });
     const mediaUrl = endpoint.replace(/\/$/, "") + "/storage/buckets/" +
