@@ -49,13 +49,18 @@ async function createCheckout({ req, res, log }) {
     try { body = JSON.parse(req.bodyText); } catch { body = {}; }
   }
   const token = typeof body.firebaseIdToken === "string" ? body.firebaseIdToken : getBearer(req);
-  if (!token) return json(res, { success: false, error: "Please sign in before paying." }, 401);
+  if (!token) {
+    log("PayChangu checkout auth diagnostic: Firebase token missing. bodyJson keys=" + Object.keys(req.bodyJson || {}).join(",") + "; bodyTextLength=" + String(req.bodyText || "").length);
+    return json(res, { success: false, error: "Please sign in before paying." }, 401);
+  }
+  log("PayChangu checkout auth diagnostic: Firebase token received; verifying.");
 
   const { auth, db } = getFirebase();
   let decoded;
   try {
     decoded = await auth.verifyIdToken(token);
-  } catch {
+  } catch (authError) {
+    log("PayChangu checkout Firebase token verification failed: " + String(authError?.code || authError?.message || "unknown verification error"));
     return json(res, { success: false, error: "Your sign-in has expired. Please sign in again." }, 401);
   }
 
