@@ -22,13 +22,21 @@ function getFirebase() {
   return { auth: admin.auth(), db: admin.firestore() };
 }
 
-function json(res, body, status = 200) {
-  return res.text(JSON.stringify(body), status, {
+function corsHeaders(extra = {}) {
+  return {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": APP_ORIGIN,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Vary": "Origin"
+    "Vary": "Origin",
+    ...extra
+  };
+}
+
+function json(res, body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: corsHeaders()
   });
 }
 
@@ -261,12 +269,12 @@ async function handleWebhook({ req, res, log }) {
 export default async ({ req, res, log, error }) => {
   try {
     if (req.method === "OPTIONS") {
-      return res.text("OK", 200, {
-        "Access-Control-Allow-Origin": APP_ORIGIN,
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Max-Age": "86400",
-        "Vary": "Origin"
+      return new Response("OK", {
+        status: 200,
+        headers: corsHeaders({
+          "Content-Type": "text/plain; charset=utf-8",
+          "Access-Control-Max-Age": "86400"
+        })
       });
     }
 
