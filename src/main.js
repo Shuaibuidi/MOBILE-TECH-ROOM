@@ -161,12 +161,14 @@ async function createCheckout({ req, res, log }) {
 }
 
 async function handleWebhook({ req, res, log }) {
-  const secret = process.env.PAYCHANGU_SECRET_KEY;
-  if (!secret) throw new Error("Missing PAYCHANGU_SECRET_KEY environment variable.");
+  const webhookSecret = process.env.PAYCHANGU_WEBHOOK_SECRET;
+  const apiSecret = process.env.PAYCHANGU_SECRET_KEY;
+  if (!webhookSecret) throw new Error("Missing PAYCHANGU_WEBHOOK_SECRET environment variable.");
+  if (!apiSecret) throw new Error("Missing PAYCHANGU_SECRET_KEY environment variable.");
 
   const rawBody = req.bodyText || "";
   const signature = req.headers?.signature || req.headers?.Signature || "";
-  const expected = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+  const expected = crypto.createHmac("sha256", webhookSecret).update(rawBody).digest("hex");
   if (!safeEqualHex(expected, signature)) {
     log("Rejected PayChangu webhook: invalid signature.");
     return res.json({ received: false, error: "Invalid signature" }, 401);
@@ -195,7 +197,7 @@ async function handleWebhook({ req, res, log }) {
     method: "GET",
     headers: {
       "Accept": "application/json",
-      "Authorization": `Bearer ${secret}`
+      "Authorization": `Bearer ${apiSecret}`
     }
   });
   const verified = await verifyResponse.json().catch(() => ({}));
