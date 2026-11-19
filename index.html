@@ -1764,7 +1764,6 @@ async function renderStorageUsagePanel() {
         <div role="progressbar" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100" style="height:100%;width:${percent}%;background:linear-gradient(90deg,#075bea,#08bfe8);border-radius:20px"></div>
       </div>
       <p class="muted" style="margin:0">${percent}% of the 2 GB reference allowance. Updated ${new Date(data.measuredAt || Date.now()).toLocaleString()}.</p>
-      <p class="muted" style="margin:8px 0 0">This figure measures files in the Lesson Media bucket only. Other Appwrite resources and deployments can also count toward your organisation's total storage. Check Appwrite Console → Organisation → Usage for the official overall figure.</p>
       ${data.complete === false ? "<p class='warning'>The file scan reached its safety limit; this figure may be incomplete.</p>" : ""}
     `;
   } catch (error) {
