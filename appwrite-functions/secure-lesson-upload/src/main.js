@@ -2,7 +2,7 @@ import Busboy from "busboy";
 import { Readable } from "node:stream";
 import crypto from "node:crypto";
 import admin from "firebase-admin";
-import { Client, ID } from "node-appwrite";
+import { Client, ID, Storage } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 
 const APP_ORIGIN = "https://shuaibuidi.github.io";
