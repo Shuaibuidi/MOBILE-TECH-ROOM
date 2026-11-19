@@ -2,7 +2,7 @@ import Busboy from "busboy";
 import { Readable } from "node:stream";
 import crypto from "node:crypto";
 import admin from "firebase-admin";
-import { Client, ID, Storage } from "node-appwrite";
+import { Client, ID, Storage, Query } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 
 const APP_ORIGIN = "https://shuaibuidi.github.io";
@@ -191,6 +191,51 @@ function fileIdFromMediaUrl(value) {
 }
 
 
+
+async function handleStorageUsage({ req, res, error }) {
+  try {
+    if (req.method === "OPTIONS") return res.text("", 204, headers());
+    if (req.method !== "GET") return json(res, { success: false, error: "Use GET." }, 405);
+    const token = getBearer(req);
+    if (!token) return json(res, { success: false, error: "Please sign in to view storage usage." }, 401);
+    const { auth, db } = getFirebase();
+    let decoded;
+    try { decoded = await auth.verifyIdToken(token); }
+    catch { return json(res, { success: false, error: "Your sign-in has expired. Please sign in again." }, 401); }
+    const userSnap = await db.collection("users").doc(decoded.uid).get();
+    if (!userSnap.exists) return json(res, { success: false, error: "Administrator profile not found." }, 403);
+    const user = userSnap.data() || {};
+    if (user.status !== "approved" || user.role !== "admin") {
+      return json(res, { success: false, error: "Only an approved administrator can view storage usage." }, 403);
+    }
+    const endpoint = (process.env.APPWRITE_ENDPOINT || "").trim().replace(/\\/+$/, "");
+    const projectId = process.env.APPWRITE_PROJECT_ID;
+    const apiKey = process.env.APPWRITE_API_KEY;
+    const bucketId = process.env.APPWRITE_BUCKET_ID;
+    if (!endpoint || !projectId || !apiKey || !bucketId) throw new Error("Appwrite storage environment variables are incomplete.");
+    const client = new Client().setEndpoint(endpoint).setProject(projectId).setKey(apiKey);
+    const storage = new Storage(client);
+    let bytes = 0, fileCount = 0, cursor = null, pages = 0;
+    while (pages < 1000) {
+      const queries = [Query.limit(100)];
+      if (cursor) queries.push(Query.cursorAfter(cursor));
+      const result = await storage.listFiles({ bucketId, queries });
+      const files = result.files || [];
+      for (const file of files) {
+        bytes += Number(file.sizeActual ?? file.sizeOriginal ?? 0) || 0;
+        fileCount += 1;
+      }
+      pages += 1;
+      if (files.length < 100) break;
+      cursor = files[files.length - 1].$id;
+    }
+    return json(res, { success: true, bytes, fileCount, complete: pages < 1000, measuredAt: new Date().toISOString() });
+  } catch (e) {
+    error(e?.stack || String(e));
+    return json(res, { success: false, error: "Storage usage could not be loaded. Please try again." }, 500);
+  }
+}
+
 async function handleMedia({ req, res, log, error }) {
   try {
     if (req.method === "OPTIONS") return res.text("", 204, headers());
@@ -276,6 +321,7 @@ async function handleMedia({ req, res, log, error }) {
 }
 
 export default async (context) => {
+  if (context.req.method === "GET" && context.req.query?.action === "storage-usage") return handleStorageUsage(context);
   if (context.req.method === "GET") return handleMedia(context);
   return handleUpload(context);
 };
