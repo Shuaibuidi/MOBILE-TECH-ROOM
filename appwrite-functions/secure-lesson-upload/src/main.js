@@ -135,7 +135,7 @@ async function handleUpload({ req, res, log, error }) {
       return json(res, { success: false, error: "Unsupported file type. Choose JPG, PNG, WEBP, GIF, MP4, WEBM, PDF, MP3, WAV, M4A, OGG or AAC." }, 415);
     }
 
-    const endpoint = process.env.APPWRITE_ENDPOINT;
+    const endpoint = (process.env.APPWRITE_ENDPOINT || "").trim().replace(/\/+$/, "");
     const projectId = process.env.APPWRITE_PROJECT_ID;
     const apiKey = process.env.APPWRITE_API_KEY;
     const bucketId = process.env.APPWRITE_BUCKET_ID;
