@@ -10,6 +10,7 @@ Configure the existing Appwrite function as follows:
 - Root directory: `appwrite-functions/secure-lesson-upload`
 - Build command: `npm install && npm run build`
 - Entrypoint: `index.js`
+- Function timeout: `60` seconds for synchronous HTTP upload tests (Appwrite documents a 60-second limit for synchronous function-domain requests).
 
 The `index.js` file in this folder is the entrypoint wrapper and loads `src/main.js`. The root directory must point to this folder; otherwise Appwrite will search the repository root and fail to find `index.js`.
 
