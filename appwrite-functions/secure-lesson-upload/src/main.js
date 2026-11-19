@@ -2,7 +2,7 @@ import Busboy from "busboy";
 import { Readable } from "node:stream";
 import crypto from "node:crypto";
 import admin from "firebase-admin";
-import { Client, ID, Permission, Role, Storage, Tokens } from "node-appwrite";
+import { Client, ID, Storage, Tokens } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 
 const APP_ORIGIN = "https://shuaibuidi.github.io";
@@ -148,7 +148,7 @@ async function handleUpload({ req, res, log, error }) {
       bucketId,
       fileId: ID.unique(),
       file: InputFile.fromBuffer(uploaded.buffer, filename),
-      permissions: [Permission.read(Role.any())]
+      permissions: []
     });
     const mediaUrl = endpoint.replace(/\/$/, "") + "/storage/buckets/" +
       encodeURIComponent(bucketId) + "/files/" + encodeURIComponent(file.$id) +
@@ -247,15 +247,18 @@ async function handleMedia({ req, res, log, error }) {
       }
     }
 
-    const endpoint = process.env.APPWRITE_ENDPOINT;
+    const endpoint = (process.env.APPWRITE_ENDPOINT || "").trim().replace(/\\/+$/, "");
     const projectId = process.env.APPWRITE_PROJECT_ID;
-    const functionKey = req.headers?.["x-appwrite-key"];
+    const apiKey = process.env.APPWRITE_API_KEY;
     const bucketId = process.env.APPWRITE_BUCKET_ID;
-    if (!endpoint || !projectId || !functionKey || !bucketId) {
+    if (!endpoint || !projectId || !apiKey || !bucketId) {
       throw new Error("Appwrite media function configuration is incomplete.");
     }
 
-    const client = new Client().setEndpoint(endpoint).setProject(projectId).setKey(functionKey);
+    const client = new Client().setEndpoint(endpoint).setProject(projectId).setKey(apiKey);
+    // Revoke legacy public-read permissions before issuing a temporary authorized token.
+    const storage = new Storage(client);
+    await storage.updateFile({ bucketId, fileId, permissions: [] });
     const tokens = new Tokens(client);
     const expire = new Date(Date.now() + TOKEN_LIFETIME_MS).toISOString();
     const fileToken = await tokens.createFileToken({ bucketId, fileId, expire });
