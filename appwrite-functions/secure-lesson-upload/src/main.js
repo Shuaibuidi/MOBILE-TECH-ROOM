@@ -2,11 +2,12 @@ import Busboy from "busboy";
 import { Readable } from "node:stream";
 import crypto from "node:crypto";
 import admin from "firebase-admin";
-import { Client, ID, Permission, Role, Storage } from "node-appwrite";
+import { Client, ID, Permission, Role, Storage, Tokens } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 
 const APP_ORIGIN = "https://shuaibuidi.github.io";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
+const TOKEN_LIFETIME_MS = 60 * 60 * 1000;
 const ALLOWED_MIME = new Set([
   "image/jpeg", "image/png", "image/webp", "image/gif",
   "video/mp4", "video/webm", "application/pdf",
