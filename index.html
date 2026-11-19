@@ -1691,7 +1691,7 @@ async function requestSecureLessonMedia(mediaUrl,courseId){
   let parsed;
   try{parsed=new URL(mediaUrl);}catch(_){throw new Error("This lesson file link is invalid.");}
   if(!parsed.hostname.endsWith(".appwrite.io")&&!parsed.hostname.endsWith(".appwrite.network"))return mediaUrl;
-  const match=parsed.pathname.match(/\\/files\\/([^/]+)\\/(?:view|download)$/);
+  const match=parsed.pathname.match(/\/files\/([^/]+)\/(?:view|download)$/);
   if(!match)throw new Error("The Appwrite lesson file link is invalid.");
   const fileId=decodeURIComponent(match[1]);
   const token=await currentUser.getIdToken(true);
