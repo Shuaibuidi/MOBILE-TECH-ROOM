@@ -256,6 +256,7 @@ async function verifyAndApplyPayment({ db, txRef, apiSecret, log, terminalFailur
   const courseRef = db.collection("courses").doc(payment.courseId);
   const enrollmentRef = userRef.collection("enrollments").doc(payment.courseId);
 
+  const notificationRef = db.collection("adminNotifications").doc("payment-" + txRef);
   await db.runTransaction(async (transaction) => {
     const latestPayment = await transaction.get(paymentRef);
     if (!latestPayment.exists || latestPayment.data().status === "paid") return;
@@ -291,12 +292,26 @@ async function verifyAndApplyPayment({ db, txRef, apiSecret, log, terminalFailur
       currency: payment.currency
     }, { merge: true });
 
+    const paidAt = admin.firestore.FieldValue.serverTimestamp();
     transaction.update(paymentRef, {
       status: "paid",
-      verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+      verifiedAt: paidAt,
       paychanguReference: String(data.reference || ""),
       verificationStatus: "success"
     });
+    transaction.set(notificationRef, {
+      type: "payment_received",
+      uid: payment.uid,
+      studentName: String(latestUser.data().fullName || "Student").slice(0, 120),
+      email: String(latestUser.data().email || "").slice(0, 180),
+      courseId: payment.courseId,
+      courseTitle: String(latestCourse.data().title || payment.courseTitle || "Paid course").slice(0, 180),
+      amount: verifiedAmount,
+      currency: payment.currency,
+      message: "A PayChangu payment was verified and course access was granted.",
+      createdAt: paidAt,
+      readAt: null
+    }, { merge: true });
   });
 
   const latest = await paymentRef.get();
