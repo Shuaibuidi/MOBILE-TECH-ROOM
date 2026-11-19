@@ -1686,6 +1686,23 @@ return String(value??"").replace(/[&<>"']/g,c=>({
 }[c]));
 }
 
+async function requestSecureLessonMedia(mediaUrl,courseId){
+  if(!currentUser)throw new Error("Please sign in to open this lesson file.");
+  let parsed;
+  try{parsed=new URL(mediaUrl);}catch(_){throw new Error("This lesson file link is invalid.");}
+  if(!parsed.hostname.endsWith(".appwrite.io")&&!parsed.hostname.endsWith(".appwrite.network"))return mediaUrl;
+  const match=parsed.pathname.match(/\\/files\\/([^/]+)\\/(?:view|download)$/);
+  if(!match)throw new Error("The Appwrite lesson file link is invalid.");
+  const fileId=decodeURIComponent(match[1]);
+  const token=await currentUser.getIdToken(true);
+  const endpoint="https://starter-function-9cke.sgp.appwrite.run";
+  const query=new URLSearchParams({fileId,courseId});
+  const response=await fetch(endpoint+"?"+query.toString(),{method:"GET",headers:{Authorization:`Bearer ${token}`}});
+  let data={};try{data=await response.json();}catch(_){}
+  if(!response.ok||!data.success||typeof data.mediaUrl!=="string")throw new Error(data.error||"This lesson file could not be opened.");
+  return data.mediaUrl;
+}
+
 async function uploadLessonMedia(file,courseId,onProgress=()=>{}){
   if(!currentUser)throw new Error("Please sign in again before uploading.");
   if(!isStaff())throw new Error("Only approved administrators and instructors can upload lesson files.");
@@ -2495,18 +2512,14 @@ const snap=await getDocs(collection(db,"courses",courseId,"lessons"));
 
 const lessons=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{const at=a.createdAt?.toMillis?.()??0,bt=b.createdAt?.toMillis?.()??0;return at-bt;});
 const renderReferenceMedia=(lesson)=>{
- const type=lesson.type||"written", url=lesson.mediaUrl||"", title=lesson.title||"Lesson media";
- if(!url||!["video","audio","image","pdf"].includes(type))return "";
- let player="";
- if(type==="video")player=`<video class="reference-media-player" controls playsinline preload="metadata" src="${safe(url)}">Your browser cannot play this video.</video>`;
- if(type==="audio")player=`<div class="reference-audio-player"><div class="reference-audio-art">♫</div><div class="reference-audio-main"><strong>${safe(title)}</strong><audio controls preload="metadata" src="${safe(url)}">Your browser cannot play this audio.</audio></div></div>`;
- if(type==="image")player=`<a class="reference-image-link" href="${safe(url)}" target="_blank" rel="noopener noreferrer"><img class="reference-media-image" src="${safe(url)}" alt="${safe(title)}" loading="lazy"></a>`;
- if(type==="pdf")player=`<div class="reference-pdf-viewer"><a class="reference-pdf-download" href="${safe(url)}" target="_blank" rel="noopener noreferrer" aria-label="Open or download ${safe(title)}"><span class="pdf-file-icon">PDF</span><span class="pdf-file-details"><strong>${safe(title)}</strong><small>Tap to open or download this lesson file</small></span><span class="pdf-file-open">↗</span></a></div>`;
- const icon=type==="video"?"▶":type==="audio"?"♫":type==="image"?"▧":"PDF";
- return `<div class="reference-media-row"><div class="reference-round-icon">${icon}</div><div class="reference-media-content"><h3>Media</h3>${player}<div class="reference-media-availability"><span>${type==="video"?"▣":type==="audio"?"♫":type==="image"?"▧":"PDF"} &nbsp; Lesson Media</span><strong>✓ Available</strong></div></div></div>`;
-};
-
-if(isStudent()){
+  const type=lesson.type||"written", url=lesson.mediaUrl||"", title=lesson.title||"Lesson media";
+  if(!url||!["video","audio","image","pdf"].includes(type))return "";
+  const icon=type==="video"?"▶":type==="audio"?"♫":type==="image"?"▧":"PDF";
+  const player=`<div class="reference-pdf-viewer"><button type="button" class="reference-pdf-download" data-action="open-secure-media" data-media-url="${safe(url)}" data-media-type="${safe(type)}" data-media-title="${safe(title)}" data-course-id="${safe(courseId)}" aria-label="Open ${safe(title)}"><span class="pdf-file-icon">${icon}</span><span class="pdf-file-details"><strong>${safe(title)}</strong><small>Tap to open lesson material</small></span><span class="pdf-file-open">↗</span></button></div>`;
+  return `<div class="reference-media-row"><div class="reference-round-icon">${icon}</div><div class="reference-media-content"><h3>Media</h3>${player}<div class="reference-media-availability"><span>${icon} &nbsp; Lesson Media</span><strong>✓ Available</strong></div></div></div>`;
+ };
+ 
+ if(isStudent()){
  if(!lessons.length){page.innerHTML=`<div class="panel"><button class="secondary" data-action="back-courses">← Courses</button><h2>${safe(selectedCourse.title)}</h2><p class="muted">Your instructor has not added lessons yet.</p></div>`;return;}
  const progressKey=`mtr_progress_${currentUser.uid}_${courseId}`;
  let completed=[];try{completed=JSON.parse(localStorage.getItem(progressKey)||"[]");if(!Array.isArray(completed))completed=[];}catch(_){completed=[];}
@@ -2840,8 +2853,9 @@ const id=b.dataset.id;
 
 try{
 if(action==="download-lesson-pdf"){downloadLessonPdf(b);return;}
-if(action==="view-media"){
-  const mediaUrl=b.dataset.mediaUrl||"",mediaType=b.dataset.mediaType||"",mediaTitle=b.dataset.mediaTitle||"Lesson media";
+if(action==="view-media"||action==="open-secure-media"){
+  let mediaUrl=b.dataset.mediaUrl||"";const mediaType=b.dataset.mediaType||"",mediaTitle=b.dataset.mediaTitle||"Lesson media";
+  if(action==="open-secure-media")mediaUrl=await requestSecureLessonMedia(mediaUrl,b.dataset.courseId||selectedCourse?.id||"");
   if(!/^https:\/\/.+/i.test(mediaUrl)){appMessage("This media link is not valid.","error");return;}
   document.getElementById("lessonMediaViewer")?.remove();
   const viewer=document.createElement("div");
