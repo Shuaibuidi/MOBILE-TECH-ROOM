@@ -1707,6 +1707,55 @@ async function requestSecureLessonMedia(mediaUrl,courseId){
   return URL.createObjectURL(blob);
 }
 
+
+function formatStorageBytes(value) {
+  const bytes = Math.max(0, Number(value) || 0);
+  if (bytes < 1024) return bytes + " B";
+  const units = ["KB", "MB", "GB", "TB"];
+  let amount = bytes / 1024, index = 0;
+  while (amount >= 1024 && index < units.length - 1) { amount /= 1024; index += 1; }
+  return amount.toFixed(amount >= 100 ? 0 : 1) + " " + units[index];
+}
+
+async function renderStorageUsagePanel() {
+  const panel = $("storageUsagePanel");
+  if (!panel || !currentUser || !isAdmin()) return;
+  panel.innerHTML = "<h3>Lesson Media Storage</h3><p class='muted'>Checking Appwrite storage...</p>";
+  try {
+    const token = await currentUser.getIdToken(true);
+    const response = await fetch("https://starter-function-9cke.sgp.appwrite.run/?action=storage-usage", {
+      method: "GET",
+      headers: { Authorization: "Bearer " + token }
+    });
+    let data = {};
+    try { data = await response.json(); } catch (_) {}
+    if (!response.ok || !data.success) throw new Error(data.error || "Storage usage could not be loaded.");
+    const used = Math.max(0, Number(data.bytes) || 0);
+    const referenceLimit = 2 * 1024 * 1024 * 1024;
+    const remaining = Math.max(0, referenceLimit - used);
+    const percent = Math.min(100, Math.round(used / referenceLimit * 100));
+    panel.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <h3 style="margin:0">Lesson Media Storage</h3>
+        <span class="tag">Appwrite · Live reading</span>
+      </div>
+      <div class="dashboard-stats" style="margin:14px 0 10px">
+        <div class="dashboard-stat"><strong>${formatStorageBytes(used)}</strong><span>Lesson files used</span></div>
+        <div class="dashboard-stat"><strong>${formatStorageBytes(remaining)}</strong><span>Estimated remaining of 2 GB Free-plan reference</span></div>
+        <div class="dashboard-stat"><strong>${Number(data.fileCount) || 0}</strong><span>Uploaded files</span></div>
+      </div>
+      <div style="height:12px;background:#e8eef8;border-radius:20px;overflow:hidden;margin:12px 0 7px">
+        <div role="progressbar" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100" style="height:100%;width:${percent}%;background:linear-gradient(90deg,#075bea,#08bfe8);border-radius:20px"></div>
+      </div>
+      <p class="muted" style="margin:0">${percent}% of the 2 GB reference allowance. Updated ${new Date(data.measuredAt || Date.now()).toLocaleString()}.</p>
+      <p class="muted" style="margin:8px 0 0">This figure measures files in the Lesson Media bucket only. Other Appwrite resources and deployments can also count toward your organisation's total storage. Check Appwrite Console → Organisation → Usage for the official overall figure.</p>
+      ${data.complete === false ? "<p class='warning'>The file scan reached its safety limit; this figure may be incomplete.</p>" : ""}
+    `;
+  } catch (error) {
+    panel.innerHTML = "<h3>Lesson Media Storage</h3><p class='error'>" + safe(error.message) + "</p>";
+  }
+}
+
 async function uploadLessonMedia(file,courseId,onProgress=()=>{}){
   if(!currentUser)throw new Error("Please sign in again before uploading.");
   if(!isStaff())throw new Error("Only approved administrators and instructors can upload lesson files.");
@@ -2265,7 +2314,8 @@ async function renderDashboard(){
       stats=[{value:courses.length,label:"My lesson topics"},{value:courses.filter(c=>c.status==="published").length,label:"Published topics"},{value:lessonCounts.reduce((a,b)=>a+b,0),label:"Lessons created"}];quickActions=`<button data-dashboard-tab="lessons">Open My Lessons</button>`;
     }
   }catch(error){appMessage("Some dashboard statistics could not be loaded: "+error.message,"error");}
-  page.innerHTML=`<section class="dashboard-hero"><h2 class="${isAdmin()?"admin-welcome":""}">Welcome, ${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats">${stats.map(x=>`<div class="dashboard-stat"><strong>${safe(x.value)}</strong><span>${safe(x.label)}</span></div>`).join("")}</div>${isAdmin()?"":`<section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions">${quickActions}</div></section>`}<section class="panel"><h3>Account Information</h3><p><strong>Name:</strong> ${safe(name)}</p><p><strong>Role:</strong> <span class="tag">${safe(role.toUpperCase())}</span></p>${isAdmin()?"":`<p><strong>Account status:</strong> <span class="tag">${safe(status.toUpperCase())}</span></p>`}</section>`;
+  page.innerHTML=`<section class="dashboard-hero"><h2 class="${isAdmin()?"admin-welcome":""}">Welcome, ${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats">${stats.map(x=>`<div class="dashboard-stat"><strong>${safe(x.value)}</strong><span>${safe(x.label)}</span></div>`).join("")}</div>${isAdmin()?`<section class="panel" id="storageUsagePanel"><h3>Lesson Media Storage</h3><p class="muted">Loading Appwrite storage usage...</p></section>`:`<section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions">${quickActions}</div></section>`}<section class="panel"><h3>Account Information</h3><p><strong>Name:</strong> ${safe(name)}</p><p><strong>Role:</strong> <span class="tag">${safe(role.toUpperCase())}</span></p>${isAdmin()?"":`<p><strong>Account status:</strong> <span class="tag">${safe(status.toUpperCase())}</span></p>`}</section>`;
+  if (isAdmin()) renderStorageUsagePanel();
 }
 
 
