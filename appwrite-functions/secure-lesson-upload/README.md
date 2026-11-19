@@ -20,20 +20,20 @@ Set these in the Appwrite Function's Variables tab. Never put the API key or Fir
 
 - `APPWRITE_ENDPOINT`: `https://sgp.cloud.appwrite.io/v1`
 - `APPWRITE_PROJECT_ID`: the Mobile Tech Room Appwrite project ID
-- `APPWRITE_API_KEY`: a server-side Appwrite API key with Storage files write permission for the target project
+- `APPWRITE_API_KEY`: a server-side Appwrite API key with Storage files read and write permissions for the target project
 - `APPWRITE_BUCKET_ID`: the existing Lesson Media bucket ID
 - `FIREBASE_SERVICE_ACCOUNT_JSON`: the Firebase service-account JSON used by the trusted server function
 
-In the Appwrite Function **Scopes** settings, enable `tokens.write` so the function can create temporary file tokens. The function uses Appwrite's per-execution key for this operation; do not add that key to the website.
+The server-side Appwrite API key must have permission to read files in the Lesson Media bucket. Keep this key only in Appwrite Function variables; never add it to the website.
 
 ## Request / response
 
-Accepts POST multipart/form-data with a Firebase ID token in the Authorization Bearer header and fields `file` and `courseId`. Verifies the Firebase token, then checks the Firestore user is an approved admin or instructor. Instructors can upload only to courses whose `createdBy` equals their UID. Maximum file size is 50 MB. It also accepts GET requests with `courseId` and `fileId`, verifies approved user/course access (including active enrollment for paid courses), and returns a one-hour Appwrite file-token URL for lesson playback.
+Accepts POST multipart/form-data with a Firebase ID token in the Authorization Bearer header and fields `file` and `courseId`. Verifies the Firebase token, then checks the Firestore user is an approved admin or instructor. Instructors can upload only to courses whose `createdBy` equals their UID. Maximum file size is 50 MB. It also accepts GET requests with `courseId` and `fileId`, verifies approved user/course access (including active enrollment for paid courses), and streams the private file bytes through the authenticated function without issuing a file token or reusable file URL.
 
 The response preserves the existing browser contract: `success`, `mediaUrl`, `fileId`, `bucketId`, `fileName`, and `contentType`.
 
-For the first migration test, files are still created with public read permission to preserve the current behavior. After the website requests the temporary media URL successfully and authorized student playback is verified, the upload function can be changed to create private files. Do not switch to private files before that end-to-end test.
+Uploads are created with private file permissions (`permissions: []`). The website sends the signed-in Firebase ID token to this function. The function checks account approval, lesson/course association, instructor ownership and active paid-course enrollment before streaming the file bytes. The browser receives an in-memory Blob URL, not an Appwrite token URL. Do not enable public read permissions on the bucket or its files.
 
 ## Important
 
-Deploy this using the existing `secure-lesson-upload` function; do not create a second function. Configure the variables and `tokens.write` scope, then test upload and media authorization. Do not change the PayChangu function or website upload URL until the tests pass.
+Deploy this using the existing `secure-lesson-upload` function; do not create a second function. Ensure the server-side Appwrite API key has the `files.read` and `files.write` permissions required for private file retrieval and uploads. The new media path no longer needs `tokens.write`. Do not change the PayChangu function or website upload URL.

@@ -2,12 +2,11 @@ import Busboy from "busboy";
 import { Readable } from "node:stream";
 import crypto from "node:crypto";
 import admin from "firebase-admin";
-import { Client, ID, Storage, Tokens } from "node-appwrite";
+import { Client, ID } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 
 const APP_ORIGIN = "https://shuaibuidi.github.io";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
-const TOKEN_LIFETIME_MS = 60 * 60 * 1000;
 const ALLOWED_MIME = new Set([
   "image/jpeg", "image/png", "image/webp", "image/gif",
   "video/mp4", "video/webm", "application/pdf",
@@ -196,7 +195,6 @@ async function handleMedia({ req, res, log, error }) {
   try {
     if (req.method === "OPTIONS") return res.text("", 204, headers());
     if (req.method !== "GET") return json(res, { success: false, error: "Use GET." }, 405);
-
     const token = getBearer(req);
     if (!token) return json(res, { success: false, error: "Please sign in to open this lesson file." }, 401);
 
@@ -208,18 +206,14 @@ async function handleMedia({ req, res, log, error }) {
 
     const { auth, db } = getFirebase();
     let decoded;
-    try {
-      decoded = await auth.verifyIdToken(token);
-    } catch {
-      return json(res, { success: false, error: "Your sign-in has expired. Please sign in again." }, 401);
-    }
+    try { decoded = await auth.verifyIdToken(token); }
+    catch { return json(res, { success: false, error: "Your sign-in has expired. Please sign in again." }, 401); }
 
     const [userSnap, courseSnap, lessonSnap] = await Promise.all([
       db.collection("users").doc(decoded.uid).get(),
       db.collection("courses").doc(courseId).get(),
       db.collection("courses").doc(courseId).collection("lessons").get()
     ]);
-
     if (!userSnap.exists || !courseSnap.exists) {
       return json(res, { success: false, error: "The account or course could not be found." }, 404);
     }
@@ -229,58 +223,55 @@ async function handleMedia({ req, res, log, error }) {
     if (user.status !== "approved" || !["admin", "instructor", "student"].includes(user.role)) {
       return json(res, { success: false, error: "Your account is not approved to view lesson files." }, 403);
     }
-
-    const belongsToCourse = lessonSnap.docs.some(doc => fileIdFromMediaUrl(doc.data()?.mediaUrl) === fileId);
-    if (!belongsToCourse) {
+    const attached = lessonSnap.docs.some(doc => fileIdFromMediaUrl(doc.data()?.mediaUrl) === fileId);
+    if (!attached) {
       return json(res, { success: false, error: "This file is not attached to a lesson in the selected course." }, 403);
     }
-
     if (user.role === "instructor" && course.createdBy !== decoded.uid) {
       return json(res, { success: false, error: "Instructors can access files only in their own courses." }, 403);
     }
-
     if (user.role === "student" && course.accessType === "paid") {
-      const enrollment = await db.collection("users").doc(decoded.uid)
-        .collection("enrollments").doc(courseId).get();
+      const enrollment = await db.collection("users").doc(decoded.uid).collection("enrollments").doc(courseId).get();
       if (!enrollment.exists || enrollment.data()?.status !== "active") {
         return json(res, { success: false, error: "This is a paid course. You do not currently have access." }, 403);
       }
     }
 
-    const endpoint = (process.env.APPWRITE_ENDPOINT || "").trim().replace(/\\/+$/, "");
+    const endpoint = (process.env.APPWRITE_ENDPOINT || "").trim().replace(/\/+$/, "");
     const projectId = process.env.APPWRITE_PROJECT_ID;
     const apiKey = process.env.APPWRITE_API_KEY;
     const bucketId = process.env.APPWRITE_BUCKET_ID;
-    if (!endpoint || !projectId || !apiKey || !bucketId) {
-      throw new Error("Appwrite media function configuration is incomplete.");
+    if (!endpoint || !projectId || !apiKey || !bucketId) throw new Error("Appwrite media function configuration is incomplete.");
+
+    // Retrieve private file bytes server-side after all Firebase access checks.
+    // Never create or return a reusable Appwrite file token.
+    const fileUrl = endpoint + "/storage/buckets/" + encodeURIComponent(bucketId) +
+      "/files/" + encodeURIComponent(fileId) + "/view?project=" + encodeURIComponent(projectId);
+    const upstream = await fetch(fileUrl, {
+      method: "GET",
+      headers: { "X-Appwrite-Project": projectId, "X-Appwrite-Key": apiKey }
+    });
+    if (!upstream.ok) {
+      log("Private Appwrite file retrieval failed: HTTP " + upstream.status + " for " + fileId);
+      const status = upstream.status === 404 ? 404 : 502;
+      return json(res, { success: false, error: status === 404 ? "The lesson file no longer exists." : "The lesson file could not be retrieved." }, status);
     }
 
-    const client = new Client().setEndpoint(endpoint).setProject(projectId).setKey(apiKey);
-    // Revoke legacy public-read permissions before issuing a temporary authorized token.
-    const storage = new Storage(client);
-    await storage.updateFile({ bucketId, fileId, permissions: [] });
-    const tokens = new Tokens(client);
-    const expire = new Date(Date.now() + TOKEN_LIFETIME_MS).toISOString();
-    const fileToken = await tokens.createFileToken({ bucketId, fileId, expire });
-
-    const mediaUrl = endpoint.replace(/\/$/, "") +
-      "/storage/buckets/" + encodeURIComponent(bucketId) +
-      "/files/" + encodeURIComponent(fileId) +
-      "/view?project=" + encodeURIComponent(projectId) +
-      "&token=" + encodeURIComponent(fileToken.secret);
-
-    log("Authorized lesson media access for user " + decoded.uid + " and course " + courseId);
-    return json(res, {
-      success: true,
-      mediaUrl,
-      expiresAt: expire
+    const contentType = (upstream.headers.get("content-type") || "application/octet-stream").split(";")[0].trim().toLowerCase();
+    const safeType = ALLOWED_MIME.has(contentType) ? contentType : "application/octet-stream";
+    const bytes = Buffer.from(await upstream.arrayBuffer());
+    log("Securely streamed lesson media for user " + decoded.uid + " and course " + courseId);
+    return res.binary(bytes, 200, {
+      ...headers(),
+      "Content-Type": safeType,
+      "Content-Disposition": "inline; filename=\"lesson-media\"",
+      "Cache-Control": "private, no-store, max-age=0",
+      "Pragma": "no-cache",
+      "X-Content-Type-Options": "nosniff"
     });
   } catch (e) {
     error(e?.stack || String(e));
-    return json(res, {
-      success: false,
-      error: "The secure lesson media service encountered an error. Please try again."
-    }, 500);
+    return json(res, { success: false, error: "The secure lesson media service encountered an error. Please try again." }, 500);
   }
 }
 

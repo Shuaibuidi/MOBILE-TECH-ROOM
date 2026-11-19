@@ -1696,11 +1696,15 @@ async function requestSecureLessonMedia(mediaUrl,courseId){
   const fileId=decodeURIComponent(match[1]);
   const token=await currentUser.getIdToken(true);
   const endpoint="https://starter-function-9cke.sgp.appwrite.run";
-  const query=new URLSearchParams({fileId,courseId});
-  const response=await fetch(endpoint+"?"+query.toString(),{method:"GET",headers:{Authorization:`Bearer ${token}`}});
-  let data={};try{data=await response.json();}catch(_){}
-  if(!response.ok||!data.success||typeof data.mediaUrl!=="string")throw new Error(data.error||"This lesson file could not be opened.");
-  return data.mediaUrl;
+  const query=new URLSearchParams({fileId,courseId,stream:"1"});
+  const response=await fetch(endpoint+"?"+query.toString(),{method:"GET",headers:{Authorization:"Bearer "+token}});
+  if(!response.ok){
+    let data={};try{data=await response.json();}catch(_){}
+    throw new Error(data.error||"This lesson file could not be opened.");
+  }
+  const blob=await response.blob();
+  if(!blob.size)throw new Error("The lesson file is empty or unavailable.");
+  return URL.createObjectURL(blob);
 }
 
 async function uploadLessonMedia(file,courseId,onProgress=()=>{}){
@@ -2856,13 +2860,13 @@ if(action==="download-lesson-pdf"){downloadLessonPdf(b);return;}
 if(action==="view-media"||action==="open-secure-media"){
   let mediaUrl=b.dataset.mediaUrl||"";const mediaType=b.dataset.mediaType||"",mediaTitle=b.dataset.mediaTitle||"Lesson media";
   if(action==="open-secure-media")mediaUrl=await requestSecureLessonMedia(mediaUrl,b.dataset.courseId||selectedCourse?.id||"");
-  if(!/^https:\/\/.+/i.test(mediaUrl)){appMessage("This media link is not valid.","error");return;}
+  if(!/^(https:\/\/.+|blob:)/i.test(mediaUrl)){appMessage("This media link is not valid.","error");return;}
   document.getElementById("lessonMediaViewer")?.remove();
   const viewer=document.createElement("div");
   viewer.id="lessonMediaViewer";viewer.className="media-lightbox";
   const inner=document.createElement("div");inner.className="media-lightbox-inner";
   const close=document.createElement("button");close.type="button";close.className="media-lightbox-close";close.textContent="✕ Close";
-  close.addEventListener("click",()=>viewer.remove());
+  close.addEventListener("click",()=>{viewer.remove();if(mediaUrl.startsWith("blob:"))URL.revokeObjectURL(mediaUrl);});
   const heading=document.createElement("h3");heading.className="media-lightbox-title";heading.textContent=mediaTitle;
   inner.append(close,heading);
   if(mediaType==="image"){
@@ -2876,7 +2880,7 @@ if(action==="view-media"||action==="open-secure-media"){
     const frame=document.createElement("iframe");frame.className="media-lightbox-pdf";frame.src=mediaUrl+"#toolbar=1";frame.title=mediaTitle;inner.append(frame);
     const link=document.createElement("a");link.href=mediaUrl;link.target="_blank";link.rel="noopener noreferrer";link.textContent="Open or download PDF";inner.append(link);
   }
-  viewer.append(inner);viewer.addEventListener("click",event=>{if(event.target===viewer)viewer.remove();});
+  viewer.append(inner);viewer.addEventListener("click",event=>{if(event.target===viewer){viewer.remove();if(mediaUrl.startsWith("blob:"))URL.revokeObjectURL(mediaUrl);}});
   document.body.append(viewer);
   return;
 }
