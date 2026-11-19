@@ -320,7 +320,85 @@ async function handleMedia({ req, res, log, error }) {
   }
 }
 
+
+async function handleAdminNotifications({ req, res, error }) {
+  try {
+    if (req.method === "OPTIONS") return res.text("", 204, headers());
+    const token = bearer(req);
+    if (!token) return json(res, { success: false, error: "Please sign in to manage notifications." }, 401);
+    const { auth, db } = getFirebase();
+    let decoded;
+    try { decoded = await auth.verifyIdToken(token); }
+    catch { return json(res, { success: false, error: "Your sign-in has expired. Please sign in again." }, 401); }
+
+    const userRef = db.collection("users").doc(decoded.uid);
+    const userSnap = await userRef.get();
+    if (!userSnap.exists) return json(res, { success: false, error: "Account profile not found." }, 403);
+    const user = userSnap.data() || {};
+    const action = req.query?.action || "";
+
+    if (action === "registration-notification" && req.method === "POST") {
+      if (user.role !== "student" || user.status !== "pending") {
+        return json(res, { success: false, error: "Only a newly registered pending student can create this alert." }, 403);
+      }
+      const notificationRef = db.collection("adminNotifications").doc("registration-" + decoded.uid);
+      await notificationRef.set({
+        type: "new_student",
+        uid: decoded.uid,
+        studentName: String(user.fullName || decoded.name || "New student").slice(0, 120),
+        email: String(user.email || decoded.email || "").slice(0, 180),
+        message: "A new student is waiting for account approval.",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        readAt: null
+      }, { merge: true });
+      return json(res, { success: true });
+    }
+
+    if (user.role !== "admin" || user.status !== "approved") {
+      return json(res, { success: false, error: "Only an approved administrator can view or update notifications." }, 403);
+    }
+
+    if (action === "mark-notification-read" && req.method === "POST") {
+      const body = req.bodyJson || {};
+      const notificationId = String(body.notificationId || "").trim();
+      if (!/^(payment|registration)-[A-Za-z0-9._-]{1,200}$/.test(notificationId)) {
+        return json(res, { success: false, error: "Invalid notification." }, 400);
+      }
+      const notificationRef = db.collection("adminNotifications").doc(notificationId);
+      const notificationSnap = await notificationRef.get();
+      if (!notificationSnap.exists) return json(res, { success: false, error: "Notification not found." }, 404);
+      await notificationRef.set({ readAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      return json(res, { success: true });
+    }
+
+    if (action !== "admin-notifications" || req.method !== "GET") {
+      return json(res, { success: false, error: "Unknown notification action." }, 400);
+    }
+    const snapshot = await db.collection("adminNotifications").orderBy("createdAt", "desc").limit(50).get();
+    const notifications = snapshot.docs.map(item => {
+      const value = item.data() || {};
+      return {
+        id: item.id,
+        type: String(value.type || "alert"),
+        studentName: String(value.studentName || ""),
+        email: String(value.email || ""),
+        courseTitle: String(value.courseTitle || ""),
+        amount: Number(value.amount || 0),
+        currency: String(value.currency || "MWK"),
+        message: String(value.message || ""),
+        read: Boolean(value.readAt),
+        createdAt: value.createdAt?.toDate ? value.createdAt.toDate().toISOString() : null
+      };
+    });
+    return json(res, { success: true, notifications });
+  } catch (e) {
+    error(e?.stack || String(e));
+    return json(res, { success: false, error: "Notifications could not be loaded. Please try again." }, 500);
+  }
+}
+
 export default async (context) => {
+  if (context.req.query?.action === "admin-notifications" || context.req.query?.action === "registration-notification" || context.req.query?.action === "mark-notification-read") return handleAdminNotifications(context);
   if (context.req.method === "GET" && context.req.query?.action === "storage-usage") return handleStorageUsage(context);
   if (context.req.method === "GET") return handleMedia(context);
   return handleUpload(context);
