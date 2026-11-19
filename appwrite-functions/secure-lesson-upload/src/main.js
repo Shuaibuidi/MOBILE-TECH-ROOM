@@ -256,6 +256,9 @@ async function handleMedia({ req, res, log, error }) {
     }
 
     const client = new Client().setEndpoint(endpoint).setProject(projectId).setKey(apiKey);
+    // Revoke legacy public-read permissions before issuing a temporary authorized token.
+    const storage = new Storage(client);
+    await storage.updateFile({ bucketId, fileId, permissions: [] });
     const tokens = new Tokens(client);
     const expire = new Date(Date.now() + TOKEN_LIFETIME_MS).toISOString();
     const fileToken = await tokens.createFileToken({ bucketId, fileId, expire });
