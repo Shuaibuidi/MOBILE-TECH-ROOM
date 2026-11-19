@@ -196,7 +196,7 @@ async function handleStorageUsage({ req, res, error }) {
   try {
     if (req.method === "OPTIONS") return res.text("", 204, headers());
     if (req.method !== "GET") return json(res, { success: false, error: "Use GET." }, 405);
-    const token = getBearer(req);
+    const token = bearer(req);
     if (!token) return json(res, { success: false, error: "Please sign in to view storage usage." }, 401);
     const { auth, db } = getFirebase();
     let decoded;
@@ -208,7 +208,7 @@ async function handleStorageUsage({ req, res, error }) {
     if (user.status !== "approved" || user.role !== "admin") {
       return json(res, { success: false, error: "Only an approved administrator can view storage usage." }, 403);
     }
-    const endpoint = (process.env.APPWRITE_ENDPOINT || "").trim().replace(/\\/+$/, "");
+    const endpoint = (process.env.APPWRITE_ENDPOINT || "").trim().replace(/\/+$/, "");
     const projectId = process.env.APPWRITE_PROJECT_ID;
     const apiKey = process.env.APPWRITE_API_KEY;
     const bucketId = process.env.APPWRITE_BUCKET_ID;
