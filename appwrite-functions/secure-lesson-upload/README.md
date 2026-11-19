@@ -20,7 +20,7 @@ Set these in the Appwrite Function's Variables tab. Never put the API key or Fir
 
 - `APPWRITE_ENDPOINT`: `https://sgp.cloud.appwrite.io/v1`
 - `APPWRITE_PROJECT_ID`: the Mobile Tech Room Appwrite project ID
-- `APPWRITE_API_KEY`: a server-side Appwrite API key with Storage files write permission for the target project
+- `APPWRITE_API_KEY`: a server-side Appwrite API key with Storage files read and write permissions for the target project
 - `APPWRITE_BUCKET_ID`: the existing Lesson Media bucket ID
 - `FIREBASE_SERVICE_ACCOUNT_JSON`: the Firebase service-account JSON used by the trusted server function
 
@@ -36,4 +36,4 @@ Uploads are created with private file permissions (`permissions: []`). The websi
 
 ## Important
 
-Deploy this using the existing `secure-lesson-upload` function; do not create a second function. Configure the variables and `tokens.write` scope, then test upload and media authorization. Do not change the PayChangu function or website upload URL until the tests pass.
+Deploy this using the existing `secure-lesson-upload` function; do not create a second function. Ensure the server-side Appwrite API key has the `files.read` and `files.write` permissions required for private file retrieval and uploads. The new media path no longer needs `tokens.write`. Do not change the PayChangu function or website upload URL.
