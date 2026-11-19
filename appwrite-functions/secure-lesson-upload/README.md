@@ -18,15 +18,17 @@ Set these in the Appwrite Function's Variables tab. Never put the API key or Fir
 - `APPWRITE_API_KEY`: a server-side Appwrite API key with Storage files write permission for the target project
 - `APPWRITE_BUCKET_ID`: the existing Lesson Media bucket ID
 - `FIREBASE_SERVICE_ACCOUNT_JSON`: the Firebase service-account JSON used by the trusted server function
+
+In the Appwrite Function **Scopes** settings, enable `tokens.write` so the function can create temporary file tokens. The function uses Appwrite's per-execution key for this operation; do not add that key to the website.
      
 ## Request / response
 
-Accepts POST multipart/form-data with a Firebase ID token in the Authorization Bearer header and fields `file` and `courseId`. Verifies the Firebase token, then checks the Firestore user is an approved admin or instructor. Instructors can upload only to courses whose `createdBy` equals their UID. Maximum file size is 50 MB.
+Accepts POST multipart/form-data with a Firebase ID token in the Authorization Bearer header and fields `file` and `courseId`. Verifies the Firebase token, then checks the Firestore user is an approved admin or instructor. Instructors can upload only to courses whose `createdBy` equals their UID. Maximum file size is 50 MB. It also accepts GET requests with `courseId` and `fileId`, verifies approved user/course access (including active enrollment for paid courses), and returns a one-hour Appwrite file-token URL for lesson playback.
 
 The response preserves the existing browser contract: `success`, `mediaUrl`, `fileId`, `bucketId`, `fileName`, and `contentType`.
 
-Files are created with public read permission, matching the existing public-URL media behavior used by the current Supabase uploader. This means the media URL itself is not an additional paid-course access gate; course access must continue to be enforced by Mobile Tech Room's existing course/enrollment UI and rules. Do not treat an unguessable URL as authorization.
+For the first migration test, files are still created with public read permission to preserve the current behavior. After the website requests the temporary media URL successfully and authorized student playback is verified, the upload function can be changed to create private files. Do not switch to private files before that end-to-end test.
 
 ## Important
 
-Do not change the website upload URL until this function is deployed, its environment variables are set, a real test upload succeeds, and the resulting file can be viewed by an approved student account. Do not change the PayChangu function.
+Deploy this as the existing `secure-lesson-upload` function; do not create a second function. Configure the variables and `tokens.write` scope, then test upload and media authorization. Do not change the PayChangu function or website upload URL until the tests pass.
