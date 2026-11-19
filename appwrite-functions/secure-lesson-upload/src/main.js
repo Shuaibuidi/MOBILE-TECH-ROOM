@@ -248,7 +248,7 @@ async function handleMedia({ req, res, log, error }) {
 
     const endpoint = process.env.APPWRITE_ENDPOINT;
     const projectId = process.env.APPWRITE_PROJECT_ID;
-    const functionKey = process.env.APPWRITE_API_KEY;
+    const functionKey = req.headers?.["x-appwrite-key"];
     const bucketId = process.env.APPWRITE_BUCKET_ID;
     if (!endpoint || !projectId || !functionKey || !bucketId) {
       throw new Error("Appwrite media function configuration is incomplete.");
