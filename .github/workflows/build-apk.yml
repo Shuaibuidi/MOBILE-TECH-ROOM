@@ -66,6 +66,21 @@ jobs:
       - name: Create Android project
         run: |
           npx cap init "Mobile Tech Room" "com.shuaibuidi.mobiletechroom" --web-dir www
+          node <<'NODE'
+          const fs = require('fs');
+          const configPath = 'capacitor.config.json';
+          if (!fs.existsSync(configPath)) {
+            throw new Error('Capacitor JSON configuration was not created.');
+          }
+          const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+          config.server = {
+            ...(config.server || {}),
+            hostname: 'shuaibuidi.github.io',
+            androidScheme: 'https'
+          };
+          fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
+          console.log('Configured Android WebView origin: https://shuaibuidi.github.io');
+          NODE
           npx cap add android
 
       - name: Generate Android app icon
