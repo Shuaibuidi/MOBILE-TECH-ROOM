@@ -2649,9 +2649,9 @@ async function renderDashboard(){
 async function renderProgress(){
   page.innerHTML="<div class='panel'>Loading your progress...</div>";
   try{
-    await loadCourses();
+    const enrollmentPromise=isStudent()?getDocs(collection(db,"users",currentUser.uid,"enrollments")):Promise.resolve(null);
+    const [,enrollmentSnap]=await Promise.all([loadCourses(),enrollmentPromise]);
     if(isStudent()){
-      const enrollmentSnap=await getDocs(collection(db,"users",currentUser.uid,"enrollments"));
       const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
       const visible=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
       const rows=await Promise.all(visible.map(async c=>{
@@ -2726,7 +2726,8 @@ function richEditorToolbar(prefix){return '<div class="editor-toolbar" id="'+pre
 async function renderCourses(){
 page.innerHTML="<div class='panel'>Loading courses...</div>";
 try{
-await loadCourses();
+const enrollmentPromise=isStudent()?getDocs(collection(db,"users",currentUser.uid,"enrollments")):Promise.resolve(null);
+const [,enrollmentSnap]=await Promise.all([loadCourses(),enrollmentPromise]);
 let html="<div class='panel'><h2>Courses and Lessons</h2><p class='muted'>Choose a course or create a new course with its first lesson.</p>";
 if(isStaff()){
 html+="<h3>Create Course and First Lesson</h3><form id='combinedLessonForm'>";
@@ -2744,7 +2745,6 @@ html+="<div id='mediaLessonFields'><input id='lessonUrl' type='hidden'><label cl
 }
 html+="</div>";
 if(isStudent()){
- const enrollmentSnap=await getDocs(collection(db,"users",currentUser.uid,"enrollments"));
  const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
  const available=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
  const locked=courses.filter(c=>c.accessType==="paid"&&!activeIds.has(c.id));
