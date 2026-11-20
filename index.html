@@ -1761,6 +1761,96 @@ async function requestSecureLessonMedia(mediaUrl,courseId){
 }
 
 
+async function streamSecureLessonAudio(mediaUrl, courseId, audio) {
+  if (!currentUser) throw new Error("Please sign in to open this lesson file.");
+  let parsed;
+  try { parsed = new URL(mediaUrl); } catch (_) { throw new Error("This lesson file link is invalid."); }
+  if (!parsed.hostname.endsWith(".appwrite.io") && !parsed.hostname.endsWith(".appwrite.network")) {
+    audio.src = mediaUrl;
+    return;
+  }
+  const match = parsed.pathname.match(/\/files\/([^/]+)\/(?:view|download)$/);
+  if (!match) throw new Error("The Appwrite lesson file link is invalid.");
+  const fileId = decodeURIComponent(match[1]);
+  const token = await currentUser.getIdToken(true);
+  const endpoint = "https://starter-function-9cke.sgp.appwrite.run";
+  const query = new URLSearchParams({ fileId, courseId, stream: "1" });
+  const response = await fetch(endpoint + "?" + query.toString(), {
+    method: "GET",
+    headers: { Authorization: "Bearer " + token }
+  });
+  if (!response.ok) {
+    let data = {};
+    try { data = await response.json(); } catch (_) {}
+    throw new Error(data.error || "This lesson file could not be opened.");
+  }
+
+  const contentType = (response.headers.get("content-type") || "application/octet-stream").split(";")[0].trim().toLowerCase();
+  const canStream = window.MediaSource && response.body && MediaSource.isTypeSupported(contentType);
+  if (!canStream) {
+    const blob = await response.blob();
+    if (!blob.size) throw new Error("The lesson file is empty or unavailable.");
+    const objectUrl = URL.createObjectURL(blob);
+    audio.dataset.secureObjectUrl = objectUrl;
+    audio.src = objectUrl;
+    audio.load();
+    return;
+  }
+
+  const mediaSource = new MediaSource();
+  const objectUrl = URL.createObjectURL(mediaSource);
+  audio.dataset.secureObjectUrl = objectUrl;
+  audio.src = objectUrl;
+  audio.load();
+
+  await new Promise((resolve, reject) => {
+    mediaSource.addEventListener("sourceopen", resolve, { once: true });
+    mediaSource.addEventListener("error", () => reject(new Error("The audio stream could not be opened.")), { once: true });
+  });
+
+  let sourceBuffer;
+  try {
+    sourceBuffer = mediaSource.addSourceBuffer(contentType);
+  } catch (_) {
+    URL.revokeObjectURL(objectUrl);
+    delete audio.dataset.secureObjectUrl;
+    const blob = await response.blob();
+    if (!blob.size) throw new Error("The lesson file is empty or unavailable.");
+    const fallbackUrl = URL.createObjectURL(blob);
+    audio.dataset.secureObjectUrl = fallbackUrl;
+    audio.src = fallbackUrl;
+    audio.load();
+    return;
+  }
+
+  const appendChunk = chunk => new Promise((resolve, reject) => {
+    const done = () => { sourceBuffer.removeEventListener("updateend", done); sourceBuffer.removeEventListener("error", failed); resolve(); };
+    const failed = () => { sourceBuffer.removeEventListener("updateend", done); sourceBuffer.removeEventListener("error", failed); reject(new Error("The audio stream could not be decoded.")); };
+    sourceBuffer.addEventListener("updateend", done, { once: true });
+    sourceBuffer.addEventListener("error", failed, { once: true });
+    try { sourceBuffer.appendBuffer(chunk); } catch (error) { failed(); reject(error); }
+  });
+
+  const reader = response.body.getReader();
+  let received = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value && value.byteLength) {
+        await appendChunk(value);
+        received += value.byteLength;
+        if (received === value.byteLength) audio.play().catch(() => {});
+      }
+    }
+    if (!received) throw new Error("The lesson file is empty or unavailable.");
+    if (mediaSource.readyState === "open") mediaSource.endOfStream();
+  } catch (error) {
+    try { reader.cancel(); } catch (_) {}
+    throw error;
+  }
+}
+
 function formatStorageBytes(value) {
   const bytes = Math.max(0, Number(value) || 0);
   if (bytes < 1024) return bytes + " B";
@@ -3113,15 +3203,19 @@ try{
 if(action==="download-lesson-pdf"){downloadLessonPdf(b);return;}
 if(action==="download-certificate"){downloadCertificate(b);return;}
 if(action==="view-media"||action==="open-secure-media"){
-  let mediaUrl=b.dataset.mediaUrl||"";const mediaType=b.dataset.mediaType||"",mediaTitle=b.dataset.mediaTitle||"Lesson media";
-  if(action==="open-secure-media")mediaUrl=await requestSecureLessonMedia(mediaUrl,b.dataset.courseId||selectedCourse?.id||"");
-  if(!/^(https:\/\/.+|blob:)/i.test(mediaUrl)){appMessage("This media link is not valid.","error");return;}
+  let mediaUrl=b.dataset.mediaUrl||"";
+  const mediaType=b.dataset.mediaType||"",mediaTitle=b.dataset.mediaTitle||"Lesson media";
+  const secureAudio=action==="open-secure-media"&&mediaType==="audio";
+  const courseId=b.dataset.courseId||selectedCourse?.id||"";
+  if(action==="open-secure-media"&&!secureAudio)mediaUrl=await requestSecureLessonMedia(mediaUrl,courseId);
+  if(!/^(https:\\/\\/.+|blob:)/i.test(mediaUrl)){appMessage("This media link is not valid.","error");return;}
   document.getElementById("lessonMediaViewer")?.remove();
   const viewer=document.createElement("div");
   viewer.id="lessonMediaViewer";viewer.className="media-lightbox";
   const inner=document.createElement("div");inner.className="media-lightbox-inner";
   const close=document.createElement("button");close.type="button";close.className="media-lightbox-close";close.textContent="✕ Close";
-  close.addEventListener("click",()=>{viewer.remove();if(mediaUrl.startsWith("blob:"))URL.revokeObjectURL(mediaUrl);});
+  const cleanup=()=>{const audio=inner.querySelector("audio");if(audio){audio.pause();if(audio.dataset.secureObjectUrl)URL.revokeObjectURL(audio.dataset.secureObjectUrl);}if(mediaUrl.startsWith("blob:"))URL.revokeObjectURL(mediaUrl);viewer.remove();};
+  close.addEventListener("click",cleanup);
   const heading=document.createElement("h3");heading.className="media-lightbox-title";heading.textContent=mediaTitle;
   inner.append(close,heading);
   if(mediaType==="image"){
@@ -3130,12 +3224,16 @@ if(action==="view-media"||action==="open-secure-media"){
     const video=document.createElement("video");video.className="media-lightbox-content";video.controls=true;video.autoplay=true;video.playsInline=true;video.src=mediaUrl;inner.append(video);
     video.addEventListener("error",()=>appMessage("This video could not be played. Please check the uploaded file.","error"));
   }else if(mediaType==="audio"){
-    const audio=document.createElement("audio");audio.className="media-lightbox-audio";audio.controls=true;audio.autoplay=true;audio.src=mediaUrl;inner.append(audio);
+    const audio=document.createElement("audio");audio.className="media-lightbox-audio";audio.controls=true;audio.autoplay=true;audio.preload="auto";inner.append(audio);
+    if(secureAudio){
+      const loading=document.createElement("p");loading.className="muted";loading.textContent="Connecting to audio…";inner.append(loading);
+      streamSecureLessonAudio(mediaUrl,courseId,audio).then(()=>loading.remove()).catch(error=>{loading.textContent=error.message||"Audio could not be loaded.";appMessage(loading.textContent,"error");});
+    }else audio.src=mediaUrl;
   }else if(mediaType==="pdf"){
     const frame=document.createElement("iframe");frame.className="media-lightbox-pdf";frame.src=mediaUrl+"#toolbar=1";frame.title=mediaTitle;inner.append(frame);
     const link=document.createElement("a");link.href=mediaUrl;link.target="_blank";link.rel="noopener noreferrer";link.textContent="Open or download PDF";inner.append(link);
   }
-  viewer.append(inner);viewer.addEventListener("click",event=>{if(event.target===viewer){viewer.remove();if(mediaUrl.startsWith("blob:"))URL.revokeObjectURL(mediaUrl);}});
+  viewer.append(inner);viewer.addEventListener("click",event=>{if(event.target===viewer)cleanup();});
   document.body.append(viewer);
   return;
 }
