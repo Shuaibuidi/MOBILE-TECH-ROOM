@@ -2475,7 +2475,7 @@ let html="<div class='panel'><h2>Courses and Lessons</h2><p class='muted'>Choose
 if(isStaff()){
 html+="<h3>Create Course and First Lesson</h3><form id='combinedLessonForm'>";
 html+="<label class='muted'>1. Course name</label><input id='courseTitle' placeholder='e.g. Phone Flashing and Unlocking' required>";
-html+="<label class='muted'>What does this course cover?</label>"+richEditorToolbar("courseDescription")+"<div id='courseDescription' class='lesson-editor' contenteditable='true' role='textbox' aria-multiline='true' data-placeholder='Describe what students will learn throughout this course...'></div>";
+
  html+="<hr>";
 html+="<label class='muted'>2. Lesson title</label><input id='lessonTitle' placeholder='e.g. Introduction to Phone Flashing' required>";
 html+="<label class='muted'>3. Topic</label><input id='lessonTopic' placeholder='e.g. Flashing basics' required>";
@@ -2507,10 +2507,10 @@ if(isStudent()){
 }
 if(isStaff()){
 bindLessonFormControls({accessId:"courseAccess",priceFieldId:"coursePriceField",priceId:"coursePrice",typeId:"lessonType",writtenId:"writtenLessonFields",mediaId:"mediaLessonFields",contentId:"lessonContent"});
-bindRichTextEditor("courseDescription","courseDescriptionToolbar");bindRichTextEditor("lessonOutcomes","lessonOutcomesToolbar");
+bindRichTextEditor("lessonOutcomes","lessonOutcomesToolbar");
 let draftCourseId=null;
 const form=$("combinedLessonForm"),val=id=>$(id).value.trim(),rich=id=>$(id).innerHTML.trim();
-const courseFields=()=>({title:val("courseTitle"),category:"Technology",description:rich("courseDescription"),coverImage:"",accessType:$("courseAccess").value,price:Number($("coursePrice").value||0),createdBy:currentUser.uid});
+const courseFields=()=>({title:val("courseTitle"),category:"Technology",description:"",coverImage:"",accessType:$("courseAccess").value,price:Number($("coursePrice").value||0),createdBy:currentUser.uid});
 const ensureCourse=async()=>{
   if(!draftCourseId)draftCourseId=doc(collection(db,"courses")).id;
   if(!draftCourseId)throw new Error("Could not create a course ID. Please refresh and try again.");
@@ -2551,7 +2551,7 @@ const cid=await ensureCourse();
 await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:rich("lessonOutcomes"),lessonNumber:1,type:lessonType,content:"",mediaUrl:url,resourceUrl:resourceUrl,createdBy:currentUser.uid,createdAt:serverTimestamp()});
 await setDoc(doc(db,"courses",cid),{status:"published",updatedAt:serverTimestamp()},{merge:true});
 appMessage("Course and first lesson saved successfully.");
-await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:val("courseTitle"),description:rich("courseDescription")};await openCourse(cid);
+await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:val("courseTitle"),description:""};await openCourse(cid);
 }catch(err){appMessage("Could not save course and lesson: "+(err.code?err.code+": ":"")+err.message,"error");}
 };
 }
