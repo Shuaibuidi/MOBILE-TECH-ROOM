@@ -2406,7 +2406,7 @@ async function renderStudentQuiz(id){
    if(answers.some(x=>x<0)){appMessage("Please answer every question.","warning");return;}
    try{
     const marked=await callQuizApi("quiz-submit","POST",{quizId:id,answers});
-    let out='<section class="panel"><button class="secondary" id="backToQuizzes">← Quizzes</button><h2>Quiz Result</h2><div class="quiz-score">'+marked.score+' / '+marked.total+'</div><h3>'+marked.percentage+'% — '+(marked.passed?"Passed":"Keep practising")+'</h3></section><section class="panel"><h3>Answer Review</h3>';
+    let out='<section class="panel"><button class="secondary" id="backToQuizzes">← Quizzes</button><h2>Quiz Result</h2><div class="quiz-score">'+marked.score+' / '+marked.total+'</div><h3>'+marked.percentage+'% score</h3></section><section class="panel"><h3>Answer Review</h3>';
     marked.review.forEach((a,i)=>out+='<div class="quiz-question"><strong>'+(i+1)+'. '+safe(a.question)+'</strong><p class="'+(a.correct?"quiz-result-good":"quiz-result-bad")+'">'+(a.correct?"Correct":"Incorrect")+'</p><p>Your answer: '+safe(a.options[a.selectedIndex])+'</p><p>Correct answer: <strong>'+safe(a.options[a.correctIndex])+'</strong></p></div>');
     page.innerHTML=out+'</section>';$("backToQuizzes").onclick=()=>renderQuizzes();
    }catch(err){appMessage(err.message,"error");}
@@ -2418,7 +2418,7 @@ async function renderQuizResults(id){
  try{
   const data=await callQuizApi("quiz-results","GET",{quizId:id});let h='<section class="panel"><button class="secondary" id="backToQuizzes">← Quizzes</button><h2>Results: '+safe(data.quizTitle)+'</h2><p>'+data.attempts.length+' attempts</p></section><section class="panel">';
   if(!data.attempts.length)h+='<p class="muted">No submissions yet.</p>';
-  data.attempts.forEach(a=>h+='<article class="quiz-card"><h3>'+safe(a.studentName)+'</h3><div class="quiz-score">'+a.score+'/'+a.total+'</div><p>'+a.percentage+'% · '+(a.percentage>=50?"Passed":"Not passed")+'</p><small>'+safe(a.submittedAt?new Date(a.submittedAt).toLocaleString():"Recently")+'</small></article>');
+  data.attempts.forEach(a=>h+='<article class="quiz-card"><h3>'+safe(a.studentName)+'</h3><div class="quiz-score">'+a.score+'/'+a.total+'</div><p>'+a.percentage+'% score</p><small>'+safe(a.submittedAt?new Date(a.submittedAt).toLocaleString():"Recently")+'</small></article>');
   page.innerHTML=h+'</section>';$("backToQuizzes").onclick=()=>renderQuizzes();
  }catch(err){page.innerHTML='<section class="panel error">'+safe(err.message)+'</section>';}
 }
