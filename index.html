@@ -2699,6 +2699,7 @@ const renderReferenceMedia=(lesson)=>{
  };
  const percent=Math.round(completed.filter(id=>lessons.some(l=>l.id===id)).length/lessons.length*100);
  page.innerHTML=`<section class="panel"><button class="secondary" data-action="back-courses">← All Courses</button><h2>${safe(selectedCourse.title)}</h2><p>${formatLessonContent(selectedCourse.description||"Follow the lessons in order and practise each skill safely.")}</p><div class="learning-progress-label"><strong>${completed.filter(id=>lessons.some(l=>l.id===id)).length} of ${lessons.length} lessons completed</strong><strong>${percent}%</strong></div><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${percent}%"></div></div></section><section class="panel"><div class="student-course-heading"><h2>Lessons List</h2><span class="tag">${lessons.length} lessons</span></div><ol class="lesson-list">${lessons.map(renderStudentLesson).join("")}</ol></section>`;
+ page.innerHTML+=certificateCard(selectedCourse,progressRecord);
  page.onclick=async event=>{
    const button=event.target.closest('[data-action="student-complete"]');if(!button)return;
    const lessonId=button.dataset.id;button.disabled=true;
