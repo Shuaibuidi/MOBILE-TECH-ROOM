@@ -56,8 +56,26 @@ jobs:
           let html = fs.readFileSync(file, 'utf8');
           const match = html.match(/<script type="module">([\s\S]*?)<\/script>/i);
           if (!match) throw new Error('Could not find the app module script in index.html');
-          fs.writeFileSync('www/app.js', match[1]);
-          html = html.replace(match[0], '<script type="module" src="./app.bundle.js"></script>');
+          fs.writeFileSync('www/app.js', 'window.__MTR_MODULE_STARTED__ = true;\n' + match[1]);
+          const diagnostic = `<script>
+          window.__MTR_MODULE_STARTED__ = false;
+          window.addEventListener('error', function(e) {
+            const detail = e.message || (e.target && e.target.src) || 'Unknown startup error';
+            const box = document.getElementById('message');
+            if (box) box.textContent = 'APK startup error: ' + detail;
+          }, true);
+          window.addEventListener('unhandledrejection', function(e) {
+            const box = document.getElementById('message');
+            if (box) box.textContent = 'APK startup error: ' + String(e.reason && (e.reason.message || e.reason));
+          });
+          setTimeout(function() {
+            if (!window.__MTR_MODULE_STARTED__) {
+              const box = document.getElementById('message');
+              if (box) box.textContent = 'APK startup check: the app JavaScript did not start. Please share this screen with support.';
+            }
+          }, 7000);
+          <\/script>`;
+          html = html.replace(match[0], diagnostic + '<script type="module" src="./app.bundle.js"></script>');
           fs.writeFileSync(file, html);
           NODE
           npx esbuild www/app.js --bundle --format=esm --platform=browser --target=es2020 '--external:https://*' --outfile=www/app.bundle.js
