@@ -429,7 +429,257 @@ async function handleCourseProgress({ req, res, error }) {
  }catch(e){error(e?.stack||String(e));return json(res,{success:false,error:"Course progress could not be saved. Please try again."},500);}
 }
 
+
+function quizSafeQuestion(question, includeAnswer) {
+  const value = {
+    text: String(question.text || ""),
+    options: Array.isArray(question.options) ? question.options.map(option => String(option)) : []
+  };
+  if (includeAnswer) value.correctIndex = Number(question.correctIndex);
+  return value;
+}
+
+function validateQuizInput(body) {
+  const title = String(body.title || "").trim().slice(0, 160);
+  const description = String(body.description || "").trim().slice(0, 1200);
+  const courseId = String(body.courseId || "").trim();
+  const status = body.status === "published" ? "published" : "draft";
+  if (!courseId || courseId.length > 150) throw new Error("Choose a valid course.");
+  if (!title) throw new Error("Enter a quiz title.");
+  if (!Array.isArray(body.questions) || body.questions.length < 1 || body.questions.length > 40) {
+    throw new Error("A quiz must contain between 1 and 40 questions.");
+  }
+  const questions = body.questions.map((item, index) => {
+    const text = String(item?.text || "").trim().slice(0, 1000);
+    const options = Array.isArray(item?.options) ? item.options.map(option => String(option || "").trim().slice(0, 300)) : [];
+    const correctIndex = Number(item?.correctIndex);
+    if (!text) throw new Error("Enter the text for question " + (index + 1) + ".");
+    if (options.length < 2 || options.length > 6 || options.some(option => !option)) {
+      throw new Error("Question " + (index + 1) + " must have 2 to 6 non-empty answer options.");
+    }
+    if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= options.length) {
+      throw new Error("Select the correct answer for question " + (index + 1) + ".");
+    }
+    return { text, options, correctIndex };
+  });
+  return { courseId, title, description, status, questions };
+}
+
+async function handleQuizzes({ req, res, error }) {
+  try {
+    if (req.method === "OPTIONS") return res.text("", 204, headers());
+    const action = String(req.query?.action || "");
+    const allowed = ["quiz-list", "quiz-get", "quiz-create", "quiz-update", "quiz-delete", "quiz-submit", "quiz-results"];
+    if (!allowed.includes(action)) return json(res, { success: false, error: "Unknown quiz action." }, 400);
+    const readActions = ["quiz-list", "quiz-get", "quiz-results"];
+    if (readActions.includes(action) && req.method !== "GET") return json(res, { success: false, error: "Use GET." }, 405);
+    if (!readActions.includes(action) && req.method !== "POST") return json(res, { success: false, error: "Use POST." }, 405);
+
+    const token = bearer(req);
+    if (!token) return json(res, { success: false, error: "Please sign in to use quizzes." }, 401);
+    const { auth, db } = getFirebase();
+    let decoded;
+    try { decoded = await auth.verifyIdToken(token); }
+    catch { return json(res, { success: false, error: "Your sign-in has expired. Please sign in again." }, 401); }
+
+    const userSnap = await db.collection("users").doc(decoded.uid).get();
+    if (!userSnap.exists) return json(res, { success: false, error: "Account profile not found." }, 403);
+    const user = userSnap.data() || {};
+    if (user.status !== "approved" || !["admin", "instructor", "student"].includes(user.role)) {
+      return json(res, { success: false, error: "Your account is not approved to use quizzes." }, 403);
+    }
+    const staff = user.role === "admin" || user.role === "instructor";
+    const body = req.method === "POST" ? (req.bodyJson || {}) : {};
+    const quizId = String(req.query?.quizId || body.quizId || "").trim();
+
+    const canManageCourse = async courseId => {
+      const courseSnap = await db.collection("courses").doc(courseId).get();
+      if (!courseSnap.exists) return { ok: false, error: "Course not found." };
+      const course = courseSnap.data() || {};
+      if (user.role === "instructor" && course.createdBy !== decoded.uid) {
+        return { ok: false, error: "Instructors can manage quizzes only for their own courses." };
+      }
+      if (!staff) return { ok: false, error: "Only administrators and instructors can manage quizzes." };
+      return { ok: true, course };
+    };
+
+    const canStudentAccessCourse = async course => {
+      if (user.role !== "student" || user.status !== "approved") return false;
+      if (course.status !== "published") return false;
+      if (course.accessType === "paid") {
+        const enrollment = await db.collection("users").doc(decoded.uid).collection("enrollments").doc(course.id).get();
+        return enrollment.exists && enrollment.data()?.status === "active";
+      }
+      return true;
+    };
+
+    if (action === "quiz-list") {
+      const [courseSnap, quizSnap] = await Promise.all([
+        db.collection("courses").get(),
+        db.collection("quizzes").limit(300).get()
+      ]);
+      const courseMap = new Map(courseSnap.docs.map(item => [item.id, { id: item.id, ...item.data() }]));
+      const accessible = new Set();
+      for (const course of courseMap.values()) {
+        if (user.role === "admin" || (user.role === "instructor" && course.createdBy === decoded.uid)) accessible.add(course.id);
+        else if (user.role === "student" && await canStudentAccessCourse(course)) accessible.add(course.id);
+      }
+      const quizzes = quizSnap.docs
+        .map(item => ({ id: item.id, ...item.data() }))
+        .filter(quiz => accessible.has(String(quiz.courseId || "")) && (staff || quiz.status === "published"))
+        .map(quiz => ({
+          id: quiz.id,
+          courseId: String(quiz.courseId || ""),
+          courseTitle: String(courseMap.get(quiz.courseId)?.title || "Course"),
+          title: String(quiz.title || "Quiz"),
+          description: String(quiz.description || ""),
+          status: String(quiz.status || "draft"),
+          questionCount: Array.isArray(quiz.questions) ? quiz.questions.length : 0,
+          questions: (Array.isArray(quiz.questions) ? quiz.questions : []).map(question => quizSafeQuestion(question, staff)),
+          createdAt: quiz.createdAt?.toDate ? quiz.createdAt.toDate().toISOString() : null
+        }));
+      return json(res, { success: true, quizzes });
+    }
+
+    if (action === "quiz-get") {
+      if (!quizId) return json(res, { success: false, error: "Choose a quiz." }, 400);
+      const snap = await db.collection("quizzes").doc(quizId).get();
+      if (!snap.exists) return json(res, { success: false, error: "Quiz not found." }, 404);
+      const quiz = { id: snap.id, ...snap.data() };
+      const courseSnap = await db.collection("courses").doc(String(quiz.courseId || "")).get();
+      if (!courseSnap.exists) return json(res, { success: false, error: "Course not found." }, 404);
+      const course = { id: courseSnap.id, ...courseSnap.data() };
+      if (staff) {
+        if (user.role === "instructor" && course.createdBy !== decoded.uid) return json(res, { success: false, error: "You cannot access quizzes for another instructor's course." }, 403);
+      } else {
+        if (quiz.status !== "published" || !(await canStudentAccessCourse(course))) return json(res, { success: false, error: "You do not have access to this quiz." }, 403);
+      }
+      return json(res, {
+        success: true,
+        quiz: {
+          id: quiz.id, courseId: String(quiz.courseId || ""), courseTitle: String(course.title || "Course"),
+          title: String(quiz.title || "Quiz"), description: String(quiz.description || ""),
+          status: String(quiz.status || "draft"),
+          questions: (Array.isArray(quiz.questions) ? quiz.questions : []).map(question => quizSafeQuestion(question, staff))
+        }
+      });
+    }
+
+    if (action === "quiz-create" || action === "quiz-update") {
+      const input = validateQuizInput(body);
+      const permission = await canManageCourse(input.courseId);
+      if (!permission.ok) return json(res, { success: false, error: permission.error }, 403);
+      if (action === "quiz-create") {
+        const ref = db.collection("quizzes").doc();
+        await ref.set({
+          ...input,
+          createdBy: decoded.uid,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return json(res, { success: true, quizId: ref.id, message: "Quiz created successfully." });
+      }
+      if (!quizId) return json(res, { success: false, error: "Quiz ID is required." }, 400);
+      const ref = db.collection("quizzes").doc(quizId);
+      const existing = await ref.get();
+      if (!existing.exists) return json(res, { success: false, error: "Quiz not found." }, 404);
+      const old = existing.data() || {};
+      if (old.courseId !== input.courseId) {
+        const oldPermission = await canManageCourse(String(old.courseId || ""));
+        if (!oldPermission.ok) return json(res, { success: false, error: oldPermission.error }, 403);
+      }
+      await ref.set({ ...input, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      return json(res, { success: true, quizId, message: "Quiz updated successfully." });
+    }
+
+    if (action === "quiz-delete") {
+      if (!quizId) return json(res, { success: false, error: "Quiz ID is required." }, 400);
+      const ref = db.collection("quizzes").doc(quizId);
+      const snap = await ref.get();
+      if (!snap.exists) return json(res, { success: false, error: "Quiz not found." }, 404);
+      const permission = await canManageCourse(String(snap.data()?.courseId || ""));
+      if (!permission.ok) return json(res, { success: false, error: permission.error }, 403);
+      await ref.delete();
+      return json(res, { success: true, message: "Quiz deleted." });
+    }
+
+    if (action === "quiz-submit") {
+      if (user.role !== "student") return json(res, { success: false, error: "Only students can submit quiz answers." }, 403);
+      if (!quizId || !Array.isArray(body.answers)) return json(res, { success: false, error: "Quiz and answers are required." }, 400);
+      const ref = db.collection("quizzes").doc(quizId);
+      const snap = await ref.get();
+      if (!snap.exists) return json(res, { success: false, error: "Quiz not found." }, 404);
+      const quiz = snap.data() || {};
+      if (quiz.status !== "published") return json(res, { success: false, error: "This quiz is not published." }, 403);
+      const courseSnap = await db.collection("courses").doc(String(quiz.courseId || "")).get();
+      if (!courseSnap.exists || !(await canStudentAccessCourse({ id: courseSnap.id, ...courseSnap.data() }))) {
+        return json(res, { success: false, error: "You do not have access to this course quiz." }, 403);
+      }
+      const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
+      if (!questions.length || body.answers.length !== questions.length) return json(res, { success: false, error: "Please answer every question before submitting." }, 400);
+      let score = 0;
+      const review = questions.map((question, index) => {
+        const selected = Number(body.answers[index]);
+        const correct = Number(question.correctIndex);
+        const isCorrect = Number.isInteger(selected) && selected === correct;
+        if (isCorrect) score++;
+        return {
+          question: String(question.text || ""),
+          options: Array.isArray(question.options) ? question.options : [],
+          selectedIndex: Number.isInteger(selected) ? selected : -1,
+          correctIndex: correct,
+          correct: isCorrect
+        };
+      });
+      const total = questions.length;
+      const percentage = Math.round(score / total * 100);
+      const attemptRef = db.collection("quizAttempts").doc();
+      await attemptRef.set({
+        quizId, courseId: String(quiz.courseId || ""), studentUid: decoded.uid,
+        studentName: String(user.fullName || decoded.name || decoded.email || "Student").slice(0, 120),
+        quizTitle: String(quiz.title || "Quiz").slice(0, 160),
+        answers: review.map(item => item.selectedIndex),
+        score, total, percentage,
+        submittedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      return json(res, {
+        success: true,
+        attemptId: attemptRef.id, score, total, percentage,
+        passed: percentage >= 50,
+        review
+      });
+    }
+
+    if (action === "quiz-results") {
+      if (!staff) return json(res, { success: false, error: "Only administrators and instructors can review quiz results." }, 403);
+      if (!quizId) return json(res, { success: false, error: "Choose a quiz." }, 400);
+      const quizSnap = await db.collection("quizzes").doc(quizId).get();
+      if (!quizSnap.exists) return json(res, { success: false, error: "Quiz not found." }, 404);
+      const quiz = quizSnap.data() || {};
+      const permission = await canManageCourse(String(quiz.courseId || ""));
+      if (!permission.ok) return json(res, { success: false, error: permission.error }, 403);
+      const attemptsSnap = await db.collection("quizAttempts").where("quizId", "==", quizId).limit(300).get();
+      const attempts = attemptsSnap.docs.map(item => {
+        const value = item.data() || {};
+        return {
+          id: item.id, studentName: String(value.studentName || "Student"),
+          score: Number(value.score || 0), total: Number(value.total || 0),
+          percentage: Number(value.percentage || 0),
+          submittedAt: value.submittedAt?.toDate ? value.submittedAt.toDate().toISOString() : null
+        };
+      }).sort((a, b) => String(b.submittedAt || "").localeCompare(String(a.submittedAt || "")));
+      return json(res, { success: true, quizTitle: String(quiz.title || "Quiz"), attempts });
+    }
+    return json(res, { success: false, error: "Unknown quiz action." }, 400);
+  } catch (e) {
+    error(e?.stack || String(e));
+    const message = e instanceof Error ? e.message : "Quiz request failed.";
+    return json(res, { success: false, error: message || "Quiz request failed." }, 400);
+  }
+}
+
 export default async (context) => {
+  if (context.req.query?.action === "quiz-list" || context.req.query?.action === "quiz-get" || context.req.query?.action === "quiz-create" || context.req.query?.action === "quiz-update" || context.req.query?.action === "quiz-delete" || context.req.query?.action === "quiz-submit" || context.req.query?.action === "quiz-results") return handleQuizzes(context);
   if (context.req.query?.action === "course-progress" || context.req.query?.action === "complete-lesson") return handleCourseProgress(context);
   if (context.req.query?.action === "admin-notifications" || context.req.query?.action === "registration-notification" || context.req.query?.action === "mark-notification-read") return handleAdminNotifications(context);
   if (context.req.method === "GET" && context.req.query?.action === "storage-usage") return handleStorageUsage(context);
