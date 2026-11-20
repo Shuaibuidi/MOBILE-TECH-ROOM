@@ -5,7 +5,10 @@ import admin from "firebase-admin";
 import { Client, ID, Storage, Query } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 
-const APP_ORIGIN = "https://shuaibuidi.github.io";
+// This API authenticates requests with explicit Firebase Bearer tokens (not cookies).
+// A wildcard origin allows both GitHub Pages and the Capacitor Android WebView to call it;
+// every protected operation still verifies the Firebase token and Firestore permissions.
+const APP_ORIGIN = "*";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
 const ALLOWED_MIME = new Set([
   "image/jpeg", "image/png", "image/webp", "image/gif",
