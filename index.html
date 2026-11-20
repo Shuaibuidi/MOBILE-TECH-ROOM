@@ -1772,7 +1772,7 @@ async function streamSecureLessonAudio(mediaUrl, courseId, audio) {
   const match = parsed.pathname.match(/\/files\/([^/]+)\/(?:view|download)$/);
   if (!match) throw new Error("The Appwrite lesson file link is invalid.");
   const fileId = decodeURIComponent(match[1]);
-  const token = await currentUser.getIdToken(true);
+  const token = await currentUser.getIdToken();
   const endpoint = "https://starter-function-9cke.sgp.appwrite.run";
   const query = new URLSearchParams({ fileId, courseId, stream: "1" });
   const response = await fetch(endpoint + "?" + query.toString(), {
