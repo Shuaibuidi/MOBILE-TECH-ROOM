@@ -616,7 +616,7 @@ async function handleQuizzes({ req, res, error }) {
         return json(res, { success: false, error: "You do not have access to this course quiz." }, 403);
       }
       const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
-      if (!questions.length || body.answers.length !== questions.length) return json(res, { success: false, error: "Please answer every question before submitting." }, 400);
+      if (!questions.length || body.answers.length !== questions.length || body.answers.some((answer, index) => !Number.isInteger(Number(answer)) || Number(answer) < 0 || Number(answer) >= (Array.isArray(questions[index]?.options) ? questions[index].options.length : 0))) return json(res, { success: false, error: "Please select a valid answer for every question before submitting." }, 400);
       let score = 0;
       const review = questions.map((question, index) => {
         const selected = Number(body.answers[index]);
