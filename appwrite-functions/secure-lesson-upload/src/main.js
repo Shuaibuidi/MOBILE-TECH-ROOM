@@ -405,7 +405,9 @@ async function handleCourseProgress({ req, res, error }) {
   if((action==="course-progress"&&req.method!=="GET")||(action==="complete-lesson"&&req.method!=="POST"))return json(res,{success:false,error:action==="course-progress"?"Use GET.":"Use POST."},405);
   const token=bearer(req);if(!token)return json(res,{success:false,error:"Please sign in to save course progress."},401);
   const {auth,db}=getFirebase();let decoded;try{decoded=await auth.verifyIdToken(token);}catch{return json(res,{success:false,error:"Your sign-in has expired. Please sign in again."},401);}
-  const body=req.bodyJson||{},courseId=String(req.query?.courseId||body.courseId||"").trim();if(!courseId||courseId.length>150)return json(res,{success:false,error:"A valid course ID is required."},400);
+  // GET progress requests have no JSON body; reading req.bodyJson on an empty body throws.
+  // Only parse the body for POST lesson-completion requests.
+  const body=action==="complete-lesson"?(req.bodyJson||{}):{},courseId=String(req.query?.courseId||body.courseId||"").trim();if(!courseId||courseId.length>150)return json(res,{success:false,error:"A valid course ID is required."},400);
   const userRef=db.collection("users").doc(decoded.uid),courseRef=db.collection("courses").doc(courseId);
   const [userSnap,courseSnap]=await Promise.all([userRef.get(),courseRef.get()]);if(!userSnap.exists||!courseSnap.exists)return json(res,{success:false,error:"Your account or course could not be found."},404);
   const user=userSnap.data()||{},course=courseSnap.data()||{};if(user.role!=="student"||user.status!=="approved")return json(res,{success:false,error:"Only approved students can record course completion."},403);
