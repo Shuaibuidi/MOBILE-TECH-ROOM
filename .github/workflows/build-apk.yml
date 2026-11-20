@@ -42,7 +42,7 @@ jobs:
       - name: Install Capacitor, native printer and build tools
         run: |
           npm init -y
-          npm install @capacitor/core@7 @capacitor/android@7 @capgo/capacitor-printer@7 esbuild@0.25
+          npm install @capacitor/core@7 @capacitor/android@7 @capgo/capacitor-printer@7 esbuild@0.25 pdfjs-dist@4.10.38
           npm install --save-dev @capacitor/cli@7 @capacitor/assets
 
       - name: Prepare app and bundle native printer
@@ -79,6 +79,7 @@ jobs:
           fs.writeFileSync(file, html);
           NODE
           npx esbuild www/app.js --bundle --format=esm --platform=browser --target=es2020 '--external:https://*' --outfile=www/app.bundle.js
+          npx esbuild node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs --bundle --format=esm --platform=browser --target=es2020 --outfile=www/pdf.worker.mjs
           rm www/app.js
 
       - name: Create Android project
