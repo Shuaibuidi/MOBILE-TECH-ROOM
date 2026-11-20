@@ -2451,12 +2451,14 @@ async function renderAdminNotifications() {
       </div>
       <div class="notification-list">${items.length ? items.slice(0, 20).map(item => {
         const isPayment = item.type === "payment_received";
+        const isApprovedStudent = !isPayment && item.studentStatus === "approved";
+        const isBlockedStudent = !isPayment && item.studentStatus === "blocked";
         const date = item.createdAt ? new Date(item.createdAt).toLocaleString() : "Recently";
         return `<article class="notification-item ${item.read ? "is-read" : "is-unread"}">
-          <div class="notification-icon">${isPayment ? "💳" : "👤"}</div>
+          <div class="notification-icon">${isPayment ? "💳" : isApprovedStudent ? "✅" : "👤"}</div>
           <div class="notification-content">
-            <strong>${isPayment ? "Payment received" : "New student registered"}</strong>
-            <p>${safe(item.studentName || "Student")} ${isPayment ? "paid for" : "is waiting for approval"} ${isPayment ? safe(item.courseTitle || "a course") : ""}</p>
+            <strong>${isPayment ? "Payment received" : isApprovedStudent ? "Student approved" : isBlockedStudent ? "Student account blocked" : "New student registered"}</strong>
+            <p>${safe(item.studentName || "Student")} ${isPayment ? "paid for" : isApprovedStudent ? "has been approved" : isBlockedStudent ? "has been blocked" : "is waiting for approval"} ${isPayment ? safe(item.courseTitle || "a course") : ""}</p>
             ${isPayment ? `<p class="notification-amount">${safe(item.currency)} ${safe(Number(item.amount || 0).toLocaleString())}</p>` : ""}
             <small>${safe(item.email || "")} · ${safe(date)}</small>
           </div>
