@@ -375,13 +375,19 @@ async function handleAdminNotifications({ req, res, error }) {
       return json(res, { success: false, error: "Unknown notification action." }, 400);
     }
     const snapshot = await db.collection("adminNotifications").orderBy("createdAt", "desc").limit(50).get();
-    const notifications = snapshot.docs.map(item => {
+    const notifications = await Promise.all(snapshot.docs.map(async item => {
       const value = item.data() || {};
+      let studentStatus = "";
+      if (value.uid && value.type === "new_student") {
+        const studentSnap = await db.collection("users").doc(String(value.uid)).get();
+        studentStatus = studentSnap.exists ? String(studentSnap.data()?.status || "pending") : "unknown";
+      }
       return {
         id: item.id,
         type: String(value.type || "alert"),
         studentName: String(value.studentName || ""),
         email: String(value.email || ""),
+        studentStatus,
         courseTitle: String(value.courseTitle || ""),
         amount: Number(value.amount || 0),
         currency: String(value.currency || "MWK"),
@@ -389,7 +395,7 @@ async function handleAdminNotifications({ req, res, error }) {
         read: Boolean(value.readAt),
         createdAt: value.createdAt?.toDate ? value.createdAt.toDate().toISOString() : null
       };
-    });
+    }));
     return json(res, { success: true, notifications });
   } catch (e) {
     error(e?.stack || String(e));
