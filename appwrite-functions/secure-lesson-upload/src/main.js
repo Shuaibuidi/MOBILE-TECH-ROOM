@@ -258,15 +258,16 @@ async function handleMedia({ req, res, log, error }) {
     catch { return json(res, { success: false, error: "Your sign-in has expired. Please sign in again." }, 401); }
 
     const mediaUrl = String(req.query?.mediaUrl || "").trim();
-    if (!mediaUrl || mediaUrl.length > 2048 || fileIdFromMediaUrl(mediaUrl) !== fileId) {
-      return json(res, { success: false, error: "The lesson file details are invalid." }, 400);
-    }
+    const mediaUrlMatchesFile = mediaUrl.length > 0 && mediaUrl.length <= 2048 &&
+      fileIdFromMediaUrl(mediaUrl) === fileId;
 
     const [userSnap, courseSnap, lessonSnap] = await Promise.all([
       db.collection("users").doc(decoded.uid).get(),
       db.collection("courses").doc(courseId).get(),
-      db.collection("courses").doc(courseId).collection("lessons")
-        .where("mediaUrl", "==", mediaUrl).limit(1).get()
+      mediaUrlMatchesFile
+        ? db.collection("courses").doc(courseId).collection("lessons")
+            .where("mediaUrl", "==", mediaUrl).limit(1).get()
+        : db.collection("courses").doc(courseId).collection("lessons").get()
     ]);
     if (!userSnap.exists || !courseSnap.exists) {
       return json(res, { success: false, error: "The account or course could not be found." }, 404);
