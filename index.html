@@ -2570,7 +2570,7 @@ const accessType=$("courseAccess").value,lessonType=$("lessonType").value;
 if(accessType==="paid"&&(!val("coursePrice")||Number(val("coursePrice"))<=0)){appMessage("Enter a valid price for this paid course.","error");return;}
 const url=val("lessonUrl"),resourceUrl=val("lessonResourceUrl");
 if(resourceUrl&&!/^https:\/\/.+/i.test(resourceUrl)){appMessage("Please enter a valid HTTPS learning link.","error");return;}
-if(!$("courseDescription").innerText.trim()){appMessage("Describe what this course covers.","error");return;}
+// Course description field was intentionally removed from the course editor.
 if(!$("lessonOutcomes").innerText.trim()){appMessage("Describe what students will learn in this lesson.","error");return;}
 if(!url){appMessage("Please upload the lesson file before saving.","error");return;}
 if($("lessonFile").files.length&&!url){appMessage("Please upload the selected file before saving.","error");return;}
