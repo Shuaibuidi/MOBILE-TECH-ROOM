@@ -416,7 +416,7 @@ async function handleCourseProgress({ req, res, error }) {
    await db.runTransaction(async tx=>{
     const ps=await tx.get(progressRef),saved=ps.exists?ps.data()||{}:{},set=new Set(Array.isArray(saved.completedLessonIds)?saved.completedLessonIds:[]);set.add(lessonId);
     const completedLessonIds=lessonIds.filter(id=>set.has(id)),complete=lessonIds.length>0&&completedLessonIds.length===lessonIds.length;
-    const certificateId=saved.certificateId||(complete?"MTR-"+new Date().getFullYear()+"-"+crypto.randomBytes(4).toString("hex").toUpperCase():null);
+    const certificateId=saved.certificateId||(complete?"MTR-"+new Date().getFullYear()+"-"+crypto.randomBytes(8).toString("hex").toUpperCase():null);
     const update={courseId,courseTitle:String(course.title||"Course").slice(0,180),studentName:String(user.fullName||decoded.name||decoded.email||"Student").slice(0,120),completedLessonIds,totalLessons:lessonIds.length,updatedAt:admin.firestore.FieldValue.serverTimestamp()};
     if(complete&&!saved.certificateId){update.certificateId=certificateId;update.completedAt=admin.firestore.FieldValue.serverTimestamp();}
     tx.set(progressRef,update,{merge:true});
