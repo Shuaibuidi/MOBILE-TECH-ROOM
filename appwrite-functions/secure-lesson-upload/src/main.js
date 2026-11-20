@@ -645,7 +645,6 @@ async function handleQuizzes({ req, res, error }) {
       return json(res, {
         success: true,
         attemptId: attemptRef.id, score, total, percentage,
-        passed: percentage >= 50,
         review
       });
     }
