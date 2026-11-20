@@ -288,6 +288,13 @@ button:hover{transform:none!important}
 .student-lesson-media{margin:12px 0;padding:0;background:transparent;border:0;overflow:visible}
 .media-lightbox-audio{display:block;width:min(100%,620px);margin:20px auto}
 .media-lightbox-pdf{display:block;width:100%;height:min(72vh,760px);border:0;border-radius:10px;background:#fff}
+.mtr-pdf-panel{width:100%;min-height:55vh;max-height:76vh;display:flex;flex-direction:column;gap:10px;background:#eaf1fa;border-radius:12px;padding:10px;overflow:hidden}
+.mtr-pdf-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#17365f;font-weight:700}
+.mtr-pdf-controls button{padding:9px 14px;border:0;border-radius:9px;background:#075bea;color:#fff;font-weight:700}
+.mtr-pdf-controls button:disabled{opacity:.4}
+.mtr-pdf-canvas-wrap{overflow:auto;text-align:center;flex:1;min-height:0}
+.mtr-pdf-canvas{display:block;max-width:100%;height:auto;margin:0 auto;background:#fff;box-shadow:0 2px 12px #17365b25}
+.mtr-pdf-error{color:#9b1c1c;background:#fff;padding:18px;border-radius:10px}
 @media(max-width:420px){.media-file-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.media-file-card{min-height:108px;padding:8px}.media-file-thumb{height:64px}.media-file-name{font-size:11px}}
 
 /* =========================================================
@@ -1659,6 +1666,8 @@ footer{color:#71839a!important}
 <footer>Mobile Tech Room · Learn mobile technology skills</footer>
 
 <script type="module">
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+
 import {initializeApp} from
 "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 
@@ -3132,11 +3141,39 @@ if(action==="view-media"||action==="open-secure-media"){
   }else if(mediaType==="audio"){
     const audio=document.createElement("audio");audio.className="media-lightbox-audio";audio.controls=true;audio.autoplay=true;audio.src=mediaUrl;inner.append(audio);
   }else if(mediaType==="pdf"){
-    const frame=document.createElement("iframe");frame.className="media-lightbox-pdf";frame.src=mediaUrl+"#toolbar=1";frame.title=mediaTitle;inner.append(frame);
-    const link=document.createElement("a");link.href=mediaUrl;link.target="_blank";link.rel="noopener noreferrer";link.textContent="Open or download PDF";inner.append(link);
+    const panel=document.createElement("div");panel.className="mtr-pdf-panel";
+    panel.innerHTML='<div class="mtr-pdf-controls"><button type="button" data-pdf-prev disabled>Previous</button><span data-pdf-page>Loading PDF…</span><button type="button" data-pdf-next disabled>Next</button></div><div class="mtr-pdf-canvas-wrap"><canvas class="mtr-pdf-canvas"></canvas></div>';
+    inner.append(panel);
+    viewer._mtrPdfPanel=panel;
   }
-  viewer.append(inner);viewer.addEventListener("click",event=>{if(event.target===viewer){viewer.remove();if(mediaUrl.startsWith("blob:"))URL.revokeObjectURL(mediaUrl);}});
+  viewer.append(inner);viewer.addEventListener("click",event=>{if(event.target===viewer){viewer._mtrPdfDoc?.destroy?.();viewer.remove();if(mediaUrl.startsWith("blob:"))URL.revokeObjectURL(mediaUrl);}});
+  close.addEventListener("click",()=>viewer._mtrPdfDoc?.destroy?.());
   document.body.append(viewer);
+  if(mediaType==="pdf"){
+    try{
+      pdfjsLib.GlobalWorkerOptions.workerSrc="./pdf.worker.mjs";
+      const pdf=await pdfjsLib.getDocument({url:mediaUrl}).promise;
+      viewer._mtrPdfDoc=pdf;
+      const panel=viewer._mtrPdfPanel,canvas=panel.querySelector("canvas"),ctx=canvas.getContext("2d");
+      const pageLabel=panel.querySelector("[data-pdf-page]"),prev=panel.querySelector("[data-pdf-prev]"),next=panel.querySelector("[data-pdf-next]");
+      let pageNumber=1,renderTask=null;
+      const draw=async()=>{
+        if(renderTask){try{renderTask.cancel();}catch(_){}}
+        const page=await pdf.getPage(pageNumber),base=page.getViewport({scale:1});
+        const width=Math.max(240,panel.clientWidth-20),scale=Math.min(2.2,width/base.width);
+        const viewport=page.getViewport({scale});
+        canvas.width=Math.floor(viewport.width*devicePixelRatio);canvas.height=Math.floor(viewport.height*devicePixelRatio);
+        canvas.style.width=Math.floor(viewport.width)+"px";canvas.style.height=Math.floor(viewport.height)+"px";
+        renderTask=page.render({canvasContext:ctx,viewport:page.getViewport({scale:scale*devicePixelRatio})});
+        await renderTask.promise;
+        pageLabel.textContent="Page "+pageNumber+" of "+pdf.numPages;
+        prev.disabled=pageNumber<=1;next.disabled=pageNumber>=pdf.numPages;
+      };
+      prev.addEventListener("click",async()=>{if(pageNumber>1){pageNumber--;await draw();}});
+      next.addEventListener("click",async()=>{if(pageNumber<pdf.numPages){pageNumber++;await draw();}});
+      await draw();
+    }catch(pdfError){const panel=viewer._mtrPdfPanel;panel.innerHTML='<p class="mtr-pdf-error">This PDF could not be displayed. Please check your connection and try again.</p>';throw pdfError;}
+  }
   return;
 }
 if(action==="pay-course")await startPayChanguCheckout(id);
