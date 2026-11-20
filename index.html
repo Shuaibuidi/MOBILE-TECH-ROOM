@@ -1698,6 +1698,9 @@ let registrationInProgress=false;
 let currentTab="dashboard";
 let selectedCourse=null;
 let courses=[];
+let coursesCacheAt=0;
+let coursesCacheKey="";
+let coursesLoadPromise=null;
 let users=[];
 
 const $=id=>document.getElementById(id);
@@ -1712,7 +1715,7 @@ return String(value??"").replace(/[&<>"']/g,c=>({
 
 async function requestCourseProgress(courseId,lessonId=null){
  if(!currentUser)throw new Error("Please sign in to save your learning progress.");
- const token=await currentUser.getIdToken(true),action=lessonId?"complete-lesson":"course-progress";
+ const token=await currentUser.getIdToken(),action=lessonId?"complete-lesson":"course-progress";
  const url="https://starter-function-9cke.sgp.appwrite.run/?action="+action+"&courseId="+encodeURIComponent(courseId);
  const response=await fetch(url,{method:lessonId?"POST":"GET",headers:{Authorization:"Bearer "+token,...(lessonId?{"Content-Type":"application/json"}:{})},...(lessonId?{body:JSON.stringify({courseId,lessonId})}:{})});
  let data={};try{data=await response.json();}catch(_){}
@@ -1865,7 +1868,7 @@ async function renderStorageUsagePanel() {
   if (!panel || !currentUser || !isAdmin()) return;
   panel.innerHTML = "<h3>Lesson Media Storage</h3><p class='muted'>Checking Appwrite storage...</p>";
   try {
-    const token = await currentUser.getIdToken(true);
+    const token = await currentUser.getIdToken();
     const response = await fetch("https://starter-function-9cke.sgp.appwrite.run/?action=storage-usage", {
       method: "GET",
       headers: { Authorization: "Bearer " + token }
@@ -2434,7 +2437,7 @@ applyGlobalCourseSearch();
 
 async function callQuizApi(action,method="GET",payload={}){
  if(!currentUser)throw new Error("Please sign in again.");
- const token=await currentUser.getIdToken(true),url="https://starter-function-9cke.sgp.appwrite.run/?action="+encodeURIComponent(action)+(payload.quizId?"&quizId="+encodeURIComponent(payload.quizId):"");
+ const token=await currentUser.getIdToken(),url="https://starter-function-9cke.sgp.appwrite.run/?action="+encodeURIComponent(action)+(payload.quizId?"&quizId="+encodeURIComponent(payload.quizId):"");
  const response=await fetch(url,{method,headers:{"Authorization":"Bearer "+token,...(method==="POST"?{"Content-Type":"application/json"}:{})},...(method==="POST"?{body:JSON.stringify(payload)}:{})});
  const result=await response.json().catch(()=>({}));if(!response.ok||result.success===false)throw new Error(result.error||"Quiz request failed.");return result;
 }
@@ -2449,7 +2452,7 @@ function quizQuestionEditor(q={},i=0){
 async function renderQuizzes(){
  page.innerHTML="<div class='panel'>Loading quizzes...</div>";
  try{
-  await loadCourses();const data=await callQuizApi("quiz-list"),items=data.quizzes||[],staff=isStaff();
+  const [,data]=await Promise.all([loadCourses(),callQuizApi("quiz-list")]);const items=data.quizzes||[],staff=isStaff();
   let h='<section class="dashboard-hero"><p class="uppercase-accent">ASSESSMENT CENTRE</p><h2>Quizzes &amp; Exams</h2><p>Multiple-choice tests, automatic marking and results.</p></section>';
   if(staff&&courses.length){
    h+='<section class="panel"><h2 id="quizEditorHeading">Create a Quiz</h2><form id="quizForm"><label class="muted">Course</label><select id="quizCourse">';
@@ -2515,7 +2518,7 @@ async function renderQuizResults(id){
 
 async function callAdminNotifications(action, method="GET", payload={}) {
   if (!currentUser) throw new Error("Please sign in again.");
-  const token = await currentUser.getIdToken(true);
+  const token = await currentUser.getIdToken();
   const response = await fetch("https://starter-function-9cke.sgp.appwrite.run/?action=" + encodeURIComponent(action), {
     method,
     headers: { "Authorization": "Bearer " + token, ...(method === "POST" ? { "Content-Type": "application/json" } : {}) },
@@ -2674,25 +2677,42 @@ function renderAbout(){
   <section class="panel"><h2>Learn with every format</h2><div class="about-format-grid"><div>🖼️<strong>Images</strong><small>Visual guides</small></div><div>▶️<strong>Videos</strong><small>Practical lessons</small></div><div>📄<strong>PDFs</strong><small>Study manuals</small></div><div>🎧<strong>Audio</strong><small>Listen and learn</small></div></div></section>`;
 }
 
-async function loadCourses(){
-  let q;
+function invalidateCoursesCache(){
+  coursesCacheAt=0;
+}
 
-  if(isAdmin()){
+async function loadCourses(){
+  if(!currentUser)return;
+  const role=isAdmin()?"admin":isInstructor()?"instructor":"student";
+  const cacheKey=currentUser.uid+":"+role;
+  if(coursesCacheKey!==cacheKey){
+    coursesCacheKey=cacheKey;
+    coursesCacheAt=0;
+    coursesLoadPromise=null;
+    courses=[];
+  }
+  if(coursesCacheAt&&Date.now()-coursesCacheAt<20000)return;
+  if(coursesLoadPromise)return coursesLoadPromise;
+
+  let q;
+  if(role==="admin"){
     q=collection(db,"courses");
-  }else if(isInstructor()){
-    q=query(
-      collection(db,"courses"),
-      where("createdBy","==",currentUser.uid)
-    );
+  }else if(role==="instructor"){
+    q=query(collection(db,"courses"),where("createdBy","==",currentUser.uid));
   }else{
-    q=query(
-      collection(db,"courses"),
-      where("status","==","published")
-    );
+    q=query(collection(db,"courses"),where("status","==","published"));
   }
 
-  const snap=await getDocs(q);
-  courses=snap.docs.map(d=>({id:d.id,...d.data()}));
+  coursesLoadPromise=(async()=>{
+    try{
+      const snap=await getDocs(q);
+      courses=snap.docs.map(d=>({id:d.id,...d.data()}));
+      coursesCacheAt=Date.now();
+    }finally{
+      coursesLoadPromise=null;
+    }
+  })();
+  return coursesLoadPromise;
 }
 
 function bindLessonFormControls({accessId=null,priceFieldId=null,priceId=null,typeId,writtenId,mediaId,contentId}) {
@@ -2787,6 +2807,7 @@ const cid=await ensureCourse();
 await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:rich("lessonOutcomes"),lessonNumber:1,type:lessonType,content:"",mediaUrl:url,resourceUrl:resourceUrl,createdBy:currentUser.uid,createdAt:serverTimestamp()});
 await setDoc(doc(db,"courses",cid),{status:"published",updatedAt:serverTimestamp()},{merge:true});
 appMessage("Course and first lesson saved successfully.");
+invalidateCoursesCache();
 await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:val("courseTitle"),description:""};await openCourse(cid);
 }catch(err){appMessage("Could not save course and lesson: "+(err.code?err.code+": ":"")+err.message,"error");}
 };
@@ -3043,6 +3064,7 @@ await updateDoc(doc(db,"courses",id),{
 title:title.trim(),description:description.trim()
 });
 appMessage("Lesson topic updated.");
+invalidateCoursesCache();
 await renderCourses();
 }catch(e){appMessage(e.message,"error")}
 }
@@ -3060,6 +3082,7 @@ await deleteDoc(doc(db,"courses",id,"lessons",l.id));
 }
 await deleteDoc(doc(db,"courses",id));
 appMessage("Lesson topic deleted.");
+invalidateCoursesCache();
 await renderCourses();
 }catch(e){appMessage("Could not delete lesson topic: "+e.message,"error")}
 }
