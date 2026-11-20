@@ -3208,7 +3208,7 @@ if(action==="view-media"||action==="open-secure-media"){
   const secureAudio=action==="open-secure-media"&&mediaType==="audio";
   const courseId=b.dataset.courseId||selectedCourse?.id||"";
   if(action==="open-secure-media"&&!secureAudio)mediaUrl=await requestSecureLessonMedia(mediaUrl,courseId);
-  if(!/^(https:\\/\\/.+|blob:)/i.test(mediaUrl)){appMessage("This media link is not valid.","error");return;}
+  if(!/^(https:\/\/.+|blob:)/i.test(mediaUrl)){appMessage("This media link is not valid.","error");return;}
   document.getElementById("lessonMediaViewer")?.remove();
   const viewer=document.createElement("div");
   viewer.id="lessonMediaViewer";viewer.className="media-lightbox";
