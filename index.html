@@ -1739,6 +1739,22 @@ function downloadCertificate(b){
  w.document.open();w.document.write(a+safe(name)+z+safe(course)+end);w.document.close();
 }
 
+async function ensureMobilePdfJs(){
+  if(window.pdfjsLib)return window.pdfjsLib;
+  if(!window.__mtrPdfJsPromise){
+    window.__mtrPdfJsPromise=new Promise((resolve,reject)=>{
+      const script=document.createElement("script");
+      script.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+      script.onload=()=>window.pdfjsLib?resolve(window.pdfjsLib):reject(new Error("PDF viewer library did not initialise."));
+      script.onerror=()=>reject(new Error("PDF viewer could not load. Check your internet connection and try again."));
+      document.head.appendChild(script);
+    });
+  }
+  const pdfjs=await window.__mtrPdfJsPromise;
+  pdfjs.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  return pdfjs;
+}
+
 async function requestSecureLessonMedia(mediaUrl,courseId){
   if(!currentUser)throw new Error("Please sign in to open this lesson file.");
   let parsed;
@@ -3132,8 +3148,39 @@ if(action==="view-media"||action==="open-secure-media"){
   }else if(mediaType==="audio"){
     const audio=document.createElement("audio");audio.className="media-lightbox-audio";audio.controls=true;audio.autoplay=true;audio.src=mediaUrl;inner.append(audio);
   }else if(mediaType==="pdf"){
-    const frame=document.createElement("iframe");frame.className="media-lightbox-pdf";frame.src=mediaUrl+"#toolbar=1";frame.title=mediaTitle;inner.append(frame);
-    const link=document.createElement("a");link.href=mediaUrl;link.target="_blank";link.rel="noopener noreferrer";link.textContent="Open or download PDF";inner.append(link);
+    const pages=document.createElement("div");
+    pages.className="media-lightbox-pdf-pages";
+    pages.style.cssText="width:100%;max-height:76vh;overflow:auto;background:#e9eef5;border-radius:10px;padding:10px;overscroll-behavior:contain";
+    pages.textContent="Preparing PDF...";
+    inner.append(pages);
+    try{
+      const pdfjs=await ensureMobilePdfJs();
+      const fileResponse=await fetch(mediaUrl);
+      if(!fileResponse.ok)throw new Error("The PDF file could not be read.");
+      const pdfData=await fileResponse.arrayBuffer();
+      const pdf=await pdfjs.getDocument({data:pdfData}).promise;
+      pages.textContent="";
+      for(let pageNumber=1;pageNumber<=pdf.numPages;pageNumber++){
+        const pdfPage=await pdf.getPage(pageNumber);
+        const baseViewport=pdfPage.getViewport({scale:1});
+        const availableWidth=Math.max(240,pages.clientWidth-20);
+        const scale=Math.min(1.6,availableWidth/baseViewport.width);
+        const viewport=pdfPage.getViewport({scale});
+        const canvas=document.createElement("canvas");
+        canvas.style.cssText="display:block;width:100%;height:auto;margin:0 auto 12px;background:white;box-shadow:0 2px 8px #142b4930";
+        const ratio=Math.min(window.devicePixelRatio||1,2);
+        canvas.width=Math.ceil(viewport.width*ratio);
+        canvas.height=Math.ceil(viewport.height*ratio);
+        const context=canvas.getContext("2d");
+        context.setTransform(ratio,0,0,ratio,0,0);
+        pages.append(canvas);
+        await pdfPage.render({canvasContext:context,viewport}).promise;
+      }
+      if(!pdf.numPages)pages.textContent="This PDF has no pages.";
+    }catch(pdfError){
+      pages.textContent=pdfError.message||"The PDF could not be displayed.";
+      throw pdfError;
+    }
   }
   viewer.append(inner);viewer.addEventListener("click",event=>{if(event.target===viewer){viewer.remove();if(mediaUrl.startsWith("blob:"))URL.revokeObjectURL(mediaUrl);}});
   document.body.append(viewer);
