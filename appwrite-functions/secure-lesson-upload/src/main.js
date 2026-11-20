@@ -307,16 +307,19 @@ async function handleMedia({ req, res, log, error }) {
 
     const contentType = (upstream.headers.get("content-type") || "application/octet-stream").split(";")[0].trim().toLowerCase();
     const safeType = ALLOWED_MIME.has(contentType) ? contentType : "application/octet-stream";
-    const bytes = Buffer.from(await upstream.arrayBuffer());
-    log("Securely streamed lesson media for user " + decoded.uid + " and course " + courseId);
-    return res.binary(bytes, 200, {
+    if (!upstream.body) throw new Error("Appwrite returned no media stream.");
+    const responseHeaders = {
       ...headers(),
       "Content-Type": safeType,
       "Content-Disposition": "inline; filename=\"lesson-media\"",
       "Cache-Control": "private, no-store, max-age=0",
       "Pragma": "no-cache",
       "X-Content-Type-Options": "nosniff"
-    });
+    };
+    const contentLength = upstream.headers.get("content-length");
+    if (contentLength && /^\\d+$/.test(contentLength)) responseHeaders["Content-Length"] = contentLength;
+    log("Progressively streaming lesson media for user " + decoded.uid + " and course " + courseId);
+    return res.sendStream(upstream.body, 200, responseHeaders);
   } catch (e) {
     error(e?.stack || String(e));
     return json(res, { success: false, error: "The secure lesson media service encountered an error. Please try again." }, 500);
