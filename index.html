@@ -1702,6 +1702,36 @@ return String(value??"").replace(/[&<>"']/g,c=>({
 }[c]));
 }
 
+
+async function requestCourseProgress(courseId,lessonId=null){
+ if(!currentUser)throw new Error("Please sign in to save your learning progress.");
+ const token=await currentUser.getIdToken(true),action=lessonId?"complete-lesson":"course-progress";
+ const url="https://starter-function-9cke.sgp.appwrite.run/?action="+action+"&courseId="+encodeURIComponent(courseId);
+ const response=await fetch(url,{method:lessonId?"POST":"GET",headers:{Authorization:"Bearer "+token,...(lessonId?{"Content-Type":"application/json"}:{})},...(lessonId?{body:JSON.stringify({courseId,lessonId})}:{})});
+ let data={};try{data=await response.json();}catch(_){}
+ if(!response.ok||!data.success)throw new Error(data.error||"Course progress could not be saved.");return data;
+}
+async function getCourseProgress(courseId){
+ let p=await requestCourseProgress(courseId),key="mtr_progress_"+currentUser.uid+"_"+courseId,old=[];
+ try{old=JSON.parse(localStorage.getItem(key)||"[]");}catch(_){}
+ if(Array.isArray(old)&&old.length){for(const id of old)if(typeof id==="string"&&!p.completedLessonIds.includes(id))p=await requestCourseProgress(courseId,id);localStorage.removeItem(key);p=await requestCourseProgress(courseId);}
+ return p;
+}
+function certificateCard(course,p){
+ if(!p?.certificateId)return "";
+ const name=p.studentName||profile?.fullName||currentUser?.displayName||"Student";
+ return '<section class="certificate-unlocked"><h3>🏅 Course completed — certificate unlocked!</h3><p><strong>'+safe(name)+'</strong> has completed <strong>'+safe(p.courseTitle||course.title||"this course")+'</strong>.</p><p>Certificate No: <strong>'+safe(p.certificateId)+'</strong></p><button type="button" data-action="download-certificate" data-student-name="'+safe(name)+'" data-course-title="'+safe(p.courseTitle||course.title||"Course")+'" data-certificate-id="'+safe(p.certificateId)+'" data-completed-at="'+safe(p.completedAt||"")+'">⬇ Download Certificate (PDF)</button><p class="muted">On your phone, choose “Save as PDF” in the print screen.</p></section>';
+}
+function downloadCertificate(b){
+ const name=b.dataset.studentName||"Student",course=b.dataset.courseTitle||"Course",id=b.dataset.certificateId||"",raw=b.dataset.completedAt;
+ const date=raw?new Date(raw).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"}):new Date().toLocaleDateString("en-GB");
+ const w=window.open("","_blank");if(!w){appMessage("Please allow pop-ups to open your certificate.","warning");return;}
+ const a='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mobile Tech Room Certificate</title><style>@page{size:A4 landscape;margin:0}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#1d2a40}.sheet{width:297mm;height:210mm;padding:13mm;display:flex;align-items:center;justify-content:center}.border{width:100%;height:100%;border:3px double #b38a35;padding:13mm;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}.kicker{font-size:12pt;letter-spacing:5px;color:#9b7629;font-weight:bold}.title{font:38pt Georgia,serif;color:#172d4d;margin:10mm 0 3mm}.intro{font-size:14pt;color:#586477}.name{font:30pt Georgia,serif;color:#8b6824;border-bottom:1px solid #c6a65a;padding:0 15mm 4mm;margin:5mm 0}.course{font-size:21pt;font-weight:bold;color:#263e60;margin:4mm 0}.seal{width:25mm;height:25mm;border:2px solid #b38a35;border-radius:50%;display:grid;place-items:center;color:#9b7629;font-size:9pt;font-weight:bold;margin:5mm auto}.meta{font-size:11pt;color:#586477;margin-top:3mm}.id{font-size:9pt;color:#788397;margin-top:5mm}.print{position:fixed;top:12px;right:12px;padding:12px 18px;background:#173d68;color:white;border:0;border-radius:8px}@media print{.print{display:none}}</style></head><body><button class="print" onclick="window.print()">Print / Save as PDF</button><main class="sheet"><div class="border"><div class="kicker">MOBILE TECH ROOM</div><div class="title">Certificate of Completion</div><p class="intro">This certificate is proudly presented to</p><div class="name">';
+ const z='</div><p class="intro">for successfully completing the course</p><div class="course">';
+ const end='</div><div class="seal">MTR<br>VERIFIED</div><div class="meta">Completed on '+safe(date)+'</div><div class="id">Certificate No: '+safe(id)+'</div></div></main></body></html>';
+ w.document.open();w.document.write(a+safe(name)+z+safe(course)+end);w.document.close();
+}
+
 async function requestSecureLessonMedia(mediaUrl,courseId){
   if(!currentUser)throw new Error("Please sign in to open this lesson file.");
   let parsed;
@@ -1967,6 +1997,9 @@ input::placeholder,textarea::placeholder{color:#9aaac0!important}
 /* Make the rich-text link control unmistakable on phones and desktop */
 .editor-toolbar .mtr-link-button{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;min-width:104px!important;min-height:42px!important;padding:9px 14px!important;margin:2px!important;background:#075bea!important;color:#fff!important;border:2px solid #45a5ff!important;border-radius:9px!important;font-size:14px!important;font-weight:800!important;line-height:1.2!important;opacity:1!important;visibility:visible!important;position:relative!important;z-index:2!important;}
 .editor-toolbar .mtr-link-button:before{content:none!important;display:none!important}
+
+/* Course completion certificates */
+.certificate-unlocked{margin:14px 0;padding:18px;border:1px solid #d8b45a;border-radius:16px;background:linear-gradient(135deg,#fff9e7,#f3e4b8);color:#25334a;box-shadow:0 8px 24px #0002}.certificate-unlocked h3{color:#805b13;margin:0 0 7px}.certificate-unlocked p{color:#4c5668;margin:5px 0}.certificate-unlocked button{background:linear-gradient(110deg,#d6a83c,#f4d77a);color:#33250a}
 </style></head><body><main class="sheet"><header class="brand"><div class="brand-name">MOBILE TECH ROOM</div><div class="brand-tag">LEARN • REPAIR • INNOVATE</div></header>
 <p class="kicker">MOBILE TECH LESSON</p><h1>${safe(cleanTitle)}</h1><article>${content}</article></main>
 </body></html>`;
@@ -2371,10 +2404,10 @@ async function renderDashboard(){
       const locked=courses.filter(c=>c.accessType==="paid"&&!activeIds.has(c.id));
       let totalLessons=0,completedLessons=0;
       const counts=await Promise.all(available.map(async c=>{
-        try{const snap=await getDocs(collection(db,"courses",c.id,"lessons"));const key=`mtr_progress_${currentUser.uid}_${c.id}`;let done=[];try{done=JSON.parse(localStorage.getItem(key)||"[]");}catch(_){}totalLessons+=snap.size;completedLessons+=Array.isArray(done)?done.length:0;return {course:c,count:snap.size,done:Array.isArray(done)?done.length:0};}catch(_){return {course:c,count:0,done:0};}
+        try{const [snap,p]=await Promise.all([getDocs(collection(db,"courses",c.id,"lessons")),getCourseProgress(c.id)]);const done=p.completedLessonIds.length;totalLessons+=snap.size;completedLessons+=done;return {course:c,count:snap.size,done,progress:p};}catch(_){return {course:c,count:0,done:0,progress:null};}
       }));
       const percent=totalLessons?Math.min(100,Math.round(completedLessons/totalLessons*100)):0;
-      const cards=counts.map(({course:c,count,done})=>`<article class="student-course"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">${/computer|laptop|windows/i.test(c.title)?"💻":/iphone|ios|apple/i.test(c.title)?"📱":/android|frp/i.test(c.title)?"🤖":/gsm|tool|repair/i.test(c.title)?"🛠":"📲"}</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${safe(c.description||"Practical technical training and step-by-step lessons.")}</p><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${count?Math.round(done/count*100):0}%"></div></div><small class="muted">${done}/${count} lessons completed</small><button data-action="open-course" data-id="${safe(c.id)}">Continue Learning →</button></div></article>`).join("");
+      const cards=counts.map(({course:c,count,done,progress})=>`<article class="student-course"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">${/computer|laptop|windows/i.test(c.title)?"💻":/iphone|ios|apple/i.test(c.title)?"📱":/android|frp/i.test(c.title)?"🤖":/gsm|tool|repair/i.test(c.title)?"🛠":"📲"}</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${safe(c.description||"Practical technical training and step-by-step lessons.")}</p><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${count?Math.round(done/count*100):0}%"></div></div><small class="muted">${done}/${count} lessons completed</small><button data-action="open-course" data-id="${safe(c.id)}">Continue Learning →</button>${certificateCard(c,progress)}</div></article>`).join("");
       page.innerHTML=`
       <section class="dashboard-hero student-dashboard-hero"><p class="uppercase-accent student-platform-title">YOUR COMPLETE TECH LEARNING PLATFORM</p><p><strong>Learn • Repair • Unlock • Innovate</strong></p><div class="actions"><button data-dashboard-tab="lessons">Explore My Courses →</button><span class="tag">✓ ${safe(status.toUpperCase())} STUDENT</span></div></section>
       <div class="course-quick-stats"><div class="course-quick-stat"><strong>${available.length}</strong><span>Available courses</span></div><div class="course-quick-stat"><strong>${totalLessons}</strong><span>Lessons to explore</span></div><div class="course-quick-stat"><strong>${percent}%</strong><span>Learning progress</span></div></div>
@@ -2411,20 +2444,15 @@ async function renderProgress(){
       const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
       const visible=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
       const rows=await Promise.all(visible.map(async c=>{
-        let total=0,done=0;
-        try{
-          const snap=await getDocs(collection(db,"courses",c.id,"lessons"));
-          total=snap.size;
-          const saved=JSON.parse(localStorage.getItem(`mtr_progress_${currentUser.uid}_${c.id}`)||"[]");
-          done=Array.isArray(saved)?saved.filter(id=>snap.docs.some(d=>d.id===id)).length:0;
-        }catch(_){}
-        return {course:c,total,done};
+        let total=0,done=0,progress=null;
+        try{const [snap,p]=await Promise.all([getDocs(collection(db,"courses",c.id,"lessons")),getCourseProgress(c.id)]);total=snap.size;progress=p;done=p.completedLessonIds.length;}catch(_){}
+        return {course:c,total,done,progress};
       }));
       const total=rows.reduce((n,r)=>n+r.total,0),done=rows.reduce((n,r)=>n+r.done,0);
       const pct=total?Math.round(done/total*100):0;
       page.innerHTML=`<section class="dashboard-hero"><p class="uppercase-accent">YOUR LEARNING JOURNEY</p><h2>My Progress</h2><p>Every lesson completed takes you one step closer to becoming a skilled technician.</p></section>
       <div class="dashboard-stats"><div class="dashboard-stat"><strong>${visible.length}</strong><span>Courses available</span></div><div class="dashboard-stat"><strong>${done}</strong><span>Lessons completed</span></div><div class="dashboard-stat"><strong>${total}</strong><span>Total lessons</span></div><div class="dashboard-stat"><strong>${pct}%</strong><span>Overall progress</span></div></div>
-      <section class="panel"><h2>Course progress</h2>${rows.length?rows.map(r=>`<div class="progress-course-row"><div class="progress-course-head"><strong>${safe(r.course.title)}</strong><span>${r.done}/${r.total}</span></div><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${r.total?Math.round(r.done/r.total*100):0}%"></div></div><button data-dashboard-tab="lessons" class="secondary">Continue learning</button></div>`).join(""):"<p class='muted'>No courses are available yet.</p>"}</section>`;
+      <section class="panel"><h2>Course progress</h2>${rows.length?rows.map(r=>`<div class="progress-course-row"><div class="progress-course-head"><strong>${safe(r.course.title)}</strong><span>${r.done}/${r.total}</span></div><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${r.total?Math.round(r.done/r.total*100):0}%"></div></div><button data-dashboard-tab="lessons" class="secondary">Continue learning</button>${certificateCard(r.course,r.progress)}</div>`).join(""):"<p class='muted'>No courses are available yet.</p>"}</section>`;
     }else{
       const totals=await Promise.all(courses.map(async c=>{try{return (await getDocs(collection(db,"courses",c.id,"lessons"))).size}catch(_){return 0}}));
       page.innerHTML=`<section class="dashboard-hero"><p class="uppercase-accent">ACADEMY OVERVIEW</p><h2>Learning Progress</h2><p>Review the courses and lesson materials currently available in Mobile Tech Room.</p></section><div class="dashboard-stats"><div class="dashboard-stat"><strong>${courses.length}</strong><span>Courses</span></div><div class="dashboard-stat"><strong>${totals.reduce((a,b)=>a+b,0)}</strong><span>Lessons</span></div><div class="dashboard-stat"><strong>${courses.filter(c=>c.status==="published").length}</strong><span>Published courses</span></div></div><section class="panel"><h2>Course activity</h2>${courses.map((c,i)=>`<div class="progress-course-row"><strong>${safe(c.title)}</strong><p class="muted">${totals[i]} lessons · ${safe(c.status||"draft")}</p></div>`).join("")||"<p class='muted'>No courses found.</p>"}</section>`;
@@ -2657,8 +2685,8 @@ const renderReferenceMedia=(lesson)=>{
  
  if(isStudent()){
  if(!lessons.length){page.innerHTML=`<div class="panel"><button class="secondary" data-action="back-courses">← Courses</button><h2>${safe(selectedCourse.title)}</h2><p class="muted">Your instructor has not added lessons yet.</p></div>`;return;}
- const progressKey=`mtr_progress_${currentUser.uid}_${courseId}`;
- let completed=[];try{completed=JSON.parse(localStorage.getItem(progressKey)||"[]");if(!Array.isArray(completed))completed=[];}catch(_){completed=[];}
+ const progressRecord=await getCourseProgress(courseId);
+ let completed=progressRecord.completedLessonIds||[];
  const renderStudentLesson=(lesson,index)=>{
    const type=lesson.type||"written";
    let media="";
@@ -2671,17 +2699,19 @@ const renderReferenceMedia=(lesson)=>{
  };
  const percent=Math.round(completed.filter(id=>lessons.some(l=>l.id===id)).length/lessons.length*100);
  page.innerHTML=`<section class="panel"><button class="secondary" data-action="back-courses">← All Courses</button><h2>${safe(selectedCourse.title)}</h2><p>${formatLessonContent(selectedCourse.description||"Follow the lessons in order and practise each skill safely.")}</p><div class="learning-progress-label"><strong>${completed.filter(id=>lessons.some(l=>l.id===id)).length} of ${lessons.length} lessons completed</strong><strong>${percent}%</strong></div><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${percent}%"></div></div></section><section class="panel"><div class="student-course-heading"><h2>Lessons List</h2><span class="tag">${lessons.length} lessons</span></div><ol class="lesson-list">${lessons.map(renderStudentLesson).join("")}</ol></section>`;
- page.onclick=event=>{
-   const button=event.target.closest('[data-action="student-complete"]');
-   if(!button)return;
-   const lessonId=button.dataset.id;
-   if(!completed.includes(lessonId))completed.push(lessonId);
-   try{localStorage.setItem(progressKey,JSON.stringify(completed));}catch(_){appMessage("Lesson completed, but this browser could not save progress on this device.","error");}
-   const card=button.closest(".student-published-lesson");
-   if(card){const tag=card.querySelector(".tag");if(tag)tag.textContent="✓ COMPLETED";button.textContent="✓ Completed";button.classList.remove("student-lesson-done");button.classList.add("secondary");const label=card.querySelector(".reference-completion");if(label)label.textContent="✓ Lesson completed";const next=card.nextElementSibling;if(next&&next.classList.contains("student-published-lesson"))setTimeout(()=>next.scrollIntoView({behavior:"smooth",block:"start"}),250);}
-   const count=completed.filter(id=>lessons.some(l=>l.id===id)).length;
-   const label=page.querySelector(".learning-progress-label");if(label)label.innerHTML=`<strong>${count} of ${lessons.length} lessons completed</strong><strong>${Math.round(count/lessons.length*100)}%</strong>`;
-   const bar=page.querySelector(".learning-progress-fill");if(bar)bar.style.width=Math.round(count/lessons.length*100)+"%";
+ page.innerHTML+=certificateCard(selectedCourse,progressRecord);
+ page.onclick=async event=>{
+   const button=event.target.closest('[data-action="student-complete"]');if(!button)return;
+   const lessonId=button.dataset.id;button.disabled=true;
+   try{
+     const saved=await requestCourseProgress(courseId,lessonId);completed=saved.completedLessonIds||completed;
+     if(saved.certificateId){await renderLessons(courseId);return;}
+     const card=button.closest(".student-published-lesson");
+     if(card){button.textContent="✓ Completed";button.classList.remove("student-lesson-done");button.classList.add("secondary");const label=card.querySelector(".reference-completion");if(label)label.textContent="✓ Lesson completed";const next=card.nextElementSibling;if(next&&next.classList.contains("student-published-lesson"))setTimeout(()=>next.scrollIntoView({behavior:"smooth",block:"start"}),250);}
+     const count=completed.filter(id=>lessons.some(l=>l.id===id)).length;
+     const label=page.querySelector(".learning-progress-label");if(label)label.innerHTML=`<strong>${count} of ${lessons.length} lessons completed</strong><strong>${Math.round(count/lessons.length*100)}%</strong>`;
+     const bar=page.querySelector(".learning-progress-fill");if(bar)bar.style.width=Math.round(count/lessons.length*100)+"%";
+   }catch(error){button.disabled=false;appMessage("Could not save lesson completion: "+error.message,"error");}
  };
  return;
 }
@@ -2989,6 +3019,7 @@ const id=b.dataset.id;
 
 try{
 if(action==="download-lesson-pdf"){downloadLessonPdf(b);return;}
+if(action==="download-certificate"){downloadCertificate(b);return;}
 if(action==="view-media"||action==="open-secure-media"){
   let mediaUrl=b.dataset.mediaUrl||"";const mediaType=b.dataset.mediaType||"",mediaTitle=b.dataset.mediaTitle||"Lesson media";
   if(action==="open-secure-media")mediaUrl=await requestSecureLessonMedia(mediaUrl,b.dataset.courseId||selectedCourse?.id||"");

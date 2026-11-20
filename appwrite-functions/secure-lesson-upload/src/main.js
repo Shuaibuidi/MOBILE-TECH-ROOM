@@ -397,7 +397,38 @@ async function handleAdminNotifications({ req, res, error }) {
   }
 }
 
+async function handleCourseProgress({ req, res, error }) {
+ try {
+  if(req.method==="OPTIONS")return res.text("",204,headers());
+  const action=String(req.query?.action||"");
+  if(!["course-progress","complete-lesson"].includes(action))return json(res,{success:false,error:"Unknown course progress action."},400);
+  if((action==="course-progress"&&req.method!=="GET")||(action==="complete-lesson"&&req.method!=="POST"))return json(res,{success:false,error:action==="course-progress"?"Use GET.":"Use POST."},405);
+  const token=bearer(req);if(!token)return json(res,{success:false,error:"Please sign in to save course progress."},401);
+  const {auth,db}=getFirebase();let decoded;try{decoded=await auth.verifyIdToken(token);}catch{return json(res,{success:false,error:"Your sign-in has expired. Please sign in again."},401);}
+  const body=req.bodyJson||{},courseId=String(req.query?.courseId||body.courseId||"").trim();if(!courseId||courseId.length>150)return json(res,{success:false,error:"A valid course ID is required."},400);
+  const userRef=db.collection("users").doc(decoded.uid),courseRef=db.collection("courses").doc(courseId);
+  const [userSnap,courseSnap]=await Promise.all([userRef.get(),courseRef.get()]);if(!userSnap.exists||!courseSnap.exists)return json(res,{success:false,error:"Your account or course could not be found."},404);
+  const user=userSnap.data()||{},course=courseSnap.data()||{};if(user.role!=="student"||user.status!=="approved")return json(res,{success:false,error:"Only approved students can record course completion."},403);
+  if(course.accessType==="paid"){const enrollment=await userRef.collection("enrollments").doc(courseId).get();if(!enrollment.exists||enrollment.data()?.status!=="active")return json(res,{success:false,error:"You do not have access to this paid course."},403);}
+  const lessonsSnap=await courseRef.collection("lessons").get(),lessonIds=lessonsSnap.docs.map(x=>x.id),progressRef=userRef.collection("courseProgress").doc(courseId);
+  if(action==="complete-lesson"){
+   const lessonId=String(body.lessonId||"").trim();if(!lessonId||!lessonIds.includes(lessonId))return json(res,{success:false,error:"This lesson does not belong to the selected course."},400);
+   await db.runTransaction(async tx=>{
+    const ps=await tx.get(progressRef),saved=ps.exists?ps.data()||{}:{},set=new Set(Array.isArray(saved.completedLessonIds)?saved.completedLessonIds:[]);set.add(lessonId);
+    const completedLessonIds=lessonIds.filter(id=>set.has(id)),complete=lessonIds.length>0&&completedLessonIds.length===lessonIds.length;
+    const certificateId=saved.certificateId||(complete?"MTR-"+new Date().getFullYear()+"-"+crypto.randomBytes(8).toString("hex").toUpperCase():null);
+    const update={courseId,courseTitle:String(course.title||"Course").slice(0,180),studentName:String(user.fullName||decoded.name||decoded.email||"Student").slice(0,120),completedLessonIds,totalLessons:lessonIds.length,updatedAt:admin.firestore.FieldValue.serverTimestamp()};
+    if(complete&&!saved.certificateId){update.certificateId=certificateId;update.completedAt=admin.firestore.FieldValue.serverTimestamp();}
+    tx.set(progressRef,update,{merge:true});
+   });
+  }
+  const ps=await progressRef.get(),saved=ps.exists?ps.data()||{}:{},completedLessonIds=lessonIds.filter(id=>Array.isArray(saved.completedLessonIds)&&saved.completedLessonIds.includes(id)),completedAt=saved.completedAt?.toDate?saved.completedAt.toDate().toISOString():null;
+  return json(res,{success:true,courseId,courseTitle:String(saved.courseTitle||course.title||"Course"),studentName:String(saved.studentName||user.fullName||decoded.name||decoded.email||"Student"),completedLessonIds,completedCount:completedLessonIds.length,totalLessons:lessonIds.length,certificateId:saved.certificateId||null,completedAt});
+ }catch(e){error(e?.stack||String(e));return json(res,{success:false,error:"Course progress could not be saved. Please try again."},500);}
+}
+
 export default async (context) => {
+  if (context.req.query?.action === "course-progress" || context.req.query?.action === "complete-lesson") return handleCourseProgress(context);
   if (context.req.query?.action === "admin-notifications" || context.req.query?.action === "registration-notification" || context.req.query?.action === "mark-notification-read") return handleAdminNotifications(context);
   if (context.req.method === "GET" && context.req.query?.action === "storage-usage") return handleStorageUsage(context);
   if (context.req.method === "GET") return handleMedia(context);
