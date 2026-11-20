@@ -1611,7 +1611,14 @@ footer{color:#71839a!important}
 .notification-read-label{font-size:11px;color:#9ab3cb}
 @media(max-width:520px){.notification-item{align-items:flex-start;flex-wrap:wrap}.notification-read-button{margin-left:49px}}
 </style>
-</head>
+<style>
+.quiz-card,.quiz-question-editor,.quiz-question{background:#08264b;border:1px solid #1b5689;border-radius:12px;padding:14px;margin:12px 0}
+.quiz-card h3{color:#fff}.quiz-options-editor{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.quiz-answer{display:flex;gap:10px;padding:10px;background:#08264b;border:1px solid #1b5689;border-radius:10px;margin:8px 0}
+.quiz-answer input{width:auto}.quiz-score{font-size:34px;font-weight:900;color:#13d8ed}
+.quiz-toolbar{display:flex;gap:8px;flex-wrap:wrap}.quiz-result-good{color:#54e2ad}.quiz-result-bad{color:#ff9aaa}
+@media(max-width:520px){.quiz-options-editor{grid-template-columns:1fr}}
+</style></head>
 <body>
 
 <header class="academy-header">
@@ -2270,11 +2277,11 @@ page.innerHTML=`<div class="panel">Unable to load account: ${safe(e.message)}</d
 
 function buildNavigation(){
 let tabs=[];
-if(isAdmin())tabs=["dashboard","students","lessons","instructors"];
-else if(isInstructor())tabs=["dashboard","lessons"];
-else if(isStudent())tabs=["dashboard","lessons"];
+if(isAdmin())tabs=["dashboard","students","lessons","quizzes","instructors"];
+else if(isInstructor())tabs=["dashboard","lessons","quizzes"];
+else if(isStudent())tabs=["dashboard","lessons","quizzes"];
 
-const labels={dashboard:"⌂  Dashboard",students:"♙  Students",lessons:"▣  My Courses",instructors:"⚙  Instructors"};
+const labels={dashboard:"⌂  Dashboard",students:"♙  Students",lessons:"▣  My Courses",quizzes:"☑  Quizzes & Exams",instructors:"⚙  Instructors"};
 $("navigation").innerHTML=tabs.map(t=>
 `<button class="${currentTab===t?"active":"secondary"}" data-tab="${t}">${labels[t]||t}</button>`
 ).join("");
@@ -2284,8 +2291,8 @@ $("navigation").innerHTML=tabs.map(t=>
 const bottomNav=$("mobileBottomNav");
 if(bottomNav){
   const mobileTabs=isAdmin()
-    ? [["dashboard","⌂","Dashboard"],["students","♙","Students"],["lessons","▣","Courses"],["instructors","⚙","Instructors"]]
-    : [["dashboard","⌂","Home"],["lessons","▣","Courses"],["progress","▥","Progress"],["about","ⓘ","About"]];
+    ? [["dashboard","⌂","Dashboard"],["students","♙","Students"],["lessons","▣","Courses"],["quizzes","☑","Quizzes"],["instructors","⚙","Instructors"]]
+    : [["dashboard","⌂","Home"],["lessons","▣","Courses"],["quizzes","☑","Quizzes"],["progress","▥","Progress"],["about","ⓘ","About"]];
   bottomNav.innerHTML=mobileTabs.map(([tab,icon,label])=>
     `<button type="button" data-dashboard-tab="${tab}" aria-label="${label}"><span class="bottom-nav-icon">${icon}</span><span>${label}</span></button>`
   ).join("");
@@ -2324,6 +2331,7 @@ selectedCourse=null;
 
 if(tab==="dashboard")await renderDashboard();
 if(tab==="lessons")await renderCourses();
+if(tab==="quizzes")await renderQuizzes();
 if(tab==="students"&&isAdmin())await renderUsers("student");
 if(tab==="instructors"&&isAdmin())await renderUsers("instructor");
 if(tab==="progress")await renderProgress();
@@ -2331,6 +2339,88 @@ if(tab==="about")renderAbout();
 const bottomNav=$("mobileBottomNav");
 if(bottomNav)bottomNav.querySelectorAll("[data-dashboard-tab]").forEach(b=>b.classList.toggle("active",b.dataset.dashboardTab===tab));
 applyGlobalCourseSearch();
+}
+
+
+async function callQuizApi(action,method="GET",payload={}){
+ if(!currentUser)throw new Error("Please sign in again.");
+ const token=await currentUser.getIdToken(true),url="https://starter-function-9cke.sgp.appwrite.run/?action="+encodeURIComponent(action)+(payload.quizId?"&quizId="+encodeURIComponent(payload.quizId):"");
+ const response=await fetch(url,{method,headers:{"Authorization":"Bearer "+token,...(method==="POST"?{"Content-Type":"application/json"}:{})},...(method==="POST"?{body:JSON.stringify(payload)}:{})});
+ const result=await response.json().catch(()=>({}));if(!response.ok||result.success===false)throw new Error(result.error||"Quiz request failed.");return result;
+}
+function quizQuestionEditor(q={},i=0){
+ let h='<div class="quiz-question-editor" data-quiz-question><strong>Question '+(i+1)+'</strong><button type="button" class="secondary" data-remove-quiz-question>Remove</button><textarea data-question-text placeholder="Enter question..." required>'+safe(q.text||"")+'</textarea><div class="quiz-options-editor">';
+ const opts=Array.isArray(q.options)?q.options:[];
+ for(let n=0;n<4;n++)h+='<input data-question-option="'+n+'" placeholder="Option '+String.fromCharCode(65+n)+'" value="'+safe(opts[n]||"")+'" required>';
+ h+='</div><label class="muted">Correct answer</label><select data-question-correct>';
+ for(let n=0;n<4;n++)h+='<option value="'+n+'" '+(Number(q.correctIndex||0)===n?"selected":"")+'>Option '+String.fromCharCode(65+n)+'</option>';
+ return h+'</select></div>';
+}
+async function renderQuizzes(){
+ page.innerHTML="<div class='panel'>Loading quizzes...</div>";
+ try{
+  await loadCourses();const data=await callQuizApi("quiz-list"),items=data.quizzes||[],staff=isStaff();
+  let h='<section class="dashboard-hero"><p class="uppercase-accent">ASSESSMENT CENTRE</p><h2>Quizzes &amp; Exams</h2><p>Multiple-choice tests, automatic marking and results.</p></section>';
+  if(staff&&courses.length){
+   h+='<section class="panel"><h2 id="quizEditorHeading">Create a Quiz</h2><form id="quizForm"><label class="muted">Course</label><select id="quizCourse">';
+   courses.forEach(c=>h+='<option value="'+safe(c.id)+'">'+safe(c.title)+'</option>');
+   h+='</select><label class="muted">Quiz title</label><input id="quizTitle" placeholder="Quiz title" required><label class="muted">Instructions (optional)</label><textarea id="quizDescription"></textarea><label class="muted">Status</label><select id="quizStatus"><option value="draft">Draft</option><option value="published">Published</option></select><h3>Questions</h3><div id="quizQuestionEditors">'+quizQuestionEditor({},0)+'</div><button type="button" class="secondary" id="addQuizQuestion">＋ Add Question</button><button type="submit">Save Quiz</button><button type="button" class="secondary hidden" id="cancelQuizEdit">Cancel Edit</button></form></section>';
+  }else if(staff)h+='<section class="panel">Create a course first. Quizzes use your existing courses.</section>';
+  if(!items.length)h+='<section class="panel"><h3>No quizzes available yet</h3><p class="muted">'+(staff?"Create a quiz above.":"Your instructors have not published quizzes yet.")+'</p></section>';
+  items.forEach(q=>{
+   h+='<article class="quiz-card"><span class="tag">'+safe(q.courseTitle)+'</span><h3>'+safe(q.title)+'</h3><p class="muted">'+safe(q.description||"")+'</p><p class="muted">'+q.questionCount+' questions · '+safe(q.status)+'</p>';
+   h+=staff?'<button data-quiz-edit="'+safe(q.id)+'">Edit</button><button class="secondary" data-quiz-results="'+safe(q.id)+'">Review Results</button><button class="danger" data-quiz-delete="'+safe(q.id)+'">Delete</button>':'<button data-quiz-take="'+safe(q.id)+'">Take Quiz</button>';
+   h+='</article>';
+  });
+  page.innerHTML=h;
+  if(staff&&courses.length){
+   let editing="";
+   const area=$("quizQuestionEditors"),form=$("quizForm");
+   $("addQuizQuestion").onclick=()=>area.insertAdjacentHTML("beforeend",quizQuestionEditor({},area.querySelectorAll("[data-quiz-question]").length));
+   area.onclick=e=>{const b=e.target.closest("[data-remove-quiz-question]");if(b)b.closest("[data-quiz-question]").remove();};
+   $("cancelQuizEdit").onclick=()=>renderQuizzes();
+   form.onsubmit=async e=>{
+    e.preventDefault();
+    const questions=Array.from(area.querySelectorAll("[data-quiz-question]")).map(card=>({text:card.querySelector("[data-question-text]").value.trim(),options:[0,1,2,3].map(n=>card.querySelector('[data-question-option="'+n+'"]').value.trim()),correctIndex:Number(card.querySelector("[data-question-correct]").value)}));
+    const payload={courseId:$("quizCourse").value,title:$("quizTitle").value.trim(),description:$("quizDescription").value.trim(),status:$("quizStatus").value,questions};
+    try{await callQuizApi(editing?"quiz-update":"quiz-create","POST",{...payload,...(editing?{quizId:editing}:{})});appMessage("Quiz saved successfully.");await renderQuizzes();}catch(err){appMessage(err.message,"error");}
+   };
+   page.onclick=async e=>{
+    const edit=e.target.closest("[data-quiz-edit]"),del=e.target.closest("[data-quiz-delete]"),res=e.target.closest("[data-quiz-results]");
+    if(edit){const q=items.find(x=>x.id===edit.dataset.quizEdit);if(!q)return;editing=q.id;$("quizEditorHeading").textContent="Edit Quiz";$("quizCourse").value=q.courseId;$("quizTitle").value=q.title;$("quizDescription").value=q.description||"";$("quizStatus").value=q.status;area.innerHTML=(q.questions||[]).map((x,i)=>quizQuestionEditor(x,i)).join("");$("cancelQuizEdit").classList.remove("hidden");$("quizEditorHeading").scrollIntoView({behavior:"smooth"});}
+    else if(del){if(!confirm("Delete this quiz?"))return;try{await callQuizApi("quiz-delete","POST",{quizId:del.dataset.quizDelete});await renderQuizzes();}catch(err){appMessage(err.message,"error");}}
+    else if(res)await renderQuizResults(res.dataset.quizResults);
+   };
+  }else page.onclick=async e=>{const b=e.target.closest("[data-quiz-take]");if(b)await renderStudentQuiz(b.dataset.quizTake);};
+ }catch(err){page.innerHTML='<section class="panel error">Could not load quizzes: '+safe(err.message)+'</section>';}
+}
+async function renderStudentQuiz(id){
+ page.innerHTML="<div class='panel'>Loading quiz...</div>";
+ try{
+  const data=await callQuizApi("quiz-get","GET",{quizId:id}),q=data.quiz;
+  let h='<section class="panel"><button class="secondary" id="backToQuizzes">← Quizzes</button><h2>'+safe(q.title)+'</h2><p>'+safe(q.description||"Answer all questions.")+'</p></section><form id="studentQuizForm"><section class="panel">';
+  q.questions.forEach((item,i)=>{h+='<div class="quiz-question"><strong>'+(i+1)+'. '+safe(item.text)+'</strong>';item.options.forEach((o,n)=>h+='<label class="quiz-answer"><input type="radio" name="answer-'+i+'" value="'+n+'">'+String.fromCharCode(65+n)+'. '+safe(o)+'</label>');h+='</div>';});
+  page.innerHTML=h+'<button type="submit">Submit Answers &amp; Get Score</button></section></form>';$("backToQuizzes").onclick=()=>renderQuizzes();
+  $("studentQuizForm").onsubmit=async e=>{
+   e.preventDefault();const answers=q.questions.map((x,i)=>{const v=page.querySelector('input[name="answer-'+i+'"]:checked');return v?Number(v.value):-1;});
+   if(answers.some(x=>x<0)){appMessage("Please answer every question.","warning");return;}
+   try{
+    const marked=await callQuizApi("quiz-submit","POST",{quizId:id,answers});
+    let out='<section class="panel"><button class="secondary" id="backToQuizzes">← Quizzes</button><h2>Quiz Result</h2><div class="quiz-score">'+marked.score+' / '+marked.total+'</div><h3>'+marked.percentage+'% — '+(marked.passed?"Passed":"Keep practising")+'</h3></section><section class="panel"><h3>Answer Review</h3>';
+    marked.review.forEach((a,i)=>out+='<div class="quiz-question"><strong>'+(i+1)+'. '+safe(a.question)+'</strong><p class="'+(a.correct?"quiz-result-good":"quiz-result-bad")+'">'+(a.correct?"Correct":"Incorrect")+'</p><p>Your answer: '+safe(a.options[a.selectedIndex])+'</p><p>Correct answer: <strong>'+safe(a.options[a.correctIndex])+'</strong></p></div>');
+    page.innerHTML=out+'</section>';$("backToQuizzes").onclick=()=>renderQuizzes();
+   }catch(err){appMessage(err.message,"error");}
+  };
+ }catch(err){page.innerHTML='<section class="panel error">'+safe(err.message)+'</section><button id="backToQuizzes">Back</button>';$("backToQuizzes").onclick=()=>renderQuizzes();}
+}
+async function renderQuizResults(id){
+ page.innerHTML="<div class='panel'>Loading results...</div>";
+ try{
+  const data=await callQuizApi("quiz-results","GET",{quizId:id});let h='<section class="panel"><button class="secondary" id="backToQuizzes">← Quizzes</button><h2>Results: '+safe(data.quizTitle)+'</h2><p>'+data.attempts.length+' attempts</p></section><section class="panel">';
+  if(!data.attempts.length)h+='<p class="muted">No submissions yet.</p>';
+  data.attempts.forEach(a=>h+='<article class="quiz-card"><h3>'+safe(a.studentName)+'</h3><div class="quiz-score">'+a.score+'/'+a.total+'</div><p>'+a.percentage+'% · '+(a.percentage>=50?"Passed":"Not passed")+'</p><small>'+safe(a.submittedAt?new Date(a.submittedAt).toLocaleString():"Recently")+'</small></article>');
+  page.innerHTML=h+'</section>';$("backToQuizzes").onclick=()=>renderQuizzes();
+ }catch(err){page.innerHTML='<section class="panel error">'+safe(err.message)+'</section>';}
 }
 
 async function callAdminNotifications(action, method="GET", payload={}) {
