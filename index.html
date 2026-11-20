@@ -2580,14 +2580,12 @@ async function renderDashboard(){
   if(isStudent()){
     try{
       const studentId=currentUser.uid;
-      await Promise.all([
+      const [_,enrollmentSnap]=await Promise.all([
         loadCourses(),
-        getDocs(collection(db,"users",studentId,"enrollments")).then(snap=>{
-          window.__mtrActiveEnrollmentIds=new Set(snap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
-        })
+        getDocs(collection(db,"users",studentId,"enrollments"))
       ]);
       if(currentUser?.uid!==studentId)return;
-      const activeIds=window.__mtrActiveEnrollmentIds||new Set();
+      const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
       const available=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
       const locked=courses.filter(c=>c.accessType==="paid"&&!activeIds.has(c.id));
       const cards=available.map(c=>`<article class="student-course" data-dashboard-course="${safe(c.id)}"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">${/computer|laptop|windows/i.test(c.title)?"💻":/iphone|ios|apple/i.test(c.title)?"📱":/android|frp/i.test(c.title)?"🤖":/gsm|tool|repair/i.test(c.title)?"🛠":"📲"}</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${safe(c.description||"Practical technical training and step-by-step lessons.")}</p><div class="learning-progress-track"><div class="learning-progress-fill" data-progress-bar="${safe(c.id)}" style="width:0%"></div></div><small class="muted" data-progress-label="${safe(c.id)}">Loading learning progress…</small><button data-action="open-course" data-id="${safe(c.id)}">Continue Learning →</button><div data-certificate-slot="${safe(c.id)}"></div></div></article>`).join("");
@@ -2612,9 +2610,9 @@ async function renderDashboard(){
         results.forEach(({course,count,progress})=>{
           const done=progress?.completedLessonIds?.length||0;
           totalLessons+=count;completedLessons+=done;
-          const bar=page.querySelector(`[data-progress-bar="${CSS.escape(course.id)}"]`);
-          const label=page.querySelector(`[data-progress-label="${CSS.escape(course.id)}"]`);
-          const slot=page.querySelector(`[data-certificate-slot="${CSS.escape(course.id)}"]`);
+          const bar=Array.from(page.querySelectorAll("[data-progress-bar]")).find(el=>el.dataset.progressBar===course.id);
+          const label=Array.from(page.querySelectorAll("[data-progress-label]")).find(el=>el.dataset.progressLabel===course.id);
+          const slot=Array.from(page.querySelectorAll("[data-certificate-slot]")).find(el=>el.dataset.certificateSlot===course.id);
           if(bar)bar.style.width=(count?Math.round(done/count*100):0)+"%";
           if(label)label.textContent=done+"/"+count+" lessons completed";
           if(slot&&progress?.certificateId)slot.innerHTML=certificateCard(course,progress);
