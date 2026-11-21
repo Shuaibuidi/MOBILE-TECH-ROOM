@@ -2726,6 +2726,7 @@ function renderAbout(){
 
 function invalidateCoursesCache(){
   coursesCacheAt=0;
+  if(coursesCacheKey){try{localStorage.removeItem("mtr-courses:"+coursesCacheKey);}catch(_){}}
 }
 
 async function loadCourses(){
@@ -2737,6 +2738,14 @@ async function loadCourses(){
     coursesCacheAt=0;
     coursesLoadPromise=null;
     courses=[];
+    // Restore only course catalogue data for a faster first dashboard paint.
+    try{
+      const saved=JSON.parse(localStorage.getItem("mtr-courses:"+cacheKey)||"null");
+      if(saved&&Array.isArray(saved.items)&&Date.now()-saved.savedAt<5*60*1000){
+        courses=saved.items;
+        coursesCacheAt=Date.now();
+      }
+    }catch(_){}
   }
   if(coursesCacheAt&&Date.now()-coursesCacheAt<20000)return;
   if(coursesLoadPromise)return coursesLoadPromise;
@@ -2755,6 +2764,7 @@ async function loadCourses(){
       const snap=await getDocs(q);
       courses=snap.docs.map(d=>({id:d.id,...d.data()}));
       coursesCacheAt=Date.now();
+      try{localStorage.setItem("mtr-courses:"+cacheKey,JSON.stringify({savedAt:coursesCacheAt,items:courses}));}catch(_){}
     }finally{
       coursesLoadPromise=null;
     }
