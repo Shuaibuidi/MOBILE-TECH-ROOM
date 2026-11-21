@@ -2735,13 +2735,16 @@ async function loadCourses(){
   const cacheKey=currentUser.uid+":"+role;
   if(coursesCacheKey!==cacheKey){
     coursesCacheKey=cacheKey;
+    // A deliberate browser/app reload should fetch the latest catalogue; normal reopen uses the local cache.
+    const navigationEntry=performance.getEntriesByType("navigation")[0];
+    const manualReload=navigationEntry&&navigationEntry.type==="reload";
     coursesCacheAt=0;
     coursesLoadPromise=null;
     courses=[];
     // Restore only course catalogue data for a faster first dashboard paint.
     try{
       const saved=JSON.parse(localStorage.getItem("mtr-courses:"+cacheKey)||"null");
-      if(saved&&Array.isArray(saved.items)&&Date.now()-saved.savedAt<5*60*1000){
+      if(!manualReload&&saved&&Array.isArray(saved.items)&&Date.now()-saved.savedAt<6*60*60*1000){
         courses=saved.items;
         coursesCacheAt=Date.now();
       }
