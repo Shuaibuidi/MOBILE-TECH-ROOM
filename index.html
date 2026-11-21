@@ -2981,14 +2981,7 @@ if(isStaff()){
 html+="<h3>Create Course and First Lesson</h3><form id='combinedLessonForm'>";
 html+="<label class='muted'>1. Course name</label><input id='courseTitle' placeholder='e.g. Phone Flashing and Unlocking' required>";
 
- html+="<label class='muted'>Course description</label><textarea id='courseDescription' placeholder='Explain what this course is about and who it is for'></textarea>";
-html+="<label class='muted'>Course duration</label><input id='courseDuration' value='3 months (12 weeks)' placeholder='e.g. 3 months (12 weeks)'>";
-html+="<label class='muted'>Learning schedule / time</label><input id='courseSchedule' placeholder='e.g. 3 days per week, 2 hours per day'>";
-html+="<label class='muted'>How students will learn</label><textarea id='courseMethod' placeholder='Explain notes, practical demonstrations, video links and assignments'></textarea>";
-html+="<label class='muted'>Skills students will gain</label><textarea id='courseOutcomes' placeholder='List the practical skills and knowledge students will gain'></textarea>";
-html+="<label class='muted'>Course requirements</label><textarea id='courseRequirements' placeholder='Explain what students need before joining'></textarea>";
-html+="<label class='muted'>Assessment and certificate</label><textarea id='courseAssessment' placeholder='Explain quizzes, practical work, final assessment and certificate requirements'></textarea>";
-html+="<label class='muted'>Complete 12-week curriculum (one week per line)</label><textarea id='courseCurriculum' rows='12' placeholder='Week 1: Introduction and safety&#10;Week 2: Tools and equipment&#10;Week 3: ...&#10;Continue up to Week 12'></textarea><small class='muted'>Students can read this outline before paying. Actual lesson materials stay locked until payment is confirmed.</small>";
+ html+="<p class='muted'>Create the course and its first lesson here. Course description, duration, learning schedule, learning method, skills, requirements, assessment and the 12-week curriculum are managed separately in Course Information after the course is created.</p>";
 html+="<hr>";
 html+="<label class='muted'>2. Lesson title</label><input id='lessonTitle' placeholder='e.g. Introduction to Phone Flashing' required>";
 html+="<label class='muted'>3. Topic</label><input id='lessonTopic' placeholder='e.g. Flashing basics' required>";
@@ -3009,7 +3002,7 @@ if(isStudent()){
  if(locked.length)html+=`<div class="panel"><h3>More Courses</h3><p class="muted">These paid courses need administrator approval before you can start learning.</p><div class="course-grid">${cards(locked)}</div></div>`;
 }else{
  if(!courses.length)html+="<div class='panel'><p>No courses available yet.</p></div>";
- for(const c of courses){html+="<div class='card'><h3>"+safe(c.title)+"</h3><span class='tag'>"+safe(c.category)+"</span><p>"+formatLessonContent(c.description)+"</p>"+(c.accessType==="paid"?"<p>One-time course price (all lessons): MK "+safe(Number(c.price||0).toLocaleString('en-US'))+"</p>":"")+"<div class='actions'><button data-action='course-details' data-id='"+safe(c.id)+"'>Open Course</button>"+(isAdmin()?"<button class='secondary' data-action='edit-course' data-id='"+safe(c.id)+"'>Edit</button><button class='danger' data-action='delete-course' data-id='"+safe(c.id)+"'>Delete</button>":"")+"</div></div>";}
+ for(const c of courses){html+="<div class='card'><h3>"+safe(c.title)+"</h3><span class='tag'>"+safe(c.category)+"</span><p>"+formatLessonContent(c.description)+"</p>"+(c.accessType==="paid"?"<p>One-time course price (all lessons): MK "+safe(Number(c.price||0).toLocaleString('en-US'))+"</p>":"")+"<div class='actions'><button data-action='course-details' data-id='"+safe(c.id)+"'>Course Information</button>"+(isAdmin()?"<button class='secondary' data-action='edit-course' data-id='"+safe(c.id)+"'>Edit</button><button class='danger' data-action='delete-course' data-id='"+safe(c.id)+"'>Delete</button>":"")+"</div></div>";}
 }
 page.innerHTML=html;
 if(isStudent()){
@@ -3022,7 +3015,7 @@ bindLessonFormControls({accessId:"courseAccess",priceFieldId:"coursePriceField",
 bindRichTextEditor("lessonOutcomes","lessonOutcomesToolbar");
 let draftCourseId=null;
 const form=$("combinedLessonForm"),val=id=>$(id).value.trim(),rich=id=>$(id).innerHTML.trim();
-const courseFields=()=>({title:val("courseTitle"),category:"Technology",description:val("courseDescription"),duration:val("courseDuration"),learningSchedule:val("courseSchedule"),learningMethod:val("courseMethod"),learningOutcomes:val("courseOutcomes"),requirements:val("courseRequirements"),assessment:val("courseAssessment"),curriculum:val("courseCurriculum"),coverImage:"",accessType:$("courseAccess").value,price:Number($("coursePrice").value||0),createdBy:currentUser.uid});
+const courseFields=()=>({title:val("courseTitle"),category:"Technology",description:"",duration:"3 months (12 weeks)",learningSchedule:"",learningMethod:"",learningOutcomes:"",requirements:"",assessment:"",curriculum:"",coverImage:"",accessType:$("courseAccess").value,price:Number($("coursePrice").value||0),createdBy:currentUser.uid});
 const ensureCourse=async()=>{
   if(!draftCourseId)draftCourseId=doc(collection(db,"courses")).id;
   if(!draftCourseId)throw new Error("Could not create a course ID. Please refresh and try again.");
@@ -3061,7 +3054,7 @@ if(url&&!/^https:\/\/.+/i.test(url)){appMessage("Please enter a valid HTTPS link
 const cid=await ensureCourse();
 await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:rich("lessonOutcomes"),lessonNumber:1,type:lessonType,content:"",mediaUrl:url,resourceUrl:resourceUrl,createdBy:currentUser.uid,createdAt:serverTimestamp()});
 await setDoc(doc(db,"courses",cid),{status:"published",updatedAt:serverTimestamp()},{merge:true});
-appMessage("Course and first lesson saved successfully.");
+appMessage("Course and first lesson saved. Next, open Course Information to add the student-facing course details.");
 invalidateCoursesCache();
 await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:val("courseTitle"),description:""};await openCourse(cid);
 }catch(err){appMessage("Could not save course and lesson: "+(err.code?err.code+": ":"")+err.message,"error");}
