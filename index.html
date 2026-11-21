@@ -3511,7 +3511,8 @@ if(action==="view-media"||action==="open-secure-media"){
   return;
 }
 if(action==="pay-course")await startPayChanguCheckout(id);
-if(action==="course-details")await renderCourseDetails(id);\nif(action==="open-course")await openCourse(id);
+if(action==="course-details")await renderCourseDetails(id);
+if(action==="open-course")await openCourse(id);
     if(action==="manage-enrollments"&&isAdmin())await manageStudentEnrollments(id);
     if(action==="back-students"&&isAdmin())await renderUsers("student");
     if(action==="grant-enrollment"&&isAdmin())await grantEnrollment(b.dataset.student,b.dataset.course);
