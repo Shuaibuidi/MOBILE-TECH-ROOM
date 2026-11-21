@@ -2480,7 +2480,15 @@ async function renderQuizzes(){
    };
    page.onclick=async e=>{
     const edit=e.target.closest("[data-quiz-edit]"),del=e.target.closest("[data-quiz-delete]"),res=e.target.closest("[data-quiz-results]");
-    if(edit){const q=items.find(x=>x.id===edit.dataset.quizEdit);if(!q)return;editing=q.id;$("quizEditorHeading").textContent="Edit Quiz";$("quizCourse").value=q.courseId;$("quizTitle").value=q.title;$("quizDescription").value=q.description||"";$("quizStatus").value=q.status;area.innerHTML=(q.questions||[]).map((x,i)=>quizQuestionEditor(x,i)).join("");$("cancelQuizEdit").classList.remove("hidden");$("quizEditorHeading").scrollIntoView({behavior:"smooth"});}
+    if(edit){
+     const summary=items.find(x=>x.id===edit.dataset.quizEdit);if(!summary)return;
+     edit.disabled=true;
+     try{
+      const full=await callQuizApi("quiz-get","GET",{quizId:summary.id}),q=full.quiz;
+      editing=q.id;$("quizEditorHeading").textContent="Edit Quiz";$("quizCourse").value=q.courseId;$("quizTitle").value=q.title;$("quizDescription").value=q.description||"";$("quizStatus").value=q.status;area.innerHTML=(q.questions||[]).map((x,i)=>quizQuestionEditor(x,i)).join("");$("cancelQuizEdit").classList.remove("hidden");$("quizEditorHeading").scrollIntoView({behavior:"smooth"});
+     }catch(err){appMessage(err.message,"error");}
+     finally{edit.disabled=false;}
+    }
     else if(del){if(!confirm("Delete this quiz?"))return;try{await callQuizApi("quiz-delete","POST",{quizId:del.dataset.quizDelete});await renderQuizzes();}catch(err){appMessage(err.message,"error");}}
     else if(res)await renderQuizResults(res.dataset.quizResults);
    };
