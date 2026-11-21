@@ -2648,7 +2648,7 @@ async function renderAdminNotifications() {
 function renderAdminAccount(){
   const name=profile?.fullName||currentUser?.displayName||currentUser?.email||"Admin";
   const role=(profile?.role||"admin").toLowerCase();
-  page.innerHTML=`<section class="panel"><h2>Account Information</h2><p class="muted">Your administrator account details.</p><div class="card"><strong>Name</strong><p>${safe(name)}</p></div><div class="card"><strong>Role</strong><p><span class="tag">${safe(role.toUpperCase())}</span></p></div><div class="card"><strong>Email</strong><p>${safe(currentUser?.email||"Not available")}</p></div><hr><h3>Account Management</h3><p class="muted">Manage instructor accounts and permissions from here.</p><button type="button" data-dashboard-tab="instructors">Manage Instructors</button></section>`;
+  page.innerHTML=`<section class="panel"><h2>Account Information</h2><p class="muted">Your administrator account details.</p><div class="card"><strong>Name</strong><p>${safe(name)}</p></div><div class="card"><strong>Role</strong><p><span class="tag">${safe(role.toUpperCase())}</span></p></div><div class="card"><strong>Email</strong><p>${safe(currentUser?.email||"Not available")}</p></div><hr><h3>Account Management</h3><p class="muted">Manage instructor accounts and permissions from here.</p><button type="button" data-action="manage-instructors">Manage Instructors</button></section>`;
 }
 
 async function renderDashboard(){
@@ -2706,21 +2706,32 @@ async function renderDashboard(){
   }
   if(isAdmin()){
     const adminId=currentUser?.uid;
-    page.innerHTML=`<section class="dashboard-hero"><h2 class="admin-welcome">Welcome, ${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats"><div class="dashboard-stat"><strong data-admin-stat="students">…</strong><span>Registered students</span></div><div class="dashboard-stat"><strong data-admin-stat="pending">…</strong><span>Pending approvals</span></div><div class="dashboard-stat"><strong data-admin-stat="instructors">…</strong><span>Active instructors</span></div><div class="dashboard-stat"><strong data-admin-stat="courses">…</strong><span>Lesson topics</span></div></div><section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions"><button data-dashboard-tab="students">Manage Students</button><button data-dashboard-tab="lessons">Manage Lessons</button><button data-dashboard-tab="instructors">Manage Instructors</button></div></section>`;
-    // Show the dashboard shell immediately; load large admin totals after the first paint.
+    const statsKey="mtr_admin_dashboard_stats_"+adminId;
+    let cachedStats=null;
+    try{
+      const saved=JSON.parse(localStorage.getItem(statsKey)||"null");
+      if(saved&&saved.values&&Date.now()-saved.savedAt<5*60*1000)cachedStats=saved.values;
+    }catch(_){}
+    page.innerHTML=\`<section class="dashboard-hero"><h2 class="admin-welcome">Welcome, \${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats"><div class="dashboard-stat"><strong data-admin-stat="students">\${cachedStats?.students??"…"}</strong><span>Registered students</span></div><div class="dashboard-stat"><strong data-admin-stat="pending">\${cachedStats?.pending??"…"}</strong><span>Pending approvals</span></div><div class="dashboard-stat"><strong data-admin-stat="instructors">\${cachedStats?.instructors??"…"}</strong><span>Active instructors</span></div><div class="dashboard-stat"><strong data-admin-stat="courses">\${cachedStats?.courses??"…"}</strong><span>Lesson topics</span></div></div><section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions"><button data-dashboard-tab="students">Manage Students</button><button data-dashboard-tab="lessons">Manage Lessons</button></div></section>\`;
+    // Reuse recent totals for an instant dashboard, then refresh them quietly in the background.
     Promise.all([getDocs(collection(db,"users")),getDocs(collection(db,"courses"))]).then(([userSnap,courseSnap])=>{
-      if(currentUser?.uid!==adminId||currentTab!=="dashboard")return;
+      if(currentUser?.uid!==adminId)return;
       const allUsers=userSnap.docs.map(d=>d.data());
       const students=allUsers.filter(u=>u.role==="student");
-      const pending=students.filter(u=>u.status!=="approved");
-      const instructors=allUsers.filter(u=>u.role==="instructor"&&u.status==="approved");
-      const values={students:students.length,pending:pending.length,instructors:instructors.length,courses:courseSnap.size};
+      const values={
+        students:students.length,
+        pending:students.filter(u=>u.status!=="approved").length,
+        instructors:allUsers.filter(u=>u.role==="instructor"&&u.status==="approved").length,
+        courses:courseSnap.size
+      };
+      try{localStorage.setItem(statsKey,JSON.stringify({savedAt:Date.now(),values}));}catch(_){}
+      if(currentTab!=="dashboard")return;
       Object.entries(values).forEach(([key,value])=>{
         const target=page.querySelector('[data-admin-stat="'+key+'"]');
         if(target)target.textContent=String(value);
       });
     }).catch(error=>{
-      if(currentUser?.uid===adminId&&currentTab==="dashboard")appMessage("Dashboard totals could not be refreshed: "+error.message,"error");
+      if(currentUser?.uid===adminId&&currentTab==="dashboard"&&!cachedStats)appMessage("Dashboard totals could not be refreshed: "+error.message,"error");
     });
     return;
   }
@@ -3354,6 +3365,7 @@ const action=b.dataset.action;
 const id=b.dataset.id;
 
 try{
+if(action==="manage-instructors"&&isAdmin()){await renderUsers("instructor");return;}
 if(action==="download-lesson-pdf"){downloadLessonPdf(b);return;}
 if(action==="download-certificate"){downloadCertificate(b);return;}
 if(action==="view-media"||action==="open-secure-media"){
