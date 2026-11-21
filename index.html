@@ -1624,7 +1624,7 @@ footer{color:#71839a!important}
 <header class="academy-header">
   <div class="brand-lockup"><div class="brand-copy"><h1>Mobile <span>Tech Room</span></h1><p>Learn. Repair. Innovate.</p></div></div>
   <label class="global-search-wrap"><span>⌕</span><input id="globalCourseSearch" type="search" placeholder="Search courses, lessons..." aria-label="Search courses and lessons"></label>
-  <div class="header-right"><button id="logoutButton" class="header-logout hidden" type="button">Logout</button></div>
+  <div class="header-right"><button id="refreshAppButton" class="header-refresh" type="button" aria-label="Refresh current page" title="Refresh">↻</button><button id="logoutButton" class="header-logout hidden" type="button">Logout</button></div>
 </header>
 
 <main>
@@ -2111,6 +2111,9 @@ input::placeholder,textarea::placeholder{color:#9aaac0!important}
 
 /* Course completion certificates */
 .certificate-unlocked{margin:14px 0;padding:18px;border:1px solid #d8b45a;border-radius:16px;background:linear-gradient(135deg,#fff9e7,#f3e4b8);color:#25334a;box-shadow:0 8px 24px #0002}.certificate-unlocked h3{color:#805b13;margin:0 0 7px}.certificate-unlocked p{color:#4c5668;margin:5px 0}.certificate-unlocked button{background:linear-gradient(110deg,#d6a83c,#f4d77a);color:#33250a}
+
+.header-refresh{width:28px!important;height:28px!important;min-width:28px!important;padding:0!important;margin:0!important;border-radius:8px!important;display:grid;place-items:center;font-size:17px!important;line-height:1;background:#123d66!important;color:#a9dcff!important;border:1px solid #1769aa!important;box-shadow:none!important}.header-refresh:hover{transform:none!important;filter:brightness(1.15)}.header-refresh:disabled{opacity:.55}.header-refresh.is-refreshing{animation:mtr-refresh-spin .7s linear infinite}@keyframes mtr-refresh-spin{to{transform:rotate(360deg)}}
+@media(max-width:680px){.mobile-bottom-nav{overflow-x:auto;justify-content:flex-start}.mobile-bottom-nav button{flex:0 0 auto;min-width:61px;padding-left:7px;padding-right:7px}.mobile-bottom-nav button span:last-child{font-size:10px}}
 </style></head><body><main class="sheet"><header class="brand"><div class="brand-name">MOBILE TECH ROOM</div><div class="brand-tag">LEARN • REPAIR • INNOVATE</div></header>
 <p class="kicker">MOBILE TECH LESSON</p><h1>${safe(cleanTitle)}</h1><article>${content}</article></main>
 </body></html>`;
@@ -2387,11 +2390,11 @@ page.innerHTML=`<div class="panel">Unable to load account: ${safe(e.message)}</d
 
 function buildNavigation(){
 let tabs=[];
-if(isAdmin())tabs=["dashboard","students","lessons","quizzes","instructors"];
+if(isAdmin())tabs=["dashboard","students","lessons","quizzes","instructors","notifications","storage","account"];
 else if(isInstructor())tabs=["dashboard","lessons","quizzes"];
 else if(isStudent())tabs=["dashboard","lessons","quizzes"];
 
-const labels={dashboard:"⌂  Dashboard",students:"♙  Students",lessons:"▣  My Courses",quizzes:"☑  Quizzes & Exams",instructors:"⚙  Instructors"};
+const labels={dashboard:"⌂  Dashboard",students:"♙  Students",lessons:"▣  My Courses",quizzes:"☑  Quizzes & Exams",instructors:"⚙  Instructors",notifications:"🔔  Notifications",storage:"▤  Media Storage",account:"◉  Account"};
 $("navigation").innerHTML=tabs.map(t=>
 `<button class="${currentTab===t?"active":"secondary"}" data-tab="${t}">${labels[t]||t}</button>`
 ).join("");
@@ -2401,7 +2404,7 @@ $("navigation").innerHTML=tabs.map(t=>
 const bottomNav=$("mobileBottomNav");
 if(bottomNav){
   const mobileTabs=isAdmin()
-    ? [["dashboard","⌂","Dashboard"],["students","♙","Students"],["lessons","▣","Courses"],["quizzes","☑","Quizzes"],["instructors","⚙","Instructors"]]
+    ? [["dashboard","⌂","Dashboard"],["students","♙","Students"],["lessons","▣","Courses"],["quizzes","☑","Quizzes"],["instructors","⚙","Instructors"],["notifications","♧","Alerts"],["storage","▤","Storage"],["account","◉","Account"]]
     : [["dashboard","⌂","Home"],["lessons","▣","Courses"],["quizzes","☑","Quizzes"],["progress","▥","Progress"],["about","ⓘ","About"]];
   bottomNav.innerHTML=mobileTabs.map(([tab,icon,label])=>
     `<button type="button" data-dashboard-tab="${tab}" aria-label="${label}"><span class="bottom-nav-icon">${icon}</span><span>${label}</span></button>`
@@ -2413,6 +2416,18 @@ $("navigation").onclick=e=>{
 const b=e.target.closest("[data-tab]");
 if(b)showTab(b.dataset.tab);
 };
+const refreshAppButton=$("refreshAppButton");
+if(refreshAppButton)refreshAppButton.addEventListener("click",async()=>{
+  if(!currentUser)return;
+  refreshAppButton.disabled=true;refreshAppButton.classList.add("is-refreshing");
+  try{
+    if(isAdmin()&&currentTab==="notifications")try{localStorage.removeItem("mtr_admin_notifications_"+currentUser.uid);}catch(_){}
+    if(isAdmin()&&currentTab==="storage")try{localStorage.removeItem("mtr_storage_usage_"+currentUser.uid);}catch(_){}
+    if(currentTab==="dashboard"){invalidateCoursesCache();await currentUser.getIdToken(true);}
+    await showTab(currentTab);
+  }catch(error){appMessage("Refresh failed: "+error.message,"error");}
+  finally{refreshAppButton.disabled=false;refreshAppButton.classList.remove("is-refreshing");}
+});
 const globalSearchField=$("globalCourseSearch");
 if(globalSearchField){
   globalSearchField.addEventListener("input",()=>{
@@ -2446,6 +2461,9 @@ if(tab==="students"&&isAdmin())await renderUsers("student");
 if(tab==="instructors"&&isAdmin())await renderUsers("instructor");
 if(tab==="progress")await renderProgress();
 if(tab==="about")renderAbout();
+if(tab==="notifications"&&isAdmin()){page.innerHTML=`<section class="panel notification-panel" id="adminNotificationsPanel"><h2>Notifications</h2><p class="muted">Loading important activity...</p></section>`;await renderAdminNotifications();}
+if(tab==="storage"&&isAdmin()){page.innerHTML=`<section class="panel" id="storageUsagePanel"><h2>Lesson Media Storage</h2><p class="muted">Checking Appwrite storage...</p></section>`;await renderStorageUsagePanel();}
+if(tab==="account"&&isAdmin())renderAdminAccount();
 const bottomNav=$("mobileBottomNav");
 if(bottomNav)bottomNav.querySelectorAll("[data-dashboard-tab]").forEach(b=>b.classList.toggle("active",b.dataset.dashboardTab===tab));
 applyGlobalCourseSearch();
@@ -2625,6 +2643,12 @@ async function renderAdminNotifications() {
   }
 }
 
+function renderAdminAccount(){
+  const name=profile?.fullName||currentUser?.displayName||currentUser?.email||"Admin";
+  const role=(profile?.role||"admin").toLowerCase();
+  page.innerHTML=`<section class="panel"><h2>Account Information</h2><p class="muted">Your administrator account details.</p><div class="card"><strong>Name</strong><p>${safe(name)}</p></div><div class="card"><strong>Role</strong><p><span class="tag">${safe(role.toUpperCase())}</span></p></div><div class="card"><strong>Email</strong><p>${safe(currentUser?.email||"Not available")}</p></div></section>`;
+}
+
 async function renderDashboard(){
   page.innerHTML=`<div class="panel">Loading your learning centre...</div>`;
   const name=profile?.fullName||currentUser?.displayName||currentUser?.email||"Learner";
@@ -2680,10 +2704,8 @@ async function renderDashboard(){
   }
   if(isAdmin()){
     const adminId=currentUser?.uid;
-    page.innerHTML=`<section class="dashboard-hero"><h2 class="admin-welcome">Welcome, ${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats"><div class="dashboard-stat"><strong data-admin-stat="students">…</strong><span>Registered students</span></div><div class="dashboard-stat"><strong data-admin-stat="pending">…</strong><span>Pending approvals</span></div><div class="dashboard-stat"><strong data-admin-stat="instructors">…</strong><span>Active instructors</span></div><div class="dashboard-stat"><strong data-admin-stat="courses">…</strong><span>Lesson topics</span></div></div><section class="panel notification-panel" id="adminNotificationsPanel"><h3>🔔 Notification Centre</h3><p class="muted">Loading notifications...</p></section><section class="panel" id="storageUsagePanel"><h3>Lesson Media Storage</h3><p class="muted">Loading Appwrite storage usage...</p></section><section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions"><button data-dashboard-tab="students">Manage Students</button><button data-dashboard-tab="lessons">Manage Lessons</button><button data-dashboard-tab="instructors">Manage Instructors</button></div></section><section class="panel"><h3>Account Information</h3><p><strong>Name:</strong> ${safe(name)}</p><p><strong>Role:</strong> <span class="tag">${safe(role.toUpperCase())}</span></p></section>`;
+    page.innerHTML=`<section class="dashboard-hero"><h2 class="admin-welcome">Welcome, ${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats"><div class="dashboard-stat"><strong data-admin-stat="students">…</strong><span>Registered students</span></div><div class="dashboard-stat"><strong data-admin-stat="pending">…</strong><span>Pending approvals</span></div><div class="dashboard-stat"><strong data-admin-stat="instructors">…</strong><span>Active instructors</span></div><div class="dashboard-stat"><strong data-admin-stat="courses">…</strong><span>Lesson topics</span></div></div><section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions"><button data-dashboard-tab="students">Manage Students</button><button data-dashboard-tab="lessons">Manage Lessons</button><button data-dashboard-tab="instructors">Manage Instructors</button></div></section>`;
     // Show the dashboard shell immediately; load large admin totals after the first paint.
-    renderAdminNotifications();
-    renderStorageUsagePanel();
     Promise.all([getDocs(collection(db,"users")),getDocs(collection(db,"courses"))]).then(([userSnap,courseSnap])=>{
       if(currentUser?.uid!==adminId||currentTab!=="dashboard")return;
       const allUsers=userSnap.docs.map(d=>d.data());
@@ -2712,8 +2734,7 @@ async function renderDashboard(){
       stats=[{value:courses.length,label:"My lesson topics"},{value:courses.filter(c=>c.status==="published").length,label:"Published topics"},{value:lessonCounts.reduce((a,b)=>a+b,0),label:"Lessons created"}];quickActions=`<button data-dashboard-tab="lessons">Open My Lessons</button>`;
     }
   }catch(error){appMessage("Some dashboard statistics could not be loaded: "+error.message,"error");}
-  page.innerHTML=`<section class="dashboard-hero"><h2 class="${isAdmin()?"admin-welcome":""}">Welcome, ${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats">${stats.map(x=>`<div class="dashboard-stat"><strong>${safe(x.value)}</strong><span>${safe(x.label)}</span></div>`).join("")}</div>${isAdmin()?`<section class="panel notification-panel" id="adminNotificationsPanel"><h3>🔔 Notification Centre</h3><p class="muted">Loading notifications...</p></section><section class="panel" id="storageUsagePanel"><h3>Lesson Media Storage</h3><p class="muted">Loading Appwrite storage usage...</p></section>`:`<section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions">${quickActions}</div></section>`}<section class="panel"><h3>Account Information</h3><p><strong>Name:</strong> ${safe(name)}</p><p><strong>Role:</strong> <span class="tag">${safe(role.toUpperCase())}</span></p>${isAdmin()?"":`<p><strong>Account status:</strong> <span class="tag">${safe(status.toUpperCase())}</span></p>`}</section>`;
-  if (isAdmin()) { renderAdminNotifications(); renderStorageUsagePanel(); }
+  page.innerHTML=`<section class="dashboard-hero"><h2 class="${isAdmin()?"admin-welcome":""}">Welcome, ${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats">${stats.map(x=>`<div class="dashboard-stat"><strong>${safe(x.value)}</strong><span>${safe(x.label)}</span></div>`).join("")}</div>${isAdmin()?``:`<section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions">${quickActions}</div></section>`}${isAdmin()?"":`<section class="panel"><h3>Account Information</h3><p><strong>Name:</strong> ${safe(name)}</p><p><strong>Role:</strong> <span class="tag">${safe(role.toUpperCase())}</span></p><p><strong>Account status:</strong> <span class="tag">${safe(status.toUpperCase())}</span></p></section>`}`;
 }
 
 
