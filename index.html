@@ -2675,6 +2675,28 @@ async function renderDashboard(){
       return;
     }catch(error){appMessage("Could not load your learning dashboard: "+error.message,"error");}
   }
+  if(isAdmin()){
+    const adminId=currentUser?.uid;
+    page.innerHTML=`<section class="dashboard-hero"><h2 class="admin-welcome">Welcome, ${safe(name)}!</h2><p><strong>Mobile Tech Room · Learn. Repair. Innovate.</strong></p><p>Your technical learning and management centre.</p></section><h3 class="dashboard-section-title">Your Overview</h3><div class="dashboard-stats"><div class="dashboard-stat"><strong data-admin-stat="students">…</strong><span>Registered students</span></div><div class="dashboard-stat"><strong data-admin-stat="pending">…</strong><span>Pending approvals</span></div><div class="dashboard-stat"><strong data-admin-stat="instructors">…</strong><span>Active instructors</span></div><div class="dashboard-stat"><strong data-admin-stat="courses">…</strong><span>Lesson topics</span></div></div><section class="panel notification-panel" id="adminNotificationsPanel"><h3>🔔 Notification Centre</h3><p class="muted">Loading notifications...</p></section><section class="panel" id="storageUsagePanel"><h3>Lesson Media Storage</h3><p class="muted">Loading Appwrite storage usage...</p></section><section class="panel"><h3>Quick Actions</h3><div class="dashboard-actions"><button data-dashboard-tab="students">Manage Students</button><button data-dashboard-tab="lessons">Manage Lessons</button><button data-dashboard-tab="instructors">Manage Instructors</button></div></section><section class="panel"><h3>Account Information</h3><p><strong>Name:</strong> ${safe(name)}</p><p><strong>Role:</strong> <span class="tag">${safe(role.toUpperCase())}</span></p></section>`;
+    // Show the dashboard shell immediately; load large admin totals after the first paint.
+    renderAdminNotifications();
+    renderStorageUsagePanel();
+    Promise.all([getDocs(collection(db,"users")),getDocs(collection(db,"courses"))]).then(([userSnap,courseSnap])=>{
+      if(currentUser?.uid!==adminId||currentTab!=="dashboard")return;
+      const allUsers=userSnap.docs.map(d=>d.data());
+      const students=allUsers.filter(u=>u.role==="student");
+      const pending=students.filter(u=>u.status!=="approved");
+      const instructors=allUsers.filter(u=>u.role==="instructor"&&u.status==="approved");
+      const values={students:students.length,pending:pending.length,instructors:instructors.length,courses:courseSnap.size};
+      Object.entries(values).forEach(([key,value])=>{
+        const target=page.querySelector('[data-admin-stat="'+key+'"]');
+        if(target)target.textContent=String(value);
+      });
+    }).catch(error=>{
+      if(currentUser?.uid===adminId&&currentTab==="dashboard")appMessage("Dashboard totals could not be refreshed: "+error.message,"error");
+    });
+    return;
+  }
   let stats=[],quickActions="",tip="Keep learning consistently and review your lessons regularly.";
   try{
     if(isAdmin()){
