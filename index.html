@@ -3009,7 +3009,7 @@ if(isStudent()){
  if(locked.length)html+=`<div class="panel"><h3>More Courses</h3><p class="muted">These paid courses need administrator approval before you can start learning.</p><div class="course-grid">${cards(locked)}</div></div>`;
 }else{
  if(!courses.length)html+="<div class='panel'><p>No courses available yet.</p></div>";
- for(const c of courses){html+="<div class='card'><h3>"+safe(c.title)+"</h3><span class='tag'>"+safe(c.category)+"</span><p>"+formatLessonContent(c.description)+"</p>"+(c.accessType==="paid"?"<p>One-time course price (all lessons): MK "+safe(Number(c.price||0).toLocaleString('en-US'))+"</p>":"")+"<div class='actions'><button data-action='open-course' data-id='"+safe(c.id)+"'>Open Course</button>"+(isAdmin()?"<button class='secondary' data-action='edit-course' data-id='"+safe(c.id)+"'>Edit</button><button class='danger' data-action='delete-course' data-id='"+safe(c.id)+"'>Delete</button>":"")+"</div></div>";}
+ for(const c of courses){html+="<div class='card'><h3>"+safe(c.title)+"</h3><span class='tag'>"+safe(c.category)+"</span><p>"+formatLessonContent(c.description)+"</p>"+(c.accessType==="paid"?"<p>One-time course price (all lessons): MK "+safe(Number(c.price||0).toLocaleString('en-US'))+"</p>":"")+"<div class='actions'><button data-action='course-details' data-id='"+safe(c.id)+"'>Open Course</button>"+(isAdmin()?"<button class='secondary' data-action='edit-course' data-id='"+safe(c.id)+"'>Edit</button><button class='danger' data-action='delete-course' data-id='"+safe(c.id)+"'>Delete</button>":"")+"</div></div>";}
 }
 page.innerHTML=html;
 if(isStudent()){
