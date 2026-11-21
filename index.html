@@ -2794,11 +2794,11 @@ async function loadCourses(){
       const saved=JSON.parse(localStorage.getItem("mtr-courses:"+cacheKey)||"null");
       if(!manualReload&&saved&&Array.isArray(saved.items)&&Date.now()-saved.savedAt<6*60*60*1000){
         courses=saved.items;
-        coursesCacheAt=Date.now();
+        coursesCacheAt=saved.savedAt;
       }
     }catch(_){}
   }
-  if(coursesCacheAt&&Date.now()-coursesCacheAt<20000)return;
+  if(coursesCacheAt&&Date.now()-coursesCacheAt<6*60*60*1000)return;
   if(coursesLoadPromise)return coursesLoadPromise;
 
   let q;
