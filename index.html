@@ -2870,8 +2870,7 @@ try{
 const cid=await ensureCourse();
 const result=await uploadLessonMedia(f,cid,p=>st.textContent=`Uploading file... ${p}%`);
 $("lessonUrl").value=result.mediaUrl;
-$("lessonType").value=result.mime==="application/pdf"?"pdf":result.mime.startsWith("video/")?"video":"audio";
-$("lessonType").dispatchEvent(new Event("change"));
+
 st.textContent="Upload complete. Press Save Course and Lesson.";
 }catch(err){st.textContent=(err.code?err.code+": ":"")+(err.message||"Upload failed.");}
 finally{btn.disabled=false;}
