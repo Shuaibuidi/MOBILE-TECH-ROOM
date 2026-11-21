@@ -3091,8 +3091,7 @@ if(uploadButton)uploadButton.onclick=async()=>{
   try{
     const result=await uploadLessonMedia(file,courseId,p=>status.textContent=`Uploading file... ${p}%`);
     $("lessonUrl").value=result.mediaUrl;
-    $("lessonType").value=result.mime==="application/pdf"?"pdf":result.mime.startsWith("video/")?"video":"audio";
-    $("lessonType").dispatchEvent(new Event("change"));
+
     status.textContent="Upload complete. Save Lesson to publish this material.";
   }catch(error){status.textContent=(error.code?error.code+": ":"")+(error.message||"Upload failed. Please try again.");}
   finally{uploadButton.disabled=false;}
