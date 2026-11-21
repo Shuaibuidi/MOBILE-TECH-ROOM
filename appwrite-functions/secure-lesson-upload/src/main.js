@@ -396,19 +396,26 @@ async function handleAdminNotifications({ req, res, error }) {
       return json(res, { success: false, error: "Unknown notification action." }, 400);
     }
     const snapshot = await db.collection("adminNotifications").orderBy("createdAt", "desc").limit(20).get();
-    const notifications = await Promise.all(snapshot.docs.map(async item => {
+    // Fetch all referenced student profiles in one Firestore round-trip instead of
+    // issuing one sequential request per notification.
+    const studentIds = [...new Set(snapshot.docs
+      .map(item => item.data()?.uid)
+      .filter(Boolean)
+      .map(String))];
+    const studentSnaps = studentIds.length
+      ? await db.getAll(...studentIds.map(uid => db.collection("users").doc(uid)))
+      : [];
+    const studentStatusById = new Map(studentSnaps.map(snap => [
+      snap.id, snap.exists ? String(snap.data()?.status || "pending") : "unknown"
+    ]));
+    const notifications = snapshot.docs.map(item => {
       const value = item.data() || {};
-      let studentStatus = "";
-      if (value.uid && value.type === "new_student") {
-        const studentSnap = await db.collection("users").doc(String(value.uid)).get();
-        studentStatus = studentSnap.exists ? String(studentSnap.data()?.status || "pending") : "unknown";
-      }
       return {
         id: item.id,
         type: String(value.type || "alert"),
         studentName: String(value.studentName || ""),
         email: String(value.email || ""),
-        studentStatus,
+        studentStatus: value.uid && value.type === "new_student" ? (studentStatusById.get(String(value.uid)) || "unknown") : "",
         courseTitle: String(value.courseTitle || ""),
         amount: Number(value.amount || 0),
         currency: String(value.currency || "MWK"),
@@ -416,7 +423,7 @@ async function handleAdminNotifications({ req, res, error }) {
         read: Boolean(value.readAt),
         createdAt: value.createdAt?.toDate ? value.createdAt.toDate().toISOString() : null
       };
-    }));
+    });
     return json(res, { success: true, notifications });
   } catch (e) {
     error(e?.stack || String(e));
@@ -541,18 +548,26 @@ async function handleQuizzes({ req, res, error }) {
     };
 
     if (action === "quiz-list") {
-      const [courseSnap, quizSnap] = await Promise.all([
+      const reads = [
         db.collection("courses").get(),
         db.collection("quizzes").limit(300).get()
-      ]);
+      ];
+      // Read a student's enrolments once, rather than making a separate Firestore
+      // request for every paid course during quiz-list rendering.
+      if (user.role === "student") reads.push(
+        db.collection("users").doc(decoded.uid).collection("enrollments").get()
+      );
+      const [courseSnap, quizSnap, enrollmentSnap] = await Promise.all(reads);
       const courseMap = new Map(courseSnap.docs.map(item => [item.id, { id: item.id, ...item.data() }]));
-      const courseValues = Array.from(courseMap.values());
-      const accessibleChecks = await Promise.all(courseValues.map(async course => {
-        if (user.role === "admin" || (user.role === "instructor" && course.createdBy === decoded.uid)) return course.id;
-        if (user.role === "student" && await canStudentAccessCourse(course)) return course.id;
-        return null;
-      }));
-      const accessible = new Set(accessibleChecks.filter(Boolean));
+      const enrollmentIds = new Set((enrollmentSnap?.docs || [])
+        .filter(item => item.data()?.status === "active").map(item => item.id));
+      const accessible = new Set(Array.from(courseMap.values())
+        .filter(course => {
+          if (user.role === "admin") return true;
+          if (user.role === "instructor") return course.createdBy === decoded.uid;
+          if (user.role !== "student" || user.status !== "approved" || course.status !== "published") return false;
+          return course.accessType !== "paid" || enrollmentIds.has(course.id);
+        }).map(course => course.id));
       const quizzes = quizSnap.docs
         .map(item => ({ id: item.id, ...item.data() }))
         .filter(quiz => accessible.has(String(quiz.courseId || "")) && (staff || quiz.status === "published"))
