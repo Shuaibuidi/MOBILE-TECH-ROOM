@@ -2542,9 +2542,15 @@ if(refreshAppButton)refreshAppButton.addEventListener("click",async()=>{
     if(isAdmin()&&currentTab==="storage")try{localStorage.removeItem("mtr_storage_usage_"+currentUser.uid);}catch(_){}
     invalidateCoursesCache();
     if(isAdmin()&&currentTab==="quizzes")try{localStorage.removeItem("mtr_quiz_list_"+currentUser.uid+"_admin");}catch(_){}
-    await currentUser.getIdToken(true);
+    // Reuse the current Firebase ID token when it is still valid. Firebase refreshes it automatically when needed; forcing a refresh on every dashboard tap causes avoidable network failures.
+    await currentUser.getIdToken();
     await showTab(currentTab);
-  }catch(error){appMessage("Refresh failed: "+error.message,"error");}
+  }catch(error){
+    const message=error?.code==="auth/network-request-failed"
+      ?"Refresh could not reach Firebase. Check your internet connection and try again."
+      :"Refresh failed: "+(error?.message||"Please try again.");
+    appMessage(message,"error");
+  }
   finally{refreshAppButton.disabled=false;refreshAppButton.classList.remove("is-refreshing");}
 });
 const globalSearchField=$("globalCourseSearch");
