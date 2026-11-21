@@ -2505,7 +2505,7 @@ return;
 }
 buildNavigation();
 await showTab("dashboard");
-await handlePayChanguReturn();
+if(typeof handlePayChanguReturn==="function")await handlePayChanguReturn();
 }catch(e){
 page.innerHTML=`<div class="panel">Unable to load account: ${safe(e.message)}</div>`;
 }
