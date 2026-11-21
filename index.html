@@ -1619,7 +1619,10 @@ footer{color:#71839a!important}
 .quiz-toolbar{display:flex;gap:8px;flex-wrap:wrap}.quiz-result-good{color:#54e2ad}.quiz-result-bad{color:#ff9aaa}
 @media(max-width:520px){.quiz-options-editor{grid-template-columns:1fr}}
 /* Student login artwork — scoped strictly to logged-out mode. */
-body.login-mode{background:#f3f7ff!important;color:#102f70!important;min-height:100svh;overflow-x:hidden}
+body.login-mode{background:#f3f7ff!important;color:#102f70!important;height:100svh;min-height:100svh;overflow:hidden}
+body.login-mode,body.login-mode *{box-sizing:border-box}
+body.login-mode main{height:100svh;min-height:100svh;overflow:hidden}
+
 body.login-mode header,body.login-mode footer{display:none!important}
 body.login-mode:before{content:"";position:fixed;z-index:0;top:0;left:0;right:0;height:43svh;min-height:300px;background:
  radial-gradient(ellipse at 13% 27%,#a9e9ff 0 3%,transparent 3.5%),
@@ -1649,6 +1652,34 @@ body.login-mode #switchText{margin:12px 0 0!important;padding-top:15px!important
 body.login-mode #switchText a{color:#0646c5!important;font-weight:850!important}
 body.login-mode #message{color:#b42318!important;font-size:14px}
 body.login-mode #registerFields input{padding-left:22px!important;background-image:none!important}
+/* Keep the login and registration layouts inside the viewport without page scrolling. */
+@media(max-height:820px){
+ body.login-mode main{padding-top:clamp(132px,19vh,175px)!important;padding-bottom:clamp(58px,8vh,72px)!important}
+ body.login-mode #authPanel{padding-top:18px!important;padding-bottom:18px!important;border-radius:25px!important}
+ body.login-mode #authPanel:before{top:-52px;width:104px;height:104px;font-size:58px;border-width:5px}
+ body.login-mode #authTitle{margin-top:27px!important;margin-bottom:8px!important;padding:8px 10px!important;font-size:clamp(24px,4vh,30px)!important}
+ body.login-mode #authDescription{margin-bottom:10px!important;font-size:clamp(14px,2.4vh,18px)!important}
+ body.login-mode #authDescription:after{height:4px;margin:9px 0 10px}
+ body.login-mode #authPanel input{min-height:48px;margin:6px 0!important;padding-top:9px!important;padding-bottom:9px!important;font-size:16px!important}
+ body.login-mode #email,body.login-mode #password{background-size:34px 34px!important}
+ body.login-mode #authButton{min-height:52px;margin:7px 0 4px!important;font-size:23px!important}
+ body.login-mode #forgotButton{min-height:36px;margin:3px auto 5px!important;font-size:16px!important}
+ body.login-mode #switchText{margin-top:6px!important;padding-top:8px!important;font-size:16px!important}
+ body.login-mode #authPanel:after{margin-top:12px;padding:8px 16px;font-size:13px}
+}
+@media(max-height:680px){
+ body.login-mode main{padding-top:112px!important;padding-bottom:48px!important}
+ body.login-mode #authPanel{padding:12px 16px!important}
+ body.login-mode #authPanel:before{top:-42px;width:84px;height:84px;font-size:46px}
+ body.login-mode #authTitle{margin-top:23px!important;font-size:23px!important}
+ body.login-mode #authDescription{font-size:13px!important;margin-bottom:5px!important}
+ body.login-mode #authDescription:after{margin:6px 0}
+ body.login-mode #authPanel input{min-height:42px;margin:4px 0!important;font-size:14px!important}
+ body.login-mode #authButton{min-height:44px;font-size:20px!important}
+ body.login-mode #forgotButton{min-height:30px;font-size:14px!important}
+ body.login-mode #switchText{font-size:14px!important;padding-top:5px!important}
+ body.login-mode #authPanel:after{margin-top:7px;padding:5px 12px;font-size:11px}
+}
 @media(max-width:600px){
  body.login-mode:before{height:37svh;min-height:250px}
  body.login-mode:after{height:78px}
@@ -2228,7 +2259,13 @@ $("switchText").innerHTML=registerMode?
 authMessage("");
 }
 
-$("switchButton").onclick=e=>{e.preventDefault();switchAuth()};
+// Delegate the click from the stable container because switchAuth() replaces its link HTML.
+$("switchText").addEventListener("click",e=>{
+  const link=e.target.closest("#switchButton");
+  if(!link)return;
+  e.preventDefault();
+  switchAuth();
+});
 
 async function handleAuthButton(){
 const email=$("email").value.trim();
