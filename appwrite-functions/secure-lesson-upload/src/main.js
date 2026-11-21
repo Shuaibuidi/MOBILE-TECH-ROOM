@@ -18,6 +18,8 @@ const ALLOWED_MIME = new Set([
 ]);
 
 let firebaseReady = false;
+let storageUsageCache = null;
+let storageUsageCacheAt = 0;
 function getFirebase() {
   if (!firebaseReady) {
     const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
@@ -216,6 +218,9 @@ async function handleStorageUsage({ req, res, error }) {
     const apiKey = process.env.APPWRITE_API_KEY;
     const bucketId = process.env.APPWRITE_BUCKET_ID;
     if (!endpoint || !projectId || !apiKey || !bucketId) throw new Error("Appwrite storage environment variables are incomplete.");
+    if (storageUsageCache && storageUsageCache.bucketId === bucketId && Date.now() - storageUsageCacheAt < 5 * 60 * 1000) {
+      return json(res, { ...storageUsageCache.data, cached: true });
+    }
     const client = new Client().setEndpoint(endpoint).setProject(projectId).setKey(apiKey);
     const storage = new Storage(client);
     let bytes = 0, fileCount = 0, cursor = null, pages = 0;
@@ -232,7 +237,10 @@ async function handleStorageUsage({ req, res, error }) {
       if (files.length < 100) break;
       cursor = files[files.length - 1].$id;
     }
-    return json(res, { success: true, bytes, fileCount, complete: pages < 1000, measuredAt: new Date().toISOString() });
+    const data = { success: true, bytes, fileCount, complete: pages < 1000, measuredAt: new Date().toISOString() };
+    storageUsageCache = { bucketId, data };
+    storageUsageCacheAt = Date.now();
+    return json(res, data);
   } catch (e) {
     error(e?.stack || String(e));
     return json(res, { success: false, error: "Storage usage could not be loaded. Please try again." }, 500);
@@ -387,7 +395,7 @@ async function handleAdminNotifications({ req, res, error }) {
     if (action !== "admin-notifications" || req.method !== "GET") {
       return json(res, { success: false, error: "Unknown notification action." }, 400);
     }
-    const snapshot = await db.collection("adminNotifications").orderBy("createdAt", "desc").limit(50).get();
+    const snapshot = await db.collection("adminNotifications").orderBy("createdAt", "desc").limit(20).get();
     const notifications = await Promise.all(snapshot.docs.map(async item => {
       const value = item.data() || {};
       let studentStatus = "";
@@ -538,11 +546,13 @@ async function handleQuizzes({ req, res, error }) {
         db.collection("quizzes").limit(300).get()
       ]);
       const courseMap = new Map(courseSnap.docs.map(item => [item.id, { id: item.id, ...item.data() }]));
-      const accessible = new Set();
-      for (const course of courseMap.values()) {
-        if (user.role === "admin" || (user.role === "instructor" && course.createdBy === decoded.uid)) accessible.add(course.id);
-        else if (user.role === "student" && await canStudentAccessCourse(course)) accessible.add(course.id);
-      }
+      const courseValues = Array.from(courseMap.values());
+      const accessibleChecks = await Promise.all(courseValues.map(async course => {
+        if (user.role === "admin" || (user.role === "instructor" && course.createdBy === decoded.uid)) return course.id;
+        if (user.role === "student" && await canStudentAccessCourse(course)) return course.id;
+        return null;
+      }));
+      const accessible = new Set(accessibleChecks.filter(Boolean));
       const quizzes = quizSnap.docs
         .map(item => ({ id: item.id, ...item.data() }))
         .filter(quiz => accessible.has(String(quiz.courseId || "")) && (staff || quiz.status === "published"))
@@ -554,7 +564,6 @@ async function handleQuizzes({ req, res, error }) {
           description: String(quiz.description || ""),
           status: String(quiz.status || "draft"),
           questionCount: Array.isArray(quiz.questions) ? quiz.questions.length : 0,
-          questions: (Array.isArray(quiz.questions) ? quiz.questions : []).map(question => quizSafeQuestion(question, staff)),
           createdAt: quiz.createdAt?.toDate ? quiz.createdAt.toDate().toISOString() : null
         }));
       return json(res, { success: true, quizzes });
