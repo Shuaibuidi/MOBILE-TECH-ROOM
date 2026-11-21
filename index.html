@@ -86,7 +86,7 @@ hr{border:0;border-top:1px solid #405675;margin:15px 0}
 :root{color-scheme:dark;--bg:#091525;--surface:#12243a;--surface2:#182f49;--line:#294663;--teal:#35d6c0;--blue:#62a9ff;--violet:#a78bfa;--gold:#ffc56b;--text:#f4f7fc;--muted:#afc1d5}
 html{background:var(--bg);scroll-behavior:smooth}
 body{background:radial-gradient(ellipse at 12% 0%,#173c5b 0,transparent 38%),radial-gradient(ellipse at 100% 20%,#24315b 0,transparent 34%),var(--bg);color:var(--text);line-height:1.55}
-header{background:linear-gradient(115deg,#10283fef,#18284aef);border-bottom:1px solid #3a6384;box-shadow:0 8px 28px #02091470;backdrop-filter:blur(14px)}
+header{background:linear-gradient(115deg,#10283fef,#18284aef);border-bottom:1px solid #3a6384;box-shadow:0 8px 28px #02091470;}
 header h1{color:var(--teal);letter-spacing:.6px;text-shadow:0 0 22px #35d6c044}
 header p{color:#c4d6ea;letter-spacing:.5px}
 main{padding-top:20px;padding-bottom:30px}
@@ -119,7 +119,7 @@ a{color:#73c8ff;text-decoration:none}a:hover{text-decoration:underline;color:#a7
 .dashboard-tip{border-left-color:var(--gold)}
 .lesson-editor{border-color:#55cfc2;box-shadow:0 0 0 3px #35d6c015}
 .media-preview{border-color:#4c7395;box-shadow:0 8px 18px #020b1745}
-.media-lightbox{backdrop-filter:blur(8px)}
+.media-lightbox{}
 #message,#appMessage{color:#eaf3ff}
 footer{color:#8fa7c0}
 hr{border-top-color:#34516e}
@@ -233,7 +233,7 @@ hr{border-top-color:#34516e}
 /* Mobile Tech Room premium technical academy theme */
 :root{--mtr-navy:#04142d;--mtr-panel:#071d3c;--mtr-blue:#087cff;--mtr-cyan:#12d8ed;--mtr-green:#20e65b;--mtr-purple:#742bdf;--mtr-yellow:#ffe000}
 body{background:radial-gradient(ellipse at 50% -20%,#123f78 0,transparent 48%),linear-gradient(145deg,#020b1b,#061936 55%,#031127);color:#f4f8ff}
-.academy-header{position:sticky;top:0;z-index:1200;display:grid;grid-template-columns:minmax(250px,340px) minmax(260px,1fr) auto;gap:28px;align-items:center;min-height:82px;padding:12px clamp(16px,3vw,42px);text-align:left;background:#03132af2;border-bottom:1px solid #087cff80;box-shadow:0 8px 30px #0008;backdrop-filter:blur(14px)}
+.academy-header{position:sticky;top:0;z-index:1200;display:grid;grid-template-columns:minmax(250px,340px) minmax(260px,1fr) auto;gap:28px;align-items:center;min-height:82px;padding:12px clamp(16px,3vw,42px);text-align:left;background:#03132af2;border-bottom:1px solid #087cff80;box-shadow:0 8px 30px #0008;}
 .brand-lockup{display:flex;align-items:center;gap:13px;min-width:0}.brand-mark{width:52px;height:52px;display:grid;place-items:center;border-radius:15px;background:linear-gradient(140deg,#087cff,#13d9eb);color:#fff;font-size:32px;box-shadow:0 0 24px #078cff66}.brand-lockup h1{font-size:clamp(15px,1.35vw,21px);line-height:1.15;color:#f5f8ff;letter-spacing:.5px;margin:0;white-space:nowrap}.brand-lockup p{font-size:11px;font-weight:800;letter-spacing:1px;color:#ffd900;margin:4px 0 0}.global-search-wrap{height:48px;display:flex;align-items:center;gap:12px;padding:0 15px;border:1px solid #168dff;border-radius:14px;background:#061a37;box-shadow:inset 0 0 18px #087cff18}.global-search-wrap span{font-size:27px;color:#8bcfff}.global-search-wrap input{margin:0;padding:8px 0;border:0;background:transparent;box-shadow:none!important;font-size:14px}.header-right{display:flex;align-items:center;gap:14px}.header-kicker{font-size:12px;color:#b8d8f7;white-space:nowrap}.header-avatar{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#f5f7ff,#8ab9e9);color:#082348;font-size:12px;font-weight:900;border:2px solid #fff}
 main{max-width:1600px;padding:24px clamp(12px,2vw,30px) 40px}#appPanel{gap:18px}#appPanel>.panel:first-child{background:linear-gradient(120deg,#09264b,#0b3470);border-color:#126fd2}#navigation{background:linear-gradient(180deg,#03152f,#061d3c);border:1px solid #0c4e91;border-radius:17px;padding:12px;box-shadow:0 12px 30px #0005}#navigation button{position:relative;min-height:48px;border:1px solid transparent;background:transparent;color:#dcecff;font-weight:700;box-shadow:none}#navigation button::before{content:'◆';font-size:13px;color:#55dfff;margin-right:12px}#navigation button.active{background:linear-gradient(100deg,#087cff,#075ce2);color:white;border-color:#4cbaff;box-shadow:0 6px 20px #087cff55}#navigation button.active::before{color:#fff}#navigation button:hover{background:#0b3970;color:#fff}
 .panel{background:linear-gradient(145deg,#071e3d,#06172f);border:1px solid #174c83;box-shadow:0 12px 28px #0005}.dashboard-hero{position:relative;overflow:hidden;background:linear-gradient(105deg,#073a7d,#052a61 48%,#071b3b);border:1px solid #087cff;min-height:220px;padding:clamp(22px,3vw,42px)}.dashboard-hero:after{content:'⚙  ◈  ▣';position:absolute;right:4%;top:22%;font-size:clamp(42px,8vw,100px);font-weight:900;letter-spacing:15px;color:#61dfff17;pointer-events:none}.dashboard-hero h2{font-size:clamp(28px,4vw,48px);color:#fff}.dashboard-hero h2 span,.dashboard-hero strong{color:#13d8ed}.dashboard-hero p{color:#d7eaff}.dashboard-stats{grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}.dashboard-stat{background:#08264c;border:1px solid #1264ac}.dashboard-stat strong{color:#12d8ed}.dashboard-stat span{color:#c9e3ff}
@@ -2390,11 +2390,11 @@ page.innerHTML=`<div class="panel">Unable to load account: ${safe(e.message)}</d
 
 function buildNavigation(){
 let tabs=[];
-if(isAdmin())tabs=["dashboard","students","lessons","quizzes","instructors","notifications","storage","account"];
+if(isAdmin())tabs=["dashboard","students","lessons","quizzes","notifications","storage","account"];
 else if(isInstructor())tabs=["dashboard","lessons","quizzes"];
 else if(isStudent())tabs=["dashboard","lessons","quizzes"];
 
-const labels={dashboard:"⌂  Dashboard",students:"♙  Students",lessons:"▣  My Courses",quizzes:"☑  Quizzes & Exams",instructors:"⚙  Instructors",notifications:"🔔  Notifications",storage:"▤  Media Storage",account:"◉  Account"};
+const labels={dashboard:"⌂  Dashboard",students:"♙  Students",lessons:"▣  My Courses",quizzes:"☑  Quizzes & Exams",notifications:"🔔  Notifications",storage:"▤  Media Storage",account:"◉  Account"};
 $("navigation").innerHTML=tabs.map(t=>
 `<button class="${currentTab===t?"active":"secondary"}" data-tab="${t}">${labels[t]||t}</button>`
 ).join("");
@@ -2404,7 +2404,7 @@ $("navigation").innerHTML=tabs.map(t=>
 const bottomNav=$("mobileBottomNav");
 if(bottomNav){
   const mobileTabs=isAdmin()
-    ? [["dashboard","⌂","Dashboard"],["students","♙","Students"],["lessons","▣","Courses"],["quizzes","☑","Quizzes"],["instructors","⚙","Instructors"],["notifications","♧","Alerts"],["storage","▤","Storage"],["account","◉","Account"]]
+    ? [["dashboard","⌂","Dashboard"],["students","♙","Students"],["lessons","▣","Courses"],["quizzes","☑","Quizzes"],["notifications","♧","Alerts"],["storage","▤","Storage"],["account","◉","Account"]]
     : [["dashboard","⌂","Home"],["lessons","▣","Courses"],["quizzes","☑","Quizzes"],["progress","▥","Progress"],["about","ⓘ","About"]];
   bottomNav.innerHTML=mobileTabs.map(([tab,icon,label])=>
     `<button type="button" data-dashboard-tab="${tab}" aria-label="${label}"><span class="bottom-nav-icon">${icon}</span><span>${label}</span></button>`
@@ -2648,7 +2648,7 @@ async function renderAdminNotifications() {
 function renderAdminAccount(){
   const name=profile?.fullName||currentUser?.displayName||currentUser?.email||"Admin";
   const role=(profile?.role||"admin").toLowerCase();
-  page.innerHTML=`<section class="panel"><h2>Account Information</h2><p class="muted">Your administrator account details.</p><div class="card"><strong>Name</strong><p>${safe(name)}</p></div><div class="card"><strong>Role</strong><p><span class="tag">${safe(role.toUpperCase())}</span></p></div><div class="card"><strong>Email</strong><p>${safe(currentUser?.email||"Not available")}</p></div></section>`;
+  page.innerHTML=`<section class="panel"><h2>Account Information</h2><p class="muted">Your administrator account details.</p><div class="card"><strong>Name</strong><p>${safe(name)}</p></div><div class="card"><strong>Role</strong><p><span class="tag">${safe(role.toUpperCase())}</span></p></div><div class="card"><strong>Email</strong><p>${safe(currentUser?.email||"Not available")}</p></div><hr><h3>Account Management</h3><p class="muted">Manage instructor accounts and permissions from here.</p><button type="button" data-dashboard-tab="instructors">Manage Instructors</button></section>`;
 }
 
 async function renderDashboard(){
@@ -2730,7 +2730,7 @@ async function renderDashboard(){
       const [userSnap,courseSnap]=await Promise.all([getDocs(collection(db,"users")),getDocs(collection(db,"courses"))]);
       const allUsers=userSnap.docs.map(d=>d.data()),students=allUsers.filter(u=>u.role==="student"),pending=students.filter(u=>u.status!=="approved"),instructors=allUsers.filter(u=>u.role==="instructor"&&u.status==="approved");
       stats=[{value:students.length,label:"Registered students"},{value:pending.length,label:"Pending approvals"},{value:instructors.length,label:"Active instructors"},{value:courseSnap.size,label:"Lesson topics"}];
-      quickActions=`<button data-dashboard-tab="students">Manage Students</button><button data-dashboard-tab="lessons">Manage Lessons</button><button data-dashboard-tab="instructors">Manage Instructors</button>`;
+      quickActions=`<button data-dashboard-tab="students">Manage Students</button><button data-dashboard-tab="lessons">Manage Lessons</button><button data-dashboard-tab="account">Account &amp; Instructors</button>`;
     }else if(isInstructor()){
       await loadCourses();const lessonCounts=await Promise.all(courses.map(async c=>{try{return (await getDocs(collection(db,"courses",c.id,"lessons"))).size;}catch(_){return 0;}}));
       stats=[{value:courses.length,label:"My lesson topics"},{value:courses.filter(c=>c.status==="published").length,label:"Published topics"},{value:lessonCounts.reduce((a,b)=>a+b,0),label:"Lessons created"}];quickActions=`<button data-dashboard-tab="lessons">Open My Lessons</button>`;
@@ -3237,7 +3237,7 @@ const snap=await getDocs(collection(db,"users"));
 users=snap.docs.map(d=>({id:d.id,...d.data()}))
 .filter(u=>u.role===role);
 let html=`<div class="panel">
-<h2>${role==="student"?"Student Management":"Instructor Management"}</h2>
+${role==="instructor"?`<button type="button" class="secondary" data-dashboard-tab="account">Back to Account</button>`:""}<h2>${role==="student"?"Student Management":"Instructor Management"}</h2>
 <p class="muted">Manage account permissions and access.</p>
 </div>`;
 
@@ -3426,29 +3426,7 @@ await changeUser(id,{role:"student",status:"approved"},"Instructor permissions r
 }catch(error){appMessage(error.message,"error")}
 });
 
-/* Display all-capital labels in readable sentence case and a softer accent. */
-(()=>{
- const skip='SCRIPT,STYLE,TEXTAREA,INPUT,SELECT,OPTION,[contenteditable="true"]';
- const accent=(root)=>{
-  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
-  const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
-  for(const node of nodes){
-   const value=node.nodeValue||"";
-   if(!/[A-Z]{2,}/.test(value))continue;
-   const parent=node.parentElement;
-   if(!parent||parent.closest(skip)||parent.classList.contains('uppercase-accent'))continue;
-   if(!/[a-z]/.test(value)){
-    const readable=value.toLowerCase().replace(/(^|[.!?]\s+)([a-z])/g,(m,prefix,letter)=>prefix+letter.toUpperCase());
-    const span=document.createElement('span');
-    span.className='uppercase-accent';span.textContent=readable;
-    node.parentNode.replaceChild(span,node);
-   }
-  }
- };
- const run=()=>accent(document.body);
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
- new MutationObserver(()=>run()).observe(document.body,{childList:true,subtree:true});
-})();
+
 
 </script>
 </body>
