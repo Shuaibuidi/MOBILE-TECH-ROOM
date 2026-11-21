@@ -1898,7 +1898,7 @@ async function renderStorageUsagePanel() {
       </div>
       <div class="dashboard-stats" style="margin:14px 0 10px">
         <div class="dashboard-stat"><strong>${formatStorageBytes(used)}</strong><span>Lesson files used</span></div>
-        <div class="dashboard-stat"><strong>${formatStorageBytes(remaining)}</strong><span>Estimated remaining of 2 GB Free-plan reference</span></div>
+        <div class="dashboard-stat"><strong>2GB / 2GB</strong><span>Free-plan storage</span></div>
         <div class="dashboard-stat"><strong>${Number(data.fileCount) || 0}</strong><span>Uploaded files</span></div>
       </div>
       <div style="height:12px;background:#e8eef8;border-radius:20px;overflow:hidden;margin:12px 0 7px">
@@ -2581,7 +2581,10 @@ async function renderAdminNotifications() {
       result = await callAdminNotifications("admin-notifications");
       try { localStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), data: result })); } catch (_) {}
     }
-    const items = Array.isArray(result.notifications) ? result.notifications : [];
+    const items = (Array.isArray(result.notifications) ? result.notifications : []).filter(item => {
+      const isApprovedStudent = item.type !== "payment_received" && item.studentStatus === "approved";
+      return !(isApprovedStudent && item.read);
+    });
     const unread = items.filter(item => !item.read).length;
     panel.innerHTML = `
       <div class="notification-heading">
