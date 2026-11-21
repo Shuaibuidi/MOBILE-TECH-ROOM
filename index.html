@@ -1666,7 +1666,7 @@ import {initializeApp} from
 import {
 getAuth,createUserWithEmailAndPassword,
 signInWithEmailAndPassword,sendPasswordResetEmail,
-onAuthStateChanged,signOut,updateProfile
+onAuthStateChanged,signOut,updateProfile,browserLocalPersistence,setPersistence
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 import {
@@ -1688,6 +1688,8 @@ measurementId:"G-WY4T9JMB97"
 
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
+// Keep a valid Firebase session across app closes and browser/WebView restarts.
+await setPersistence(auth,browserLocalPersistence);
 const db=getFirestore(app);
 
 let currentUser=null;
@@ -1866,16 +1868,26 @@ function formatStorageBytes(value) {
 async function renderStorageUsagePanel() {
   const panel = $("storageUsagePanel");
   if (!panel || !currentUser || !isAdmin()) return;
-  panel.innerHTML = "<h3>Lesson Media Storage</h3><p class='muted'>Checking Appwrite storage...</p>";
+  const cacheKey = "mtr_storage_usage_" + currentUser.uid;
+  let data = null;
   try {
-    const token = await currentUser.getIdToken();
-    const response = await fetch("https://starter-function-9cke.sgp.appwrite.run/?action=storage-usage", {
-      method: "GET",
-      headers: { Authorization: "Bearer " + token }
-    });
-    let data = {};
-    try { data = await response.json(); } catch (_) {}
-    if (!response.ok || !data.success) throw new Error(data.error || "Storage usage could not be loaded.");
+    const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
+    if (cached && Date.now() - cached.savedAt < 300000 && cached.data?.success) data = cached.data;
+  } catch (_) {}
+  if (!data) panel.innerHTML = "<h3>Lesson Media Storage</h3><p class='muted'>Checking Appwrite storage...</p>";
+  try {
+    if (!data) {
+      const token = await currentUser.getIdToken();
+      const response = await fetch("https://starter-function-9cke.sgp.appwrite.run/?action=storage-usage", {
+        method: "GET",
+        headers: { Authorization: "Bearer " + token }
+      });
+      let fresh = {};
+      try { fresh = await response.json(); } catch (_) {}
+      if (!response.ok || !fresh.success) throw new Error(fresh.error || "Storage usage could not be loaded.");
+      data = fresh;
+      try { localStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), data })); } catch (_) {}
+    }
     const used = Math.max(0, Number(data.bytes) || 0);
     const referenceLimit = 2 * 1024 * 1024 * 1024;
     const remaining = Math.max(0, referenceLimit - used);
@@ -2263,6 +2275,12 @@ $("logoutButton").onclick=async()=>{
 onAuthStateChanged(auth,async user=>{
 const generation=++authStateGeneration;
 currentUser=user;
+// A restored session should never flash the login form while its profile is being checked.
+if(user){
+  $("authPanel").classList.add("hidden");
+  $("appPanel").classList.remove("hidden");
+  $("page").innerHTML="<section class='panel'><h2>Welcome back</h2><p class='muted'>Restoring your dashboard...</p></section>";
+}
 // A new account must finish writing its Firestore profile before auth-state checks run.
 if(registrationInProgress)return;
 if(!user){
@@ -2452,7 +2470,19 @@ function quizQuestionEditor(q={},i=0){
 async function renderQuizzes(){
  page.innerHTML="<div class='panel'>Loading quizzes...</div>";
  try{
-  const [,data]=await Promise.all([loadCourses(),callQuizApi("quiz-list")]);const items=data.quizzes||[],staff=isStaff();
+  const cacheKey = "mtr_quiz_list_" + currentUser.uid + "_" + (profile?.role || "user");
+  let data = null;
+  try {
+   const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
+   if (cached && Date.now() - cached.savedAt < 120000 && cached.data?.success) data = cached.data;
+  } catch (_) {}
+  if (data) await loadCourses();
+  else {
+   const [,fresh] = await Promise.all([loadCourses(),callQuizApi("quiz-list")]);
+   data = fresh;
+   try { localStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), data })); } catch (_) {}
+  }
+  const items=data.quizzes||[],staff=isStaff();
   let h='<section class="dashboard-hero"><p class="uppercase-accent">ASSESSMENT CENTRE</p><h2>Quizzes &amp; Exams</h2><p>Multiple-choice tests, automatic marking and results.</p></section>';
   if(staff&&courses.length){
    h+='<section class="panel"><h2 id="quizEditorHeading">Create a Quiz</h2><form id="quizForm"><label class="muted">Course</label><select id="quizCourse">';
@@ -2476,7 +2506,7 @@ async function renderQuizzes(){
     e.preventDefault();
     const questions=Array.from(area.querySelectorAll("[data-quiz-question]")).map(card=>({text:card.querySelector("[data-question-text]").value.trim(),options:[0,1,2,3].map(n=>card.querySelector('[data-question-option="'+n+'"]').value.trim()),correctIndex:Number(card.querySelector("[data-question-correct]").value)}));
     const payload={courseId:$("quizCourse").value,title:$("quizTitle").value.trim(),description:$("quizDescription").value.trim(),status:$("quizStatus").value,questions};
-    try{await callQuizApi(editing?"quiz-update":"quiz-create","POST",{...payload,...(editing?{quizId:editing}:{})});appMessage("Quiz saved successfully.");await renderQuizzes();}catch(err){appMessage(err.message,"error");}
+    try{await callQuizApi(editing?"quiz-update":"quiz-create","POST",{...payload,...(editing?{quizId:editing}:{})});try{localStorage.removeItem(cacheKey);}catch(_){}appMessage("Quiz saved successfully.");await renderQuizzes();}catch(err){appMessage(err.message,"error");}
    };
    page.onclick=async e=>{
     const edit=e.target.closest("[data-quiz-edit]"),del=e.target.closest("[data-quiz-delete]"),res=e.target.closest("[data-quiz-results]");
@@ -2489,7 +2519,7 @@ async function renderQuizzes(){
      }catch(err){appMessage(err.message,"error");}
      finally{edit.disabled=false;}
     }
-    else if(del){if(!confirm("Delete this quiz?"))return;try{await callQuizApi("quiz-delete","POST",{quizId:del.dataset.quizDelete});await renderQuizzes();}catch(err){appMessage(err.message,"error");}}
+    else if(del){if(!confirm("Delete this quiz?"))return;try{await callQuizApi("quiz-delete","POST",{quizId:del.dataset.quizDelete});try{localStorage.removeItem(cacheKey);}catch(_){}await renderQuizzes();}catch(err){appMessage(err.message,"error");}}
     else if(res)await renderQuizResults(res.dataset.quizResults);
    };
   }else page.onclick=async e=>{const b=e.target.closest("[data-quiz-take]");if(b)await renderStudentQuiz(b.dataset.quizTake);};
@@ -2540,9 +2570,18 @@ async function callAdminNotifications(action, method="GET", payload={}) {
 async function renderAdminNotifications() {
   const panel = $("adminNotificationsPanel");
   if (!panel || !isAdmin()) return;
-  panel.innerHTML = "<h3>🔔 Notifications <span class='muted'>Loading...</span></h3>";
+  const cacheKey = "mtr_admin_notifications_" + currentUser.uid;
+  let result = null;
   try {
-    const result = await callAdminNotifications("admin-notifications");
+    const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
+    if (cached && Date.now() - cached.savedAt < 30000 && cached.data?.success) result = cached.data;
+  } catch (_) {}
+  if (!result) panel.innerHTML = "<h3>🔔 Notifications <span class='muted'>Loading...</span></h3>";
+  try {
+    if (!result) {
+      result = await callAdminNotifications("admin-notifications");
+      try { localStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), data: result })); } catch (_) {}
+    }
     const items = Array.isArray(result.notifications) ? result.notifications : [];
     const unread = items.filter(item => !item.read).length;
     panel.innerHTML = `
@@ -2571,6 +2610,7 @@ async function renderAdminNotifications() {
         button.disabled = true;
         try {
           await callAdminNotifications("mark-notification-read", "POST", { notificationId: button.dataset.notificationRead });
+          try { localStorage.removeItem(cacheKey); } catch (_) {}
           await renderAdminNotifications();
         } catch (error) {
           button.disabled = false;
