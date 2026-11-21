@@ -2974,152 +2974,110 @@ function richEditorToolbar(prefix){return '<div class="editor-toolbar" id="'+pre
 async function renderCourses(){
 page.innerHTML="<div class='panel'>Loading courses...</div>";
 try{
-const enrollmentPromise=isStudent()?getDocs(collection(db,"users",currentUser.uid,"enrollments")):Promise.resolve(null);
-const [,enrollmentSnap]=await Promise.all([loadCourses(),enrollmentPromise]);
-let html="<div class='panel'><h2>Courses and Lessons</h2><p class='muted'>Choose a course or create a new course with its first lesson.</p>";
-if(isStaff()){
-html+="<h3>Create Course and First Lesson</h3><form id='combinedLessonForm'>";
-html+="<label class='muted'>1. Course name</label><input id='courseTitle' placeholder='e.g. Phone Flashing and Unlocking' required>";
-
- html+="<hr>";
-html+="<label class='muted'>2. Lesson title</label><input id='lessonTitle' placeholder='e.g. Introduction to Phone Flashing' required>";
-html+="<label class='muted'>3. Topic</label><input id='lessonTopic' placeholder='e.g. Flashing basics' required>";
-html+="<label class='muted'>4. Section</label><input id='lessonSection' placeholder='e.g. Introduction, Tools, Practical Steps' required>";
-html+="<label class='muted'>5. What students will learn in this lesson</label>"+richEditorToolbar("lessonOutcomes")+"<div id='lessonOutcomes' class='lesson-editor' contenteditable='true' role='textbox' aria-multiline='true' data-placeholder='Describe the skills and knowledge students will gain...'></div>";
-html+="<label class='muted'>6. Course access (covers every lesson)</label><select id='courseAccess'><option value='free'>Free</option><option value='paid'>Paid</option></select>";
-html+="<div id='coursePriceField' class='hidden'><label class='muted' for='coursePrice'>7. One-time course price (Malawi Kwacha – MK)</label><div class='input-prefix'><span>MK</span><input id='coursePrice' type='number' min='1' step='1' inputmode='numeric' placeholder='e.g. 25000'></div><small class='muted'>Enter the amount in Malawi Kwacha.</small></div>";
-html+="<hr><label class='muted'>8. Lesson PDF</label><div id='mediaLessonFields'><input id='lessonUrl' type='hidden'><label class='muted'>Upload PDF only (maximum 50 MB)</label><input id='lessonFile' type='file' accept='.pdf,application/pdf'><button type='button' class='secondary' id='uploadLessonFile'>Upload PDF</button><p id='uploadStatus' class='muted'>Choose a PDF document and upload it before saving.</p></div>";
-html+="<label class='muted' for='lessonResourceUrl'>Video or Audio Link (Optional)</label><input id='lessonResourceUrl' type='url' placeholder='Paste a YouTube, video or audio link'><small class='muted'>Upload the PDF here, then paste an online video or audio link for students.</small><button type='submit'>9. Save Course and Lesson</button></form>";
-}
-html+="</div>";
-if(isStudent()){
- const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
- const available=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
- const locked=courses.filter(c=>c.accessType==="paid"&&!activeIds.has(c.id));
- const cards=items=>items.map(c=>`<article class="student-course"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">✦</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${formatLessonContent(c.description||"Explore this practical technology course.")}</p>${c.accessType==="paid"?`<strong style="color:#68439b">MK ${safe(Number(c.price||0).toLocaleString("en-US"))}</strong>`:""}<button data-action="open-course" data-id="${safe(c.id)}">${c.accessType==="paid"?"View Course":"Start Learning →"}</button></div></article>`).join("");
- html+=`<div class="panel"><div class="student-course-heading"><h2>Explore Courses</h2><span class="tag">${available.length} available</span></div><p class="muted">Open your PDF learning guides, videos and audio tutorials.</p><input id="courseSearch" class="student-course-search" placeholder="Search courses..."><div id="studentCourseGrid" class="course-grid">${cards(available)||"<p class='muted'>No courses are available yet.</p>"}</div></div>`;
- if(locked.length)html+=`<div class="panel"><h3>More Courses</h3><p class="muted">These paid courses need administrator approval before you can start learning.</p><div class="course-grid">${cards(locked)}</div></div>`;
-}else{
- if(!courses.length)html+="<div class='panel'><p>No courses available yet.</p></div>";
- for(const c of courses){html+="<div class='card'><h3>"+safe(c.title)+"</h3><span class='tag'>"+safe(c.category)+"</span><p>"+formatLessonContent(c.description)+"</p>"+(c.accessType==="paid"?"<p>One-time course price (all lessons): MK "+safe(Number(c.price||0).toLocaleString('en-US'))+"</p>":"")+"<div class='actions'><button data-action='open-course' data-id='"+safe(c.id)+"'>Open Course</button>"+(isAdmin()?"<button class='secondary' data-action='edit-course' data-id='"+safe(c.id)+"'>Edit</button><button class='danger' data-action='delete-course' data-id='"+safe(c.id)+"'>Delete</button>":"")+"</div></div>";}
-}
-page.innerHTML=html;
-if(isStudent()){
- const search=$("courseSearch"),grid=$("studentCourseGrid");
- if(search&&grid)search.oninput=()=>{const term=search.value.toLowerCase();grid.querySelectorAll(".student-course").forEach(card=>card.classList.toggle("hidden",!card.innerText.toLowerCase().includes(term)));};
- const globalSearch=$("globalCourseSearch");if(globalSearch)globalSearch.oninput=()=>{const term=globalSearch.value.toLowerCase();document.querySelectorAll(".student-course").forEach(card=>card.classList.toggle("hidden",!card.innerText.toLowerCase().includes(term)));};
-}
-if(isStaff()){
-bindLessonFormControls({accessId:"courseAccess",priceFieldId:"coursePriceField",priceId:"coursePrice",typeId:"lessonType",writtenId:"writtenLessonFields",mediaId:"mediaLessonFields",contentId:"lessonContent"});
-bindRichTextEditor("lessonOutcomes","lessonOutcomesToolbar");
-let draftCourseId=null;
-const form=$("combinedLessonForm"),val=id=>$(id).value.trim(),rich=id=>$(id).innerHTML.trim();
-const courseFields=()=>({title:val("courseTitle"),category:"Technology",description:"",coverImage:"",accessType:$("courseAccess").value,price:Number($("coursePrice").value||0),createdBy:currentUser.uid});
-const ensureCourse=async()=>{
-  if(!draftCourseId)draftCourseId=doc(collection(db,"courses")).id;
-  if(!draftCourseId)throw new Error("Could not create a course ID. Please refresh and try again.");
-  const courseRef=doc(db,"courses",draftCourseId);
-  await setDoc(courseRef,{...courseFields(),status:"draft",createdAt:serverTimestamp()},{merge:true});
-  const savedCourse=await getDoc(courseRef);
-  if(!savedCourse.exists())throw new Error("Course draft could not be verified. Check Firestore course permissions.");
-  return draftCourseId;
-};
-
-$("uploadLessonFile").onclick=async()=>{
-const f=$("lessonFile").files[0],st=$("uploadStatus"),btn=$("uploadLessonFile");
-if(!f){st.textContent="Please choose a file first.";return;}
-btn.disabled=true;st.textContent="Preparing course and uploading file... 0%";
-try{
-const cid=await ensureCourse();
-const result=await uploadLessonMedia(f,cid,p=>st.textContent=`Uploading file... ${p}%`);
-$("lessonUrl").value=result.mediaUrl;
-
-st.textContent="Upload complete. Press Save Course and Lesson.";
-}catch(err){st.textContent=(err.code?err.code+": ":"")+(err.message||"Upload failed.");}
-finally{btn.disabled=false;}
-};
-form.onsubmit=async e=>{
-e.preventDefault();
-try{
-const accessType=$("courseAccess").value,lessonType="pdf";
-if(accessType==="paid"&&(!val("coursePrice")||Number(val("coursePrice"))<=0)){appMessage("Enter a valid price for this paid course.","error");return;}
-const url=val("lessonUrl"),resourceUrl=val("lessonResourceUrl");
-if(resourceUrl&&!/^https:\/\/.+/i.test(resourceUrl)){appMessage("Please enter a valid HTTPS learning link.","error");return;}
-// Course description field was intentionally removed from the course editor.
-if(!$("lessonOutcomes").innerText.trim()){appMessage("Describe what students will learn in this lesson.","error");return;}
-if(!url){appMessage("Please upload the lesson file before saving.","error");return;}
-if($("lessonFile").files.length&&!url){appMessage("Please upload the selected file before saving.","error");return;}
-if(url&&!/^https:\/\/.+/i.test(url)){appMessage("Please enter a valid HTTPS link.","error");return;}
-const cid=await ensureCourse();
-await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:rich("lessonOutcomes"),lessonNumber:1,type:lessonType,content:"",mediaUrl:url,resourceUrl:resourceUrl,createdBy:currentUser.uid,createdAt:serverTimestamp()});
-await setDoc(doc(db,"courses",cid),{status:"published",updatedAt:serverTimestamp()},{merge:true});
-appMessage("Course and first lesson saved successfully.");
-invalidateCoursesCache();
-await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:val("courseTitle"),description:""};await openCourse(cid);
-}catch(err){appMessage("Could not save course and lesson: "+(err.code?err.code+": ":"")+err.message,"error");}
-};
-}
-}catch(e){page.innerHTML="<div class='panel error'>Could not load courses: "+safe(e.message)+"</div>";}
-}
-
-async function handlePayChanguReturn(){
-  const params=new URLSearchParams(window.location.search);
-  const payment=params.get("payment");
-  const pendingKey="mtr_paychangu_return_pending";
-  const hadPendingCheckout=sessionStorage.getItem(pendingKey)==="1";
-
-  if(["paid","failed","pending","checking"].includes(payment)){
-    sessionStorage.removeItem(pendingKey);
-    if(payment==="paid"){
-      appMessage("Payment confirmed. Your course access is active. Open My Courses to continue.","success");
-      try{await renderDashboard();}catch(_){}
-    }else if(payment==="failed"){
-      appMessage("This payment was cancelled or did not complete. You can try again from the course page.","warning");
-    }else{
-      appMessage("Your payment is still being confirmed. Please check My Courses again shortly. Do not pay again until you check My Courses.","warning");
-    }
-    window.history.replaceState({},document.title,window.location.pathname+window.location.hash);
-    return;
-  }
-
-  // The phone browser's Back button can return from hosted checkout without
-  // triggering PayChangu's callback/return redirect. Preserve a clear status
-  // message so the student is not silently dropped at the dashboard.
-  if(hadPendingCheckout){
-    sessionStorage.removeItem(pendingKey);
-    appMessage("You returned from PayChangu without a payment confirmation. Your payment may still be processing. Check My Courses before trying again.","warning");
-    try{await renderDashboard();}catch(_){}
-  }
+ await loadCourses();
+ const enrollmentPromise=isStudent()?getDocs(collection(db,"users",currentUser.uid,"enrollments")):Promise.resolve(null);
+ const enrollmentSnap=await enrollmentPromise;
+ let html="<div class='panel'><h2>Courses and Lessons</h2><p class='muted'>Course information and lesson content are managed and saved separately.</p>";
+ if(isStaff()){
+   html+="<section class='panel'><h3>Course Information</h3><p class='muted'>Create or update the course details here. Saving this form does not create or change any lesson.</p><form id='courseInfoForm'>";
+   html+="<label class='muted'>Course name</label><input id='courseTitle' placeholder='e.g. Phone Flashing and Unlocking' required>";
+   html+="<label class='muted'>Course description</label><textarea id='overviewDescription' placeholder='Explain what this course is about and who it is for'></textarea>";
+   html+="<label class='muted'>Course duration</label><input id='overviewDuration' value='3 months (12 weeks)' placeholder='e.g. 3 months (12 weeks)'>";
+   html+="<label class='muted'>Learning schedule / time</label><input id='overviewSchedule' placeholder='e.g. 3 days per week, 2 hours per day'>";
+   html+="<label class='muted'>How students will learn</label><textarea id='overviewMethod' placeholder='Explain notes, practical demonstrations, video links and assignments'></textarea>";
+   html+="<label class='muted'>Skills students will gain</label><textarea id='overviewOutcomes' placeholder='List the practical skills and knowledge students will gain'></textarea>";
+   html+="<label class='muted'>Course requirements</label><textarea id='overviewRequirements' placeholder='Explain what students need before joining'></textarea>";
+   html+="<label class='muted'>Assessment and certificate</label><textarea id='overviewAssessment' placeholder='Explain quizzes, practical work, final assessment and certificate requirements'></textarea>";
+   html+="<label class='muted'>Complete 12-week curriculum (one week per line)</label><textarea id='overviewCurriculum' rows='12' placeholder='Week 1: Introduction and safety&#10;Week 2: Tools and equipment&#10;Week 3: ...&#10;Continue up to Week 12'></textarea>";
+   html+="<label class='muted'>Course access</label><select id='courseAccess'><option value='free'>Free</option><option value='paid'>Paid</option></select>";
+   html+="<div id='coursePriceField' class='hidden'><label class='muted'>Course fee (MK)</label><input id='coursePrice' type='number' min='1' step='1' placeholder='e.g. 25000'></div>";
+   html+="<button type='submit'>Save Course Information</button></form></section>";
+   html+="<section class='panel'><h3>Lessons</h3><p class='muted'>Choose a saved course, then add a lesson. Saving a lesson will not overwrite course information.</p><form id='lessonOnlyForm'>";
+   html+="<label class='muted'>Choose course</label><select id='lessonCourseSelect' required><option value=''>Choose a course</option>"+courses.map(c=>"<option value='"+safe(c.id)+"'>"+safe(c.title)+"</option>").join("")+"</select>";
+   html+="<label class='muted'>Lesson title</label><input id='lessonTitle' placeholder='e.g. Introduction to Phone Flashing' required>";
+   html+="<label class='muted'>Topic</label><input id='lessonTopic' placeholder='e.g. Flashing basics' required>";
+   html+="<label class='muted'>Section</label><input id='lessonSection' placeholder='e.g. Introduction, Tools, Practical Steps' required>";
+   html+="<label class='muted'>What students will learn in this lesson</label>"+richEditorToolbar("lessonOutcomes")+"<div id='lessonOutcomes' class='lesson-editor' contenteditable='true' role='textbox' aria-multiline='true' data-placeholder='Describe the skills and knowledge students will gain...'></div>";
+   html+="<label class='muted'>Lesson PDF</label><div id='mediaLessonFields'><input id='lessonUrl' type='hidden'><input id='lessonFile' type='file' accept='.pdf,application/pdf'><button type='button' class='secondary' id='uploadLessonFile'>Upload PDF</button><p id='uploadStatus' class='muted'>Choose a PDF document and upload it before saving.</p></div>";
+   html+="<label class='muted'>Video or Audio Link (Optional)</label><input id='lessonResourceUrl' type='url' placeholder='Paste a YouTube, video or audio link'>";
+   html+="<button type='submit'>Save Lesson</button></form></section>";
+ }
+ html+="</div>";
+ if(isStudent()){
+   const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
+   const available=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
+   const locked=courses.filter(c=>c.accessType==="paid"&&!activeIds.has(c.id));
+   const cards=items=>items.map(c=>"<article class='student-course'><div class='student-course-cover'><div class='cover-placeholder'>✦</div></div><div class='student-course-info'><span class='tag'>"+safe(c.category||"Technology")+"</span><h3>"+safe(c.title)+"</h3><p>"+formatLessonContent(c.description||"Explore this practical technology course.")+"</p>"+(c.accessType==="paid"?"<strong>MK "+safe(Number(c.price||0).toLocaleString("en-US"))+"</strong>":"")+"<button data-action='course-details' data-id='"+safe(c.id)+"'>View Course</button></div></article>").join("");
+   html+="<section class='panel'><h2>Explore Courses</h2><p class='muted'>Read the course information before enrolling. Lesson materials remain locked until payment is confirmed.</p><div class='course-grid'>"+(cards(available)||"<p class='muted'>No courses are available yet.</p>")+"</div></section>";
+   if(locked.length)html+="<section class='panel'><h3>More Courses</h3><div class='course-grid'>"+cards(locked)+"</div></section>";
+ }else{
+   if(!courses.length)html+="<div class='panel'><p>No courses available yet.</p></div>";
+   for(const c of courses)html+="<div class='card'><h3>"+safe(c.title)+"</h3><p>"+formatLessonContent(c.description||"")+"</p><div class='actions'><button data-action='course-details' data-id='"+safe(c.id)+"'>Course Information</button>"+(isAdmin()?"<button class='danger' data-action='delete-course' data-id='"+safe(c.id)+"'>Delete</button>":"")+"</div></div>";
+ }
+ page.innerHTML=html;
+ if(isStaff()){
+   const access=$("courseAccess"),priceField=$("coursePriceField"),price=$("coursePrice");
+   const syncPrice=()=>{if(access&&priceField){const paid=access.value==="paid";priceField.classList.toggle("hidden",!paid);if(price)price.required=paid;}};
+   access?.addEventListener("change",syncPrice);syncPrice();
+   bindRichTextEditor("lessonOutcomes","lessonOutcomesToolbar");
+   let savedCourseId="";
+   const courseForm=$("courseInfoForm");
+   courseForm.onsubmit=async e=>{
+     e.preventDefault();
+     try{
+       const title=$("courseTitle").value.trim();
+       if(!title){appMessage("Enter the course name.","error");return;}
+       const accessType=access.value;
+       if(accessType==="paid"&&(!price.value||Number(price.value)<=0)){appMessage("Enter a valid course fee.","error");return;}
+       const payload={title,category:"Technology",description:$("overviewDescription").value.trim(),duration:$("overviewDuration").value.trim()||"3 months (12 weeks)",learningSchedule:$("overviewSchedule").value.trim(),learningMethod:$("overviewMethod").value.trim(),learningOutcomes:$("overviewOutcomes").value.trim(),requirements:$("overviewRequirements").value.trim(),assessment:$("overviewAssessment").value.trim(),curriculum:$("overviewCurriculum").value.trim(),accessType,price:accessType==="paid"?Number(price.value):0,createdBy:currentUser.uid,status:"published",updatedAt:serverTimestamp()};
+       if(!savedCourseId)savedCourseId=doc(collection(db,"courses")).id;
+       await setDoc(doc(db,"courses",savedCourseId),{...payload,createdAt:serverTimestamp()},{merge:true});
+       invalidateCoursesCache();await loadCourses();
+       const selector=$("lessonCourseSelect");if(selector&&!Array.from(selector.options).some(o=>o.value===savedCourseId)){const opt=document.createElement("option");opt.value=savedCourseId;opt.textContent=title;selector.append(opt);}
+       if(selector)selector.value=savedCourseId;
+       appMessage("Course information saved separately. You can now add lessons whenever you are ready.","success");
+     }catch(error){appMessage("Could not save course information: "+error.message,"error");}
+   };
+   $("uploadLessonFile").onclick=async()=>{
+     const file=$("lessonFile").files[0],status=$("uploadStatus"),btn=$("uploadLessonFile"),courseId=$("lessonCourseSelect").value;
+     if(!courseId){status.textContent="Please save a course and select it first.";return;}
+     if(!file){status.textContent="Please choose a PDF first.";return;}
+     btn.disabled=true;status.textContent="Uploading PDF... 0%";
+     try{const result=await uploadLessonMedia(file,courseId,p=>status.textContent="Uploading PDF... "+p+"%");$("lessonUrl").value=result.mediaUrl;status.textContent="Upload complete. Press Save Lesson.";}
+     catch(error){status.textContent=error.message||"Upload failed.";}
+     finally{btn.disabled=false;}
+   };
+   $("lessonOnlyForm").onsubmit=async e=>{
+     e.preventDefault();
+     try{
+       const courseId=$("lessonCourseSelect").value,url=$("lessonUrl").value.trim(),resourceUrl=$("lessonResourceUrl").value.trim();
+       if(!courseId){appMessage("Choose a course first.","error");return;}
+       if(!$("lessonOutcomes").innerText.trim()){appMessage("Describe what students will learn in this lesson.","error");return;}
+       if(!url||!/^https:\/\/.+/i.test(url)){appMessage("Please upload the lesson PDF first.","error");return;}
+       if(resourceUrl&&!/^https:\/\/.+/i.test(resourceUrl)){appMessage("Please enter a valid HTTPS learning link.","error");return;}
+       const existing=await getDocs(collection(db,"courses",courseId,"lessons"));
+       await addDoc(collection(db,"courses",courseId,"lessons"),{title:$("lessonTitle").value.trim(),topic:$("lessonTopic").value.trim(),section:$("lessonSection").value.trim(),learningOutcomes:$("lessonOutcomes").innerHTML.trim(),lessonNumber:existing.size+1,type:"pdf",content:"",mediaUrl:url,resourceUrl,createdBy:currentUser.uid,createdAt:serverTimestamp()});
+       appMessage("Lesson saved successfully. Course information was not changed.","success");
+       invalidateCoursesCache();await loadCourses();await renderCourses();
+     }catch(error){appMessage("Could not save lesson: "+error.message,"error");}
+   };
+ }
+}catch(error){page.innerHTML="<div class='panel error'>Could not load courses: "+safe(error.message)+"</div>";}
 }
 
-async function startPayChanguCheckout(courseId){
-  if(!currentUser){appMessage("Please sign in again before making a payment.","error");return;}
-  const button=page.querySelector('[data-action="pay-course"]');
-  if(button){button.disabled=true;button.textContent="Connecting to PayChangu...";}
-  try{
-    const token=await currentUser.getIdToken(true);
-    const form=document.createElement("form");
-    form.method="POST";
-    form.action="https://starter-function-52z5.sgp.appwrite.run";
-    form.style.display="none";
-    for(const [name,value] of Object.entries({
-      action:"create-checkout",
-      courseId,
-      firebaseIdToken:token
-    })){
-      const field=document.createElement("input");
-      field.type="hidden";
-      field.name=name;
-      field.value=value;
-      form.appendChild(field);
-    }
-    document.body.appendChild(form);
-    sessionStorage.setItem("mtr_paychangu_return_pending","1");
-    form.submit();
-  }catch(error){
-    appMessage(error.message||"Payment could not be started. Please try again.","error");
-    if(button){button.disabled=false;button.textContent="Try PayChangu Again";}
-  }
+async function renderCourseDetails(id){
+ const course=courses.find(item=>item.id===id);
+ if(!course){appMessage("Course not found.","error");return;}
+ selectedCourse=course;
+ let lessons=[];try{const snap=await getDocs(collection(db,"courses",id,"lessons"));lessons=snap.docs.map(d=>d.data()).sort((a,b)=>(a.lessonNumber||0)-(b.lessonNumber||0));}catch(_){}
+ const lines=String(course.curriculum||"").split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ const info=(v)=>v?formatLessonContent(v):"<p class='muted'>The instructor will add this information.</p>";
+ let html="<div class='panel'><button class='secondary' data-action='back-courses'>← All Courses</button><h2>"+safe(course.title)+"</h2>"+info(course.description)+"<p><strong>Duration:</strong> "+safe(course.duration||"3 months (12 weeks)")+"</p><p><strong>Learning schedule:</strong> "+safe(course.learningSchedule||"To be confirmed")+"</p></div>";
+ html+="<div class='panel'><h3>How students will learn</h3>"+info(course.learningMethod)+"</div><div class='panel'><h3>Skills students will gain</h3>"+info(course.learningOutcomes)+"</div><div class='panel'><h3>Course requirements</h3>"+info(course.requirements)+"</div><div class='panel'><h3>Complete 12-week curriculum</h3>"+(lines.length?"<ol>"+lines.map(x=>"<li>"+formatLessonContent(x)+"</li>").join("")+"</ol>":"<p class='muted'>The full curriculum is being prepared.</p>")+"</div><div class='panel'><h3>Assessment and certificate</h3>"+info(course.assessment)+"</div>";
+ if(course.accessType==="paid")html+="<div class='panel'><h3>Course fee: MK "+safe(Number(course.price||0).toLocaleString("en-US"))+"</h3><p class='muted'>Actual lesson materials unlock after payment is confirmed.</p>"+(isStudent()?"<button data-action='pay-course' data-id='"+safe(id)+"'>Enrol and Pay</button>":"")+"</div>";
+ else if(isStudent())html+="<div class='panel'><button data-action='open-course' data-id='"+safe(id)+"'>Start Learning</button></div>";
+ if(isStaff())html+="<div class='panel'><p class='muted'>Edit course information from the Course Information form. Lessons are managed separately.</p><button data-action='back-courses'>Back to Courses and Lessons</button></div>";
+ page.innerHTML=html+supportContactPanel(true);
 }
 
 async function openCourse(id){
@@ -3534,7 +3492,7 @@ if(action==="view-media"||action==="open-secure-media"){
   return;
 }
 if(action==="pay-course")await startPayChanguCheckout(id);
-if(action==="open-course")await openCourse(id);
+if(action==="course-details")await renderCourseDetails(id);\nif(action==="open-course")await openCourse(id);
     if(action==="manage-enrollments"&&isAdmin())await manageStudentEnrollments(id);
     if(action==="back-students"&&isAdmin())await renderUsers("student");
     if(action==="grant-enrollment"&&isAdmin())await grantEnrollment(b.dataset.student,b.dataset.course);
