@@ -1611,7 +1611,7 @@ footer{color:#71839a!important}
 .notification-read-button{margin:0;padding:8px 10px;font-size:11px;white-space:nowrap}
 .notification-read-label{font-size:11px;color:#9ab3cb}
 @media(max-width:520px){.notification-item{align-items:flex-start;flex-wrap:wrap}.notification-read-button{margin-left:49px}}
-.course-overview-hero{background:linear-gradient(135deg,#123e67,#3e3678);border:1px solid #4e83b8;border-radius:18px;padding:22px;margin:0 0 16px}.course-overview-hero h2{font-size:clamp(23px,5vw,34px);margin:12px 0}.course-overview-hero p{line-height:1.7;color:#e0ebf8}.course-overview-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:18px}.course-overview-facts div{background:#071d3c88;border:1px solid #ffffff24;border-radius:12px;padding:12px}.course-overview-facts strong,.course-overview-facts span{display:block}.course-overview-facts strong{font-size:14px;color:#55e0d0}.course-overview-facts span{font-size:12px;color:#c6d8ec;margin-top:4px}.course-curriculum-list{padding-left:25px;display:grid;gap:10px;line-height:1.6}.course-curriculum-list li{padding:10px 12px;background:#203954;border:1px solid #405675;border-radius:9px}.course-enrol-panel{border-color:#3a8b87}</style>
+</style>
 <style>
 .quiz-card,.quiz-question-editor,.quiz-question{background:#08264b;border:1px solid #1b5689;border-radius:12px;padding:14px;margin:12px 0}
 .quiz-card h3{color:#fff}.quiz-options-editor{display:grid;grid-template-columns:1fr 1fr;gap:7px}
@@ -2796,7 +2796,7 @@ async function renderDashboard(){
       const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
       const available=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
       const locked=courses.filter(c=>c.accessType==="paid"&&!activeIds.has(c.id));
-      const cards=available.map(c=>`<article class="student-course" data-dashboard-course="${safe(c.id)}"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">${/computer|laptop|windows/i.test(c.title)?"💻":/iphone|ios|apple/i.test(c.title)?"📱":/android|frp/i.test(c.title)?"🤖":/gsm|tool|repair/i.test(c.title)?"🛠":"📲"}</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${safe(c.description||"Practical technical training and step-by-step lessons.")}</p><div class="learning-progress-track"><div class="learning-progress-fill" data-progress-bar="${safe(c.id)}" style="width:0%"></div></div><small class="muted" data-progress-label="${safe(c.id)}">Loading learning progress…</small><button data-action="course-details" data-id="${safe(c.id)}">View Course Details →</button><div data-certificate-slot="${safe(c.id)}"></div></div></article>`).join("");
+      const cards=available.map(c=>`<article class="student-course" data-dashboard-course="${safe(c.id)}"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">${/computer|laptop|windows/i.test(c.title)?"💻":/iphone|ios|apple/i.test(c.title)?"📱":/android|frp/i.test(c.title)?"🤖":/gsm|tool|repair/i.test(c.title)?"🛠":"📲"}</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${safe(c.description||"Practical technical training and step-by-step lessons.")}</p><div class="learning-progress-track"><div class="learning-progress-fill" data-progress-bar="${safe(c.id)}" style="width:0%"></div></div><small class="muted" data-progress-label="${safe(c.id)}">Loading learning progress…</small><button data-action="open-course" data-id="${safe(c.id)}">Continue Learning →</button><div data-certificate-slot="${safe(c.id)}"></div></div></article>`).join("");
       page.innerHTML=`
       <section class="dashboard-hero student-dashboard-hero"><p class="uppercase-accent student-platform-title">YOUR COMPLETE TECH LEARNING PLATFORM</p><p><strong>Learn • Repair • Unlock • Innovate</strong></p><div class="actions"><button data-dashboard-tab="lessons">Explore My Courses →</button><span class="tag">✓ ${safe(status.toUpperCase())} STUDENT</span></div></section>
       <div class="course-quick-stats"><div class="course-quick-stat"><strong>${available.length}</strong><span>Available courses</span></div><div class="course-quick-stat"><strong data-dashboard-total-lessons>—</strong><span>Lessons to explore</span></div><div class="course-quick-stat"><strong data-dashboard-progress>—</strong><span>Learning progress</span></div></div>
@@ -2981,8 +2981,7 @@ if(isStaff()){
 html+="<h3>Create Course and First Lesson</h3><form id='combinedLessonForm'>";
 html+="<label class='muted'>1. Course name</label><input id='courseTitle' placeholder='e.g. Phone Flashing and Unlocking' required>";
 
- html+="<p class='muted'>Create the course and its first lesson here. Course description, duration, learning schedule, learning method, skills, requirements, assessment and the 12-week curriculum are managed separately in Course Information after the course is created.</p>";
-html+="<hr>";
+ html+="<hr>";
 html+="<label class='muted'>2. Lesson title</label><input id='lessonTitle' placeholder='e.g. Introduction to Phone Flashing' required>";
 html+="<label class='muted'>3. Topic</label><input id='lessonTopic' placeholder='e.g. Flashing basics' required>";
 html+="<label class='muted'>4. Section</label><input id='lessonSection' placeholder='e.g. Introduction, Tools, Practical Steps' required>";
@@ -2997,12 +2996,12 @@ if(isStudent()){
  const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
  const available=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
  const locked=courses.filter(c=>c.accessType==="paid"&&!activeIds.has(c.id));
- const cards=items=>items.map(c=>`<article class="student-course"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">✦</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${formatLessonContent(c.description||"Explore this practical technology course.")}</p>${c.accessType==="paid"?`<strong style="color:#68439b">MK ${safe(Number(c.price||0).toLocaleString("en-US"))}</strong>`:""}<button data-action="course-details" data-id="${safe(c.id)}">${c.accessType==="paid"?"View Course":"Start Learning →"}</button></div></article>`).join("");
+ const cards=items=>items.map(c=>`<article class="student-course"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">✦</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${formatLessonContent(c.description||"Explore this practical technology course.")}</p>${c.accessType==="paid"?`<strong style="color:#68439b">MK ${safe(Number(c.price||0).toLocaleString("en-US"))}</strong>`:""}<button data-action="open-course" data-id="${safe(c.id)}">${c.accessType==="paid"?"View Course":"Start Learning →"}</button></div></article>`).join("");
  html+=`<div class="panel"><div class="student-course-heading"><h2>Explore Courses</h2><span class="tag">${available.length} available</span></div><p class="muted">Open your PDF learning guides, videos and audio tutorials.</p><input id="courseSearch" class="student-course-search" placeholder="Search courses..."><div id="studentCourseGrid" class="course-grid">${cards(available)||"<p class='muted'>No courses are available yet.</p>"}</div></div>`;
  if(locked.length)html+=`<div class="panel"><h3>More Courses</h3><p class="muted">These paid courses need administrator approval before you can start learning.</p><div class="course-grid">${cards(locked)}</div></div>`;
 }else{
  if(!courses.length)html+="<div class='panel'><p>No courses available yet.</p></div>";
- for(const c of courses){html+="<div class='card'><h3>"+safe(c.title)+"</h3><span class='tag'>"+safe(c.category)+"</span><p>"+formatLessonContent(c.description)+"</p>"+(c.accessType==="paid"?"<p>One-time course price (all lessons): MK "+safe(Number(c.price||0).toLocaleString('en-US'))+"</p>":"")+"<div class='actions'><button data-action='course-details' data-id='"+safe(c.id)+"'>Course Information</button>"+(isAdmin()?"<button class='secondary' data-action='edit-course' data-id='"+safe(c.id)+"'>Edit</button><button class='danger' data-action='delete-course' data-id='"+safe(c.id)+"'>Delete</button>":"")+"</div></div>";}
+ for(const c of courses){html+="<div class='card'><h3>"+safe(c.title)+"</h3><span class='tag'>"+safe(c.category)+"</span><p>"+formatLessonContent(c.description)+"</p>"+(c.accessType==="paid"?"<p>One-time course price (all lessons): MK "+safe(Number(c.price||0).toLocaleString('en-US'))+"</p>":"")+"<div class='actions'><button data-action='open-course' data-id='"+safe(c.id)+"'>Open Course</button>"+(isAdmin()?"<button class='secondary' data-action='edit-course' data-id='"+safe(c.id)+"'>Edit</button><button class='danger' data-action='delete-course' data-id='"+safe(c.id)+"'>Delete</button>":"")+"</div></div>";}
 }
 page.innerHTML=html;
 if(isStudent()){
@@ -3015,7 +3014,7 @@ bindLessonFormControls({accessId:"courseAccess",priceFieldId:"coursePriceField",
 bindRichTextEditor("lessonOutcomes","lessonOutcomesToolbar");
 let draftCourseId=null;
 const form=$("combinedLessonForm"),val=id=>$(id).value.trim(),rich=id=>$(id).innerHTML.trim();
-const courseFields=()=>({title:val("courseTitle"),category:"Technology",description:"",duration:"3 months (12 weeks)",learningSchedule:"",learningMethod:"",learningOutcomes:"",requirements:"",assessment:"",curriculum:"",coverImage:"",accessType:$("courseAccess").value,price:Number($("coursePrice").value||0),createdBy:currentUser.uid});
+const courseFields=()=>({title:val("courseTitle"),category:"Technology",description:"",coverImage:"",accessType:$("courseAccess").value,price:Number($("coursePrice").value||0),createdBy:currentUser.uid});
 const ensureCourse=async()=>{
   if(!draftCourseId)draftCourseId=doc(collection(db,"courses")).id;
   if(!draftCourseId)throw new Error("Could not create a course ID. Please refresh and try again.");
@@ -3054,7 +3053,7 @@ if(url&&!/^https:\/\/.+/i.test(url)){appMessage("Please enter a valid HTTPS link
 const cid=await ensureCourse();
 await addDoc(collection(db,"courses",cid,"lessons"),{title:val("lessonTitle"),topic:val("lessonTopic"),section:val("lessonSection"),learningOutcomes:rich("lessonOutcomes"),lessonNumber:1,type:lessonType,content:"",mediaUrl:url,resourceUrl:resourceUrl,createdBy:currentUser.uid,createdAt:serverTimestamp()});
 await setDoc(doc(db,"courses",cid),{status:"published",updatedAt:serverTimestamp()},{merge:true});
-appMessage("Course and first lesson saved. Next, open Course Information to add the student-facing course details.");
+appMessage("Course and first lesson saved successfully.");
 invalidateCoursesCache();
 await loadCourses();selectedCourse=courses.find(c=>c.id===cid)||{id:cid,title:val("courseTitle"),description:""};await openCourse(cid);
 }catch(err){appMessage("Could not save course and lesson: "+(err.code?err.code+": ":"")+err.message,"error");}
@@ -3121,32 +3120,6 @@ async function startPayChanguCheckout(courseId){
     appMessage(error.message||"Payment could not be started. Please try again.","error");
     if(button){button.disabled=false;button.textContent="Try PayChangu Again";}
   }
-}
-
-async function renderCourseDetails(id){
-  const course=courses.find(item=>item.id===id);
-  if(!course){appMessage("Course not found.","error");return;}
-  selectedCourse=course;
-  page.innerHTML="<div class='panel'>Preparing course overview...</div>";
-  let lessons=[];
-  try{const snap=await getDocs(collection(db,"courses",id,"lessons"));lessons=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.lessonNumber||0)-(b.lessonNumber||0));}catch(error){console.warn("Course outline could not be loaded:",error);}
-  let enrolled=false;
-  if(isStudent()&&course.accessType==="paid"){try{const access=await getDoc(doc(db,"users",currentUser.uid,"enrollments",id));enrolled=access.exists()&&access.data().status==="active";}catch(_){}}
-  const curriculum=String(course.curriculum||"").split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
-  const curriculumHtml=curriculum.length?"<ol class='course-curriculum-list'>"+curriculum.map(line=>"<li>"+formatLessonContent(line)+"</li>").join("")+"</ol>":lessons.length?"<ol class='course-curriculum-list'>"+lessons.map((lesson,index)=>"<li><strong>Lesson "+(index+1)+":</strong> "+safe(lesson.title||"Learning topic")+(lesson.topic?" — "+safe(lesson.topic):"")+"</li>").join("")+"</ol><p class='muted'>The instructor will add the complete 12-week outline.</p>":"<p class='muted'>The full 12-week curriculum is being prepared by the instructor.</p>";
-  const info=(key,message)=>course[key]?formatLessonContent(course[key]):"<p class='muted'>"+message+"</p>";
-  const price=Number(course.price||0).toLocaleString("en-US");
-  let html="<section class='course-overview-hero'><button class='secondary' data-action='back-courses'>← All Courses</button><span class='tag'>"+safe(course.category||"Technology")+"</span><h2>"+safe(course.title)+"</h2><p>"+formatLessonContent(course.description||"A practical technical training programme designed to build real skills step by step.")+"</p><div class='course-overview-facts'><div><strong>"+safe(course.duration||"3 months (12 weeks)")+"</strong><span>Duration</span></div><div><strong>"+safe(course.learningSchedule||"Flexible learning")+"</strong><span>Learning time</span></div><div><strong>"+lessons.length+"</strong><span>Published lessons</span></div></div></section>";
-  html+="<section class='panel'><h3>How you will learn</h3>"+info("learningMethod","The instructor will explain the learning method and practical activities.")+"</section>";
-  html+="<section class='panel'><h3>What you will gain</h3>"+info("learningOutcomes","Course skills and learning outcomes will be added by the instructor.")+"</section>";
-  html+="<section class='panel'><h3>Requirements</h3>"+info("requirements","Course entry requirements will be confirmed by the instructor.")+"</section>";
-  html+="<section class='panel'><h3>Complete 12-week curriculum</h3><p class='muted'>Review the topics covered each week before you enrol.</p>"+curriculumHtml+"</section>";
-  html+="<section class='panel'><h3>Assessment and certificate</h3>"+info("assessment","Assessment details and certificate conditions will be provided by the instructor.")+"</section>";
-  html+="<section class='panel course-enrol-panel'><h3>Ready to begin?</h3>"+(course.accessType==="paid"?"<p><strong>Course fee: MK "+price+"</strong></p><p class='muted'>Your learning materials unlock after payment is confirmed.</p>":"<p class='muted'>This course is free. You can begin learning now.</p>")+(isStudent()?(course.accessType==="paid"&&!enrolled?"<button data-action='pay-course' data-id='"+safe(id)+"'>Enrol and Pay MK "+price+"</button>":"<button data-action='open-course' data-id='"+safe(id)+"'>"+(enrolled?"Continue Learning →":"Start Learning →")+"</button>"):"")+"</section>";
-  if(isStaff())html+="<section class='panel'><h3>Edit course overview</h3><form id='courseOverviewForm'><label class='muted'>Course description</label><textarea id='overviewDescription'>"+safe(course.description||"")+"</textarea><label class='muted'>Duration</label><input id='overviewDuration' value='"+safe(course.duration||"3 months (12 weeks)")+"'><label class='muted'>Learning schedule / time</label><input id='overviewSchedule' value='"+safe(course.learningSchedule||"")+"'><label class='muted'>How students will learn</label><textarea id='overviewMethod'>"+safe(course.learningMethod||"")+"</textarea><label class='muted'>Skills students will gain</label><textarea id='overviewOutcomes'>"+safe(course.learningOutcomes||"")+"</textarea><label class='muted'>Requirements</label><textarea id='overviewRequirements'>"+safe(course.requirements||"")+"</textarea><label class='muted'>Assessment and certificate</label><textarea id='overviewAssessment'>"+safe(course.assessment||"")+"</textarea><label class='muted'>12-week curriculum (one week per line)</label><textarea id='overviewCurriculum' rows='12'>"+safe(course.curriculum||"")+"</textarea><button type='submit'>Save Course Overview</button></form></section>";
-  page.innerHTML=html+supportContactPanel(true);
-  const form=$("courseOverviewForm");
-  if(form)form.onsubmit=async event=>{event.preventDefault();try{await updateDoc(doc(db,"courses",id),{description:$("overviewDescription").value.trim(),duration:$("overviewDuration").value.trim(),learningSchedule:$("overviewSchedule").value.trim(),learningMethod:$("overviewMethod").value.trim(),learningOutcomes:$("overviewOutcomes").value.trim(),requirements:$("overviewRequirements").value.trim(),assessment:$("overviewAssessment").value.trim(),curriculum:$("overviewCurriculum").value.trim(),updatedAt:serverTimestamp()});invalidateCoursesCache();await loadCourses();appMessage("Course overview saved successfully.");await renderCourseDetails(id);}catch(error){appMessage("Could not save course overview: "+error.message,"error");}};
 }
 
 async function openCourse(id){
@@ -3561,7 +3534,6 @@ if(action==="view-media"||action==="open-secure-media"){
   return;
 }
 if(action==="pay-course")await startPayChanguCheckout(id);
-if(action==="course-details")await renderCourseDetails(id);
 if(action==="open-course")await openCourse(id);
     if(action==="manage-enrollments"&&isAdmin())await manageStudentEnrollments(id);
     if(action==="back-students"&&isAdmin())await renderUsers("student");
