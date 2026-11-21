@@ -1666,7 +1666,7 @@ import {initializeApp} from
 import {
 getAuth,createUserWithEmailAndPassword,
 signInWithEmailAndPassword,sendPasswordResetEmail,
-onAuthStateChanged,signOut,updateProfile,browserLocalPersistence,setPersistence
+onAuthStateChanged,signOut,updateProfile
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 import {
@@ -1688,8 +1688,7 @@ measurementId:"G-WY4T9JMB97"
 
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
-// Keep a valid Firebase session across app closes and browser/WebView restarts.
-await setPersistence(auth,browserLocalPersistence);
+// Firebase browser auth uses local persistence by default, retaining valid sessions across app restarts.
 const db=getFirestore(app);
 
 let currentUser=null;
