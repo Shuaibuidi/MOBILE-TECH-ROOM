@@ -10,12 +10,7 @@ import { InputFile } from "node-appwrite/file";
 // every protected operation still verifies the Firebase token and Firestore permissions.
 const APP_ORIGIN = "*";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
-const ALLOWED_MIME = new Set([
-  "image/jpeg", "image/png", "image/webp", "image/gif",
-  "video/mp4", "video/webm", "application/pdf",
-  "audio/mpeg", "audio/wav", "audio/x-wav", "audio/mp4",
-  "audio/x-m4a", "audio/ogg", "audio/webm", "audio/aac"
-]);
+const ALLOWED_MIME = new Set(["application/pdf"]);
 
 let firebaseReady = false;
 let storageUsageCache = null;
@@ -136,7 +131,7 @@ async function handleUpload({ req, res, log, error }) {
     const filename = safeFilename(uploaded.filename);
     const mime = mimeFromName(filename, uploaded.mimeType);
     if (!ALLOWED_MIME.has(mime)) {
-      return json(res, { success: false, error: "Unsupported file type. Choose JPG, PNG, WEBP, GIF, MP4, WEBM, PDF, MP3, WAV, M4A, OGG or AAC." }, 415);
+      return json(res, { success: false, error: "Unsupported file type. Only PDF documents are accepted." }, 415);
     }
 
     const endpoint = (process.env.APPWRITE_ENDPOINT || "").trim().replace(/\/+$/, "");
