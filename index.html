@@ -426,7 +426,7 @@ main{max-width:1580px!important;padding:30px clamp(14px,3vw,42px) 50px!important
  border:1px solid var(--mtr-line)!important;border-radius:24px!important;box-shadow:0 24px 70px rgba(22,67,120,.12)!important
 }
 #authPanel:before{content:"";position:absolute;z-index:-1;left:0;right:0;top:0;height:8px;background:linear-gradient(90deg,#0b4bb4,#1689e9,#41c4e8)}
-#authPanel:after{content:"MOBILE TECH ROOM";display:block;margin-top:24px;padding-top:17px;border-top:1px solid var(--mtr-line);color:#91a3b9;font-size:10px;font-weight:850;letter-spacing:2px;text-align:center}
+#authPanel:after{content:"Mobile Tech Room";display:block;margin-top:24px;padding-top:17px;border-top:1px solid var(--mtr-line);color:#91a3b9;font-size:10px;font-weight:850;letter-spacing:2px;text-align:center}
 #authTitle{font-size:clamp(25px,4vw,32px)!important;font-weight:850;color:#143e78!important;letter-spacing:-.8px;margin:8px 0}
 #authDescription{color:var(--mtr-muted)!important;margin:0 0 23px}
 #registerFields{margin:0}
@@ -1618,8 +1618,14 @@ footer{color:#71839a!important}
 .quiz-answer input{width:auto}.quiz-score{font-size:34px;font-weight:900;color:#13d8ed}
 .quiz-toolbar{display:flex;gap:8px;flex-wrap:wrap}.quiz-result-good{color:#54e2ad}.quiz-result-bad{color:#ff9aaa}
 @media(max-width:520px){.quiz-options-editor{grid-template-columns:1fr}}
+/* Login-only screen: keep the authenticated app layout untouched. */
+body.login-mode header,body.login-mode footer{display:none!important}
+body.login-mode main{min-height:100svh;display:flex;align-items:center;justify-content:center;padding:22px 16px!important}
+body.login-mode #appPanel{display:none!important}
+body.login-mode #authPanel{display:block!important;width:min(100%,500px);margin:0 auto!important}
+body.login-mode #authPanel:after{content:"Mobile Tech Room";text-transform:none;letter-spacing:0;font-size:13px;color:#91a3b9}
 </style></head>
-<body>
+<body class="login-mode">
 
 <header class="academy-header">
   <div class="brand-lockup"><div class="brand-copy"><h1>Mobile <span>Tech Room</span></h1><p>Learn. Repair. Innovate.</p></div></div>
@@ -2272,7 +2278,7 @@ $("logoutButton").onclick=async()=>{
   currentUser=null;profile=null;selectedCourse=null;courses=[];users=[];currentTab="dashboard";
   $("page").innerHTML="";$("navigation").innerHTML="";$("globalCourseSearch").value="";
   $("appMessage").innerHTML="";document.getElementById("lessonMediaViewer")?.remove();
-  $("appPanel").classList.add("hidden");$("authPanel").classList.remove("hidden");
+  $("appPanel").classList.add("hidden");$("authPanel").classList.remove("hidden");document.body.classList.add("login-mode");
   try{await signOut(auth);}catch(e){authMessage("Could not sign out: "+e.message);}
 };
 
@@ -2281,6 +2287,7 @@ const generation=++authStateGeneration;
 currentUser=user;
 // A restored session should never flash the login form while its profile is being checked.
 if(user){
+  document.body.classList.remove("login-mode");
   $("authPanel").classList.add("hidden");
   $("appPanel").classList.remove("hidden");
   $("page").innerHTML="<section class='panel'><h2>Welcome back</h2><p class='muted'>Restoring your dashboard...</p></section>";
@@ -2288,6 +2295,7 @@ if(user){
 // A new account must finish writing its Firestore profile before auth-state checks run.
 if(registrationInProgress)return;
 if(!user){
+document.body.classList.add("login-mode");
 profile=null;selectedCourse=null;courses=[];users=[];currentTab="dashboard";
 $("page").innerHTML="";$("navigation").innerHTML="";$("globalCourseSearch").value="";$("appMessage").innerHTML="";document.getElementById("lessonMediaViewer")?.remove();
 $("logoutButton").classList.add("hidden");
