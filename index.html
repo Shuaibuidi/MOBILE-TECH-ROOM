@@ -3005,7 +3005,8 @@ async function renderDashboard(){
       const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
       const available=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
       const locked=courses.filter(c=>c.accessType==="paid"&&!activeIds.has(c.id));
-      const cards=available.map(c=>`<article class="student-course" data-dashboard-course="${safe(c.id)}"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">${/computer|laptop|windows/i.test(c.title)?"💻":/iphone|ios|apple/i.test(c.title)?"📱":/android|frp/i.test(c.title)?"🤖":/gsm|tool|repair/i.test(c.title)?"🛠":"📲"}</div>`}</div><div class="student-course-info"><span class="tag">${safe(c.category||"Technology")}</span><h3>${safe(c.title)}</h3><p>${safe(c.description||"Practical technical training and step-by-step lessons.")}</p><div class="learning-progress-track"><div class="learning-progress-fill" data-progress-bar="${safe(c.id)}" style="width:0%"></div></div><small class="muted" data-progress-label="${safe(c.id)}">Loading learning progress…</small><button data-action="open-course" data-id="${safe(c.id)}">Continue Learning →</button><div data-certificate-slot="${safe(c.id)}"></div></div></article>`).join("");
+      const courseNumbers=getCourseNumberMap(courses);
+      const cards=available.map(c=>`<article class="student-course" data-dashboard-course="${safe(c.id)}"><div class="student-course-cover">${c.coverImage&&/^https:\/\//i.test(c.coverImage)?`<img src="${safe(c.coverImage)}" alt="${safe(c.title)}" loading="lazy">`:`<div class="cover-placeholder">${/computer|laptop|windows/i.test(c.title)?"💻":/iphone|ios|apple/i.test(c.title)?"📱":/android|frp/i.test(c.title)?"🤖":/gsm|tool|repair/i.test(c.title)?"🛠":"📲"}</div>`}</div><div class="student-course-info"><span class="tag">Course ${courseNumbers.get(c.id)||1}</span><h3>${safe(c.title)}</h3><p>${safe(c.description||"Practical technical training and step-by-step lessons.")}</p><div class="learning-progress-track"><div class="learning-progress-fill" data-progress-bar="${safe(c.id)}" style="width:0%"></div></div><small class="muted" data-progress-label="${safe(c.id)}">Loading learning progress…</small><button data-action="open-course" data-id="${safe(c.id)}">Continue Learning →</button><div data-certificate-slot="${safe(c.id)}"></div></div></article>`).join("");
       page.innerHTML=`
       <section class="dashboard-hero student-dashboard-hero"><p class="uppercase-accent student-platform-title">YOUR COMPLETE TECH LEARNING PLATFORM</p><p><strong>Learn • Repair • Unlock • Innovate</strong></p><div class="actions"><button data-dashboard-tab="lessons">Explore My Courses →</button><span class="tag">✓ ${safe(status.toUpperCase())} STUDENT</span></div></section>
       <div class="course-quick-stats"><div class="course-quick-stat"><strong>${available.length}</strong><span>Available courses</span></div><div class="course-quick-stat"><strong data-dashboard-total-lessons>—</strong><span>Lessons to explore</span></div><div class="course-quick-stat"><strong data-dashboard-progress>—</strong><span>Learning progress</span></div></div>
@@ -3126,6 +3127,18 @@ function invalidateCoursesCache(){
   if(coursesCacheKey){try{localStorage.removeItem("mtr-courses:"+coursesCacheKey);}catch(_){}}
 }
 
+function getCourseNumberMap(items){
+  const ordered=[...items].sort((a,b)=>{
+    const at=a.createdAt?.toMillis?.()??(a.createdAt?.seconds?a.createdAt.seconds*1000:0);
+    const bt=b.createdAt?.toMillis?.()??(b.createdAt?.seconds?b.createdAt.seconds*1000:0);
+    if(at&&bt&&at!==bt)return at-bt;
+    if(at&&!bt)return -1;
+    if(!at&&bt)return 1;
+    return String(a.id||"").localeCompare(String(b.id||""));
+  });
+  return new Map(ordered.map((course,index)=>[course.id,index+1]));
+}
+
 async function loadCourses(){
   if(!currentUser)return;
   const role=isAdmin()?"admin":isInstructor()?"instructor":"student";
@@ -3216,7 +3229,8 @@ try{
    const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
    const available=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
    const locked=courses.filter(c=>c.accessType==="paid"&&!activeIds.has(c.id));
-   const cards=items=>items.map(c=>"<article class='student-course'><div class='student-course-cover'><div class='cover-placeholder'>✦</div></div><div class='student-course-info'><span class='tag'>"+safe(c.category||"Technology")+"</span><h3>"+safe(c.title)+"</h3><p>"+formatLessonContent(c.description||"Explore this practical technology course.")+"</p>"+(c.accessType==="paid"?"<strong>MK "+safe(Number(c.price||0).toLocaleString("en-US"))+"</strong>":"")+"<button data-action='course-details' data-id='"+safe(c.id)+"'>View Course</button></div></article>").join("");
+    const courseNumbers=getCourseNumberMap(courses);
+   const cards=items=>items.map(c=>"<article class='student-course'><div class='student-course-cover'><div class='cover-placeholder'>✦</div></div><div class='student-course-info'><span class='tag'>"+"Course "+(courseNumbers.get(c.id)||1)+"</span><h3>"+safe(c.title)+"</h3><p>"+formatLessonContent(c.description||"Explore this practical technology course.")+"</p>"+(c.accessType==="paid"?"<strong>MK "+safe(Number(c.price||0).toLocaleString("en-US"))+"</strong>":"")+"<button data-action='course-details' data-id='"+safe(c.id)+"'>View Course</button></div></article>").join("");
    html+="<section class='panel'><h2>Explore Courses</h2><p class='muted'>Read the course information before enrolling. Lesson materials remain locked until payment is confirmed.</p><div class='course-grid'>"+(cards(available)||"<p class='muted'>No courses are available yet.</p>")+"</div></section>";
    if(locked.length)html+="<section class='panel'><h3>More Courses</h3><div class='course-grid'>"+cards(locked)+"</div></section>";
  }else{
@@ -3256,7 +3270,7 @@ try{
        if(accessType==="paid"&&(!price.value||Number(price.value)<=0)){appMessage("Enter a valid course fee.","error");return;}
        const payload={title,category:"Technology",description:$("overviewDescription").value.trim(),duration:$("overviewDuration").value.trim()||"3 months (12 weeks)",learningSchedule:$("overviewSchedule").value.trim(),learningMethod:$("overviewMethod").value.trim(),learningOutcomes:$("overviewOutcomes").value.trim(),requirements:$("overviewRequirements").value.trim(),assessment:$("overviewAssessment").value.trim(),curriculum:$("overviewCurriculum").value.trim(),accessType,price:accessType==="paid"?Number(price.value):0,createdBy:currentUser.uid,status:"published",updatedAt:serverTimestamp()};
        if(!savedCourseId)savedCourseId=doc(collection(db,"courses")).id;
-       await setDoc(doc(db,"courses",savedCourseId),{...payload,createdAt:serverTimestamp()},{merge:true});
+       await setDoc(doc(db,"courses",savedCourseId),{...payload,...(courses.find(course=>course.id===savedCourseId)?.createdAt?{}:{createdAt:serverTimestamp()})},{merge:true});
        invalidateCoursesCache();await loadCourses();
        const selector=$("lessonCourseSelect");if(selector&&!Array.from(selector.options).some(o=>o.value===savedCourseId)){const opt=document.createElement("option");opt.value=savedCourseId;opt.textContent=title;selector.append(opt);}
        if(selector)selector.value=savedCourseId;
