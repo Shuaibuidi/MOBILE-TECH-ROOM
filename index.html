@@ -1844,6 +1844,14 @@ body.login-mode #authPanel:after{font-size:clamp(12px,1.8vw,15px)!important;padd
 .support-chat-history button{width:auto;min-height:32px;margin:0;padding:5px 13px;border-radius:18px;font-size:11px}
 .support-chat-history button:disabled{opacity:.55}
 .support-chat-header{background:#075e54!important}
+.support-chat-history{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 12px;background:#f0f2ed;border-top:1px solid #d6ded7}
+.support-chat-history button{width:auto;min-height:34px;margin:0;padding:6px 14px;border-radius:18px;font-size:12px}
+.support-history-hint{font-size:10px;color:#65746a}
+#mobileBottomNav [data-dashboard-tab="support"],#navigation [data-tab="support"]{position:relative}
+#mobileBottomNav .support-unread-badge{position:absolute;top:0;right:calc(50% - 25px);margin:0;min-width:18px;height:18px;padding:0 4px;font-size:10px;box-shadow:0 1px 3px #0002}
+#navigation .support-unread-badge{margin-left:9px}
+.support-chat-messages{overscroll-behavior:contain;scrollbar-width:thin}
+@media(max-width:520px){.support-chat-history{padding:7px 9px}.support-history-hint{font-size:9px}}
 </style>
 <style id="support-unread-divider-theme">
 .support-chat-unread-divider{display:flex;justify-content:center;margin:15px 0}
@@ -1903,7 +1911,7 @@ onAuthStateChanged,signOut,updateProfile
 import {
 getFirestore,doc,getDoc,setDoc,collection,
 getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,
-query,where,orderBy,limit,startAfter
+query,where,orderBy,limit,startAfter,onSnapshot
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 
@@ -2871,6 +2879,7 @@ let supportMessages=[];
 let supportOldestDoc=null;
 let supportLoadingOlder=false;
 let supportReadState=null;
+let supportLiveUnsubscribe=null;
 
 function supportDate(value){
   try{
@@ -2889,7 +2898,7 @@ async function getSupportUnreadCount(){
   try{
     const stateSnap=await getDoc(supportStateRef());
     const lastRead=stateSnap.exists()?stateSnap.data().lastReadAt:null;
-    const q=query(collection(db,"supportMessages"),orderBy("createdAt","desc"),limit(100));
+    const q=query(collection(db,"supportMessages"),orderBy("createdAt","desc"),limit(500));
     const snap=await getDocs(q);
     return snap.docs.filter(d=>{
       const m=d.data();
@@ -2925,31 +2934,35 @@ function supportMessageMarkup(message){
       </article>
     </div>`;
 }
-function renderSupportMessages(){
-  const area=$("supportChatMessages");
-  if(!area)return;
-  const ordered=[...supportMessages].sort((a,b)=>{
-    const at=a.createdAt?.toMillis?.()||0,bt=b.createdAt?.toMillis?.()||0;
-    return at-bt;
-  });
-  const lastRead=supportReadState?.lastReadAt;
-  let unreadDividerAdded=false;
+function renderSupportMessages(options={}){
+  const area=$("supportChatMessages");if(!area)return;
+  const oldHeight=area.scrollHeight,oldTop=area.scrollTop,nearBottom=oldHeight-oldTop-area.clientHeight<90;
+  const ordered=[...supportMessages].sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0));
+  const lastRead=supportReadState?.lastReadAt;let unreadDividerAdded=false;
   const rendered=ordered.map(message=>{
-    const unread=message.senderId!==currentUser.uid&&message.createdAt&&
-      (!lastRead||message.createdAt.toMillis()>lastRead.toMillis());
-    let divider="";
-    if(unread&&!unreadDividerAdded){
-      divider='<div class="support-chat-unread-divider"><span>NEW / UNREAD MESSAGES</span></div>';
-      unreadDividerAdded=true;
-    }
+    const unread=message.senderId!==currentUser.uid&&message.createdAt&&(!lastRead||message.createdAt.toMillis()>lastRead.toMillis());
+    let divider="";if(unread&&!unreadDividerAdded){divider='<div class="support-chat-unread-divider"><span>NEW / UNREAD MESSAGES</span></div>';unreadDividerAdded=true;}
     return divider+supportMessageMarkup(message);
   }).join("");
-  area.innerHTML=ordered.length
-    ?rendered
-    :'<div class="support-chat-empty">👋 Welcome! Start the conversation with the Mobile Tech Room community.</div>';
-  area.scrollTop=area.scrollHeight;
+  area.innerHTML=ordered.length?rendered:'<div class="support-chat-empty">👋 Welcome! Start the conversation with the Mobile Tech Room community.</div>';
+  if(options.preservePosition&&!nearBottom)area.scrollTop=oldTop+(area.scrollHeight-oldHeight);else area.scrollTop=area.scrollHeight;
+}
+function stopSupportLiveUpdates(){if(supportLiveUnsubscribe){supportLiveUnsubscribe();supportLiveUnsubscribe=null;}}
+function startSupportLiveUpdates(){
+  stopSupportLiveUpdates();
+  const liveQuery=query(collection(db,"supportMessages"),orderBy("createdAt","desc"),limit(SUPPORT_PAGE_SIZE));
+  supportLiveUnsubscribe=onSnapshot(liveQuery,snap=>{
+    const liveDocs=snap.docs,liveIds=new Set(liveDocs.map(d=>d.id));
+    const retained=supportMessages.filter(m=>!liveIds.has(m.id));
+    supportMessages=[...retained,...liveDocs.map(d=>({id:d.id,...d.data()}))];
+    supportMessages.sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0));
+    renderSupportMessages({preservePosition:true});
+    if(currentTab==="support")markSupportMessagesRead().then(()=>renderSupportMessages({preservePosition:true}));
+    refreshSupportBadge();
+  },error=>{console.warn("Live community chat updates failed:",error);appMessage("Live chat updates paused. Check your connection and reopen Support.","error");});
 }
 async function renderLearningSupportRoom(){
+  stopSupportLiveUpdates();
   page.innerHTML='<section class="support-chat-shell"><div class="support-chat-header"><div class="support-chat-avatar">💬</div><div class="support-chat-heading"><strong>Mobile Tech Room Community</strong><span>Loading conversation…</span></div></div></section>';
   try{
     if(!currentUser||(!isAdmin()&&!isStudent()))return;
@@ -2964,13 +2977,11 @@ async function renderLearningSupportRoom(){
         <header class="support-chat-header">
           <div class="support-chat-avatar">💬</div>
           <div class="support-chat-heading"><strong>Mobile Tech Room Community</strong><span>Students and administration · General chat</span></div>
-          <span class="support-chat-status">● Online room</span>
+          <span class="support-chat-status">● Live chat</span>
         </header>
         <div class="support-chat-topic"><span>Welcome to the community chat</span><span>Be respectful and help one another</span></div>
-        <div id="supportChatMessages" class="support-chat-messages" aria-label="Community conversation">
-          <p class="support-chat-empty">Loading messages…</p>
-        </div>
-        <div class="support-chat-history"><button type="button" class="secondary" data-action="support-load-older" ${snap.docs.length<SUPPORT_PAGE_SIZE?'disabled':''}>↑ Load older messages</button></div>
+        <div class="support-chat-history"><button type="button" class="secondary" data-action="support-load-older" ${snap.docs.length<SUPPORT_PAGE_SIZE?'disabled':''}>↑ Load older messages</button><span class="support-history-hint">${snap.docs.length<SUPPORT_PAGE_SIZE?'All available messages are shown':'Older messages are available'}</span></div>
+        <div id="supportChatMessages" class="support-chat-messages" aria-label="Community conversation"><p class="support-chat-empty">Loading messages…</p></div>
         <form id="supportReplyForm" class="support-chat-compose">
           <textarea id="supportReplyText" maxlength="2000" rows="1" placeholder="Type a message…" required aria-label="Write a community message"></textarea>
           <button type="submit" aria-label="Send message">➤</button>
@@ -2979,8 +2990,9 @@ async function renderLearningSupportRoom(){
     renderSupportMessages();
     await markSupportMessagesRead();
     refreshSupportBadge();
+    startSupportLiveUpdates();
   }catch(error){
-    page.innerHTML='<section class="panel"><h2>Learning Support</h2><p class="error">Could not load the community chat: '+safe(error.message)+'</p><p class="muted">The new community chat needs its Firestore permissions published before it can be used.</p><button class="secondary" data-action="retry-support">Try Again</button></section>';
+    page.innerHTML='<section class="panel"><h2>Learning Support</h2><p class="error">Could not load the community chat: '+safe(error.message)+'</p><p class="muted">Could not connect to the community chat. Check your connection and Firestore permissions.</p><button class="secondary" data-action="retry-support">Try Again</button></section>';
   }
 }
 async function loadOlderSupportMessages(button){
@@ -2988,17 +3000,17 @@ async function loadOlderSupportMessages(button){
   supportLoadingOlder=true;
   if(button){button.disabled=true;button.textContent="Loading…";}
   try{
+    const area=$("supportChatMessages"),oldHeight=area?.scrollHeight||0,oldTop=area?.scrollTop||0;
     const q=query(collection(db,"supportMessages"),orderBy("createdAt","desc"),startAfter(supportOldestDoc),limit(SUPPORT_PAGE_SIZE));
     const snap=await getDocs(q);
-    if(snap.empty){if(button)button.textContent="No older messages";return;}
-    const older=snap.docs.map(d=>({id:d.id,...d.data()})).reverse();
-    supportMessages=[...older,...supportMessages];
+    if(snap.empty){if(button){button.disabled=true;button.textContent="No older messages";}const hint=document.querySelector(".support-history-hint");if(hint)hint.textContent="You have reached the beginning of this chat.";return;}
+    const older=snap.docs.map(d=>({id:d.id,...d.data()})).reverse(),existingIds=new Set(supportMessages.map(m=>m.id));
+    supportMessages=[...older.filter(m=>!existingIds.has(m.id)),...supportMessages];
     supportOldestDoc=snap.docs[snap.docs.length-1];
-    const area=$("supportChatMessages");
-    const oldHeight=area?.scrollHeight||0;
-    renderSupportMessages();
-    if(area)area.scrollTop=area.scrollHeight-oldHeight;
+    renderSupportMessages({preservePosition:true});
+    const updatedArea=$("supportChatMessages");if(updatedArea)updatedArea.scrollTop=oldTop+(updatedArea.scrollHeight-oldHeight);
     if(button){button.disabled=snap.docs.length<SUPPORT_PAGE_SIZE;button.textContent=snap.docs.length<SUPPORT_PAGE_SIZE?"No more older messages":"↑ Load older messages";}
+    const hint=document.querySelector(".support-history-hint");if(hint)hint.textContent=snap.docs.length<SUPPORT_PAGE_SIZE?"All older messages are now loaded":"Older messages are available";
   }catch(error){appMessage(error.message||"Could not load older messages.","error");if(button){button.disabled=false;button.textContent="↑ Load older messages";}}
   finally{supportLoadingOlder=false;}
 }
@@ -3020,8 +3032,11 @@ document.addEventListener("submit",async event=>{
     });
     field.value="";
     const snap=await getDocs(query(collection(db,"supportMessages"),orderBy("createdAt","desc"),limit(SUPPORT_PAGE_SIZE)));
-    supportMessages=snap.docs.map(d=>({id:d.id,...d.data()})).reverse();
-    supportOldestDoc=snap.docs.length?snap.docs[snap.docs.length-1]:null;
+    const latestDocs=snap.docs,latestIds=new Set(latestDocs.map(d=>d.id));
+    const retained=supportMessages.filter(m=>!latestIds.has(m.id));
+    supportMessages=[...retained,...latestDocs.map(d=>({id:d.id,...d.data()}))];
+    supportMessages.sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0));
+    if(latestDocs.length&&!supportOldestDoc)supportOldestDoc=latestDocs[latestDocs.length-1];
     renderSupportMessages();
     await markSupportMessagesRead();
   }catch(error){appMessage(error.message||"Could not send your message.","error");}
@@ -3029,6 +3044,7 @@ document.addEventListener("submit",async event=>{
 });
 
 async function showTab(tab){
+if(tab!=="support")stopSupportLiveUpdates();
 currentTab=tab;
 buildNavigation();
 $("appMessage").innerHTML="";
