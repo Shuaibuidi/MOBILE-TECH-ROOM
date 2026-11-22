@@ -3128,9 +3128,9 @@ try{
    html+="<label class='muted'>Topic</label><input id='lessonTopic' placeholder='e.g. Flashing basics' required>";
    html+="<label class='muted'>Section</label><input id='lessonSection' placeholder='e.g. Introduction, Tools, Practical Steps' required>";
    html+="<label class='muted'>What students will learn in this lesson</label>"+richEditorToolbar("lessonOutcomes")+"<div id='lessonOutcomes' class='lesson-editor' contenteditable='true' role='textbox' aria-multiline='true' data-placeholder='Describe the skills and knowledge students will gain...'></div>";
-   html+="<label class='muted'>Lesson PDF</label><div id='mediaLessonFields'><input id='lessonUrl' type='hidden'><input id='lessonFile' type='file' accept='.pdf,application/pdf'><button type='button' class='secondary' id='uploadLessonFile'>Upload PDF</button><p id='uploadStatus' class='muted'>Choose a PDF document and upload it before saving.</p></div>";
+   html+="<label class='muted'>Full written lesson</label><div class='lesson-word-editor-shell'><div class='lesson-word-editor-heading'><strong>Lesson document editor</strong><span class='muted'>Formatting • tables • images • page design</span></div>"+richEditorToolbar("lessonContent")+"<div id='lessonContent' class='lesson-editor lesson-word-editor' contenteditable='true' role='textbox' aria-multiline='true' data-placeholder='Start writing your lesson here...'></div></div>";
    html+="<label class='muted'>Video or Audio Link (Optional)</label><input id='lessonResourceUrl' type='url' placeholder='Paste a YouTube, video or audio link'>";
-   html+="<button type='submit'>Save Lesson</button></form></section>";
+   html+="<small class='muted'>PDF uploads have been replaced with written lessons. Students read a protected PDF-style version inside the app.</small><button type='submit'>Save Written Lesson</button></form></section>";
  }
  html+="</div>";
  if(isStudent()){
@@ -3187,26 +3187,20 @@ try{
        appMessage("Course information saved separately. You can now add lessons whenever you are ready.","success");
      }catch(error){appMessage("Could not save course information: "+error.message,"error");}
    };
-   $("uploadLessonFile").onclick=async()=>{
-     const file=$("lessonFile").files[0],status=$("uploadStatus"),btn=$("uploadLessonFile"),courseId=$("lessonCourseSelect").value;
-     if(!courseId){status.textContent="Please save a course and select it first.";return;}
-     if(!file){status.textContent="Please choose a PDF first.";return;}
-     btn.disabled=true;status.textContent="Uploading PDF... 0%";
-     try{const result=await uploadLessonMedia(file,courseId,p=>status.textContent="Uploading PDF... "+p+"%");$("lessonUrl").value=result.mediaUrl;status.textContent="Upload complete. Press Save Lesson.";}
-     catch(error){status.textContent=error.message||"Upload failed.";}
-     finally{btn.disabled=false;}
-   };
+   bindRichTextEditor("lessonOutcomes","lessonOutcomesToolbar");
+   bindRichTextEditor("lessonContent","lessonContentToolbar");
    $("lessonOnlyForm").onsubmit=async e=>{
      e.preventDefault();
      try{
-       const courseId=$("lessonCourseSelect").value,url=$("lessonUrl").value.trim(),resourceUrl=$("lessonResourceUrl").value.trim();
+       const courseId=$("lessonCourseSelect").value,content=$("lessonContent").innerHTML.trim(),resourceUrl=$("lessonResourceUrl").value.trim();
        if(!courseId){appMessage("Choose a course first.","error");return;}
        if(!$("lessonOutcomes").innerText.trim()){appMessage("Describe what students will learn in this lesson.","error");return;}
-       if(!url||!/^https:\/\/.+/i.test(url)){appMessage("Please upload the lesson PDF first.","error");return;}
+       if(!$("lessonContent").innerText.trim()){appMessage("Write the lesson content before saving.","error");return;}
+       if(content.length>700000){appMessage("This lesson is too large. Please reduce the text or number of images.","error");return;}
        if(resourceUrl&&!/^https:\/\/.+/i.test(resourceUrl)){appMessage("Please enter a valid HTTPS learning link.","error");return;}
        const existing=await getDocs(collection(db,"courses",courseId,"lessons"));
-       await addDoc(collection(db,"courses",courseId,"lessons"),{title:$("lessonTitle").value.trim(),topic:$("lessonTopic").value.trim(),section:$("lessonSection").value.trim(),learningOutcomes:$("lessonOutcomes").innerHTML.trim(),lessonNumber:existing.size+1,type:"pdf",content:"",mediaUrl:url,resourceUrl,createdBy:currentUser.uid,createdAt:serverTimestamp()});
-       appMessage("Lesson saved successfully. Course information was not changed.","success");
+       await addDoc(collection(db,"courses",courseId,"lessons"),{title:$("lessonTitle").value.trim(),topic:$("lessonTopic").value.trim(),section:$("lessonSection").value.trim(),learningOutcomes:$("lessonOutcomes").innerHTML.trim(),lessonNumber:existing.size+1,type:"written",content,resourceUrl,createdBy:currentUser.uid,createdAt:serverTimestamp()});
+       appMessage("Written lesson saved successfully. Course information was not changed.","success");
        invalidateCoursesCache();await loadCourses();await renderCourses();
      }catch(error){appMessage("Could not save lesson: "+error.message,"error");}
    };
