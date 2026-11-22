@@ -1870,65 +1870,72 @@ body.login-mode #authPanel:after{font-size:clamp(12px,1.8vw,15px)!important;padd
 </style>
 
 <style id="support-chat-mobile-layout-fix">
-/* Mobile chat: give the message history a generous scroll area and keep the
-   composer in normal document flow, above the fixed app navigation. */
+/* Keep scrolling inside the conversation, not on the whole Support page. */
+#page:has(.support-chat-shell){
+  min-width:0;
+  overflow:hidden;
+}
 .support-chat-shell{
-  display:block;
+  display:flex!important;
+  flex-direction:column!important;
   width:100%;
   max-width:100%;
-  height:auto;
-  min-height:0;
-  max-height:none;
-  overflow:hidden;
+  height:clamp(380px,calc(100dvh - 410px),780px)!important;
+  min-height:380px!important;
+  max-height:calc(100dvh - 170px)!important;
+  overflow:hidden!important;
   box-sizing:border-box;
 }
-.support-chat-history{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.support-chat-header{
+  flex:0 0 auto;
+}
 .support-chat-messages{
   display:block;
+  flex:1 1 0!important;
   width:100%;
-  height:min(52vh,560px);
-  min-height:320px;
+  height:auto!important;
+  min-height:0!important;
   max-height:none!important;
-  overflow-x:hidden;
-  overflow-y:auto;
-  overscroll-behavior:contain;
+  overflow-x:hidden!important;
+  overflow-y:scroll!important;
+  overscroll-behavior-y:contain;
   -webkit-overflow-scrolling:touch;
-  scroll-behavior:auto;
+  touch-action:pan-y;
+  scrollbar-width:thin;
   padding:14px 12px 24px;
 }
 .support-chat-compose{
   display:flex;
   position:relative;
+  flex:0 0 auto!important;
   width:100%;
   margin:0;
   box-sizing:border-box;
-  z-index:1;
 }
 .support-chat-compose textarea{min-width:0;max-height:120px}
 @media(max-width:999px){
-  #appPanel{padding-bottom:calc(160px + env(safe-area-inset-bottom,0px))!important}
-  #page{padding-bottom:16px!important;min-width:0}
+  #appPanel{padding-bottom:0!important}
+  #page{padding-bottom:150px!important;min-width:0}
 }
 @media(max-width:520px){
-  .support-chat-shell{margin:0!important;border-radius:14px}
+  .support-chat-shell{
+    height:clamp(380px,calc(100dvh - 410px),780px)!important;
+    min-height:380px!important;
+    max-height:calc(100dvh - 165px)!important;
+    margin:0!important;
+    border-radius:14px;
+  }
   .support-chat-header{padding:12px!important;gap:9px}
   .support-chat-heading strong{font-size:14px}
   .support-chat-heading span{font-size:10px}
-  .support-chat-topic{padding:8px 7px;font-size:10px}
-  .support-chat-history{padding:8px!important}
-  .support-chat-history button{min-height:36px;padding:7px 11px;font-size:11px}
-  .support-chat-messages{
-    height:52vh;
-    min-height:300px;
-    padding:12px 9px 24px!important;
-  }
+  .support-chat-messages{padding:12px 9px 24px!important}
   .support-chat-bubble{max-width:92%}
   .support-chat-compose{padding:9px!important;gap:7px}
   .support-chat-compose textarea{min-height:44px;font-size:14px}
   .support-chat-compose button{width:44px;height:44px;flex-basis:44px}
 }
 @media(min-width:1000px){
-  .support-chat-messages{height:min(58vh,650px);min-height:360px}
+  .support-chat-shell{height:min(72vh,780px)!important;min-height:520px!important}
 }
 </style>
 
