@@ -1799,6 +1799,45 @@ body.login-mode #authPanel:after{font-size:clamp(12px,1.8vw,15px)!important;padd
   .student-course-info{padding:10px!important}
 }
 </style>
+
+<style id="support-whatsapp-theme">
+/* WhatsApp-inspired, high-contrast Learning Support conversation */
+.support-chat-shell{overflow:hidden;border:1px solid #d6e4dc;border-radius:18px;background:#e9e5dc;color:#182b22;box-shadow:0 12px 32px #0002;max-width:100%}
+.support-chat-header{position:relative;display:flex;align-items:center;gap:11px;padding:13px 15px;background:#075e54;color:#fff;border:0;box-shadow:none;text-align:left}
+.support-chat-back{flex:0 0 35px;width:35px;height:35px;padding:0;margin:0;border-radius:50%;background:transparent!important;color:#fff!important;box-shadow:none!important;font-size:30px;line-height:1}
+.support-chat-avatar{width:42px;height:42px;flex:0 0 42px;border-radius:50%;display:grid;place-items:center;background:#d6f5e7;color:#075e54;font-size:21px}
+.support-chat-heading{display:flex;flex:1;min-width:0;flex-direction:column;line-height:1.3}
+.support-chat-heading strong{font-size:15px;color:#fff}
+.support-chat-heading span{font-size:11px;color:#d1eee7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.support-chat-status{font-size:10px;color:#d8fff1;white-space:nowrap}
+.support-chat-topic{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:8px 12px;background:#f7f4ed;color:#52645a;border-bottom:1px solid #d8ddd6;font-size:11px}
+.support-chat-topic span{padding:3px 8px;border-radius:20px;background:#e4eee7}
+.support-chat-messages{padding:15px 12px;max-height:min(58vh,650px);min-height:230px;overflow-y:auto;background-color:#e9e5dc;background-image:radial-gradient(#c9c5bb 0.65px,transparent .65px);background-size:17px 17px;scroll-behavior:smooth}
+.support-chat-day{display:flex;justify-content:center;margin:3px 0 15px}
+.support-chat-day span{padding:5px 10px;border-radius:8px;background:#f8f4e9;color:#65746a;font-size:9px;font-weight:800;letter-spacing:.7px;box-shadow:0 1px 2px #0001}
+.support-chat-row{display:flex;width:100%;margin:7px 0}
+.support-chat-row.mine{justify-content:flex-end}
+.support-chat-row.theirs{justify-content:flex-start}
+.support-chat-bubble{position:relative;width:fit-content;max-width:min(84%,560px);padding:8px 10px 6px;border-radius:11px;background:#fff;color:#172b21;box-shadow:0 1px 2px #0002;overflow-wrap:anywhere}
+.support-chat-bubble.theirs{border-top-left-radius:3px}
+.support-chat-bubble.mine{background:#d9fdd3;border-top-right-radius:3px}
+.support-chat-author{margin:0 0 4px;color:#087b67;font-size:11px;font-weight:800}
+.support-chat-bubble.mine .support-chat-author{color:#08704f}
+.support-admin-chip{margin-left:6px;padding:2px 5px;border-radius:5px;background:#087b67;color:#fff;font-size:8px;letter-spacing:.4px}
+.support-chat-question-title{margin:0 0 5px;color:#142e24;font-size:14px;font-weight:800}
+.support-chat-text{color:#172b21;font-size:14px;line-height:1.48;white-space:pre-wrap}
+.support-chat-time{display:flex;justify-content:flex-end;gap:4px;margin-top:4px;color:#718078;font-size:9px}
+.support-chat-bubble.mine .support-chat-time span{color:#1597bd;font-size:11px;font-weight:900}
+.support-chat-empty{text-align:center;color:#53645a;font-size:13px}
+.support-chat-compose{display:flex;align-items:flex-end;gap:8px;padding:10px;background:#f0f2ed;border-top:1px solid #d6ded7;margin:0}
+.support-chat-compose textarea{flex:1;min-height:43px;max-height:120px;resize:vertical;margin:0;padding:11px 14px;border:1px solid #d2ddd5;border-radius:22px;background:#fff;color:#182b22;font-size:14px;box-shadow:none}
+.support-chat-compose textarea::placeholder{color:#849188}
+.support-chat-compose button{width:44px;height:44px;flex:0 0 44px;margin:0;padding:0;border-radius:50%;background:#087b67!important;color:#fff!important;font-size:20px;box-shadow:none}
+.support-chat-admin-tools{display:flex;gap:8px;flex-wrap:wrap;padding:10px 12px;background:#f0f2ed;border-top:1px solid #d6ded7}
+.support-chat-admin-tools button{flex:1;margin:0}
+@media(max-width:520px){.support-chat-shell{border-radius:13px;margin:0 -2px}.support-chat-messages{padding:12px 8px;max-height:60vh}.support-chat-bubble{max-width:90%}.support-chat-text{font-size:13.5px}.support-chat-header{padding:11px 10px}}
+</style>
+
 </head>
 <body class="login-mode">
 
@@ -2896,28 +2935,47 @@ async function renderSupportQuestion(questionId){
   const item={id:snap.id,...snap.data()};
   const replySnap=await getDocs(query(collection(base,"replies"),orderBy("createdAt","asc"),limit(50)));
   const replies=replySnap.docs.map(d=>({id:d.id,...d.data()}));
-  const repliesHtml=replies.length?replies.map(r=>`
-    <article class="support-reply ${r.role==='admin'?'support-admin-reply':''}">
-      <div class="support-question-top"><strong>${safe(supportAuthorLabel(r))}</strong><span class="support-date">${safe(supportDate(r.createdAt))}</span></div>
-      <p>${safe(r.text||"")}</p>
-    </article>`).join(""):'<p class="muted">No replies yet. Be the first to help.</p>';
-  page.innerHTML=`
-    <section class="support-hero"><span class="support-eyebrow">COURSE DISCUSSION</span><h2>💬 Learning Support Room</h2><p>Learn from questions and answers shared by your course community.</p></section>
-    <section class="panel support-room-panel">
-      <button type="button" class="secondary" data-action="support-back">← All discussions</button>
-      <article class="support-question-card support-thread-question">
-        <div class="support-question-top"><span class="support-author">${safe(supportAuthorLabel(item))}</span><span class="support-date">${safe(supportDate(item.createdAt))}</span></div>
-        <h3>${safe(item.title||"Student question")}</h3><p>${safe(item.body||"")}</p>
-        <div class="support-question-meta">${item.pinned?'<span class="tag">📌 Pinned</span>':""}<span class="tag ${item.resolved?'support-resolved':''}">${item.resolved?"✓ Answered":"Open question"}</span></div>
+  const courseName=courses.find(c=>c.id===supportCourseId)?.title||"Course discussion";
+  const questionMine=item.authorId===currentUser.uid;
+  const messagesHtml=[{
+    ...item,
+    text:item.body||"",
+    messageTitle:item.title||"Student question",
+    isQuestion:true,
+    mine:questionMine
+  },...replies.map(r=>({...r,mine:r.authorId===currentUser.uid}))].map(message=>`
+    <div class="support-chat-row ${message.mine?'mine':'theirs'}">
+      <article class="support-chat-bubble ${message.mine?'mine':'theirs'} ${message.isQuestion?'question':''}">
+        <div class="support-chat-author">${safe(message.mine?'You':supportAuthorLabel(message))}${message.role==='admin'&&!message.mine?'<span class="support-admin-chip">ADMIN</span>':""}</div>
+        ${message.isQuestion?`<div class="support-chat-question-title">${safe(message.messageTitle)}</div>`:""}
+        <div class="support-chat-text">${safe(message.text||"")}</div>
+        <div class="support-chat-time">${safe(supportDate(message.createdAt))} <span aria-hidden="true">${message.mine?'✓✓':""}</span></div>
       </article>
-      <h3>Replies (${replies.length})</h3><div class="support-replies">${repliesHtml}</div>
-      <form id="supportReplyForm" class="support-compose">
-        <label for="supportReplyText">Write a helpful reply</label>
-        <textarea id="supportReplyText" maxlength="2000" rows="3" placeholder="Share an explanation or helpful steps…" required></textarea>
-        <button type="submit">Send Reply</button>
+    </div>`).join("");
+  page.innerHTML=`
+    <section class="support-chat-shell">
+      <header class="support-chat-header">
+        <button type="button" class="support-chat-back" data-action="support-back" aria-label="Back to discussions">‹</button>
+        <div class="support-chat-avatar">💬</div>
+        <div class="support-chat-heading"><strong>Learning Support</strong><span>${safe(courseName)}</span></div>
+        <span class="support-chat-status">${item.resolved?'✓ Answered':'● Open'}</span>
+      </header>
+      <div class="support-chat-topic">
+        ${item.pinned?'<span>📌 Pinned discussion</span>':""}
+        <span>${item.resolved?'This question has been answered':'Course learning discussion'}</span>
+      </div>
+      <div class="support-chat-messages" aria-label="Conversation">
+        <div class="support-chat-day"><span>DISCUSSION STARTED</span></div>
+        ${messagesHtml||'<p class="support-chat-empty">No messages yet.</p>'}
+      </div>
+      <form id="supportReplyForm" class="support-chat-compose">
+        <textarea id="supportReplyText" maxlength="2000" rows="1" placeholder="Type a message…" required aria-label="Write a reply"></textarea>
+        <button type="submit" aria-label="Send message">➤</button>
       </form>
-      ${isAdmin()?'<div class="support-admin-tools"><button type="button" class="secondary" data-action="support-pin" data-id="'+safe(item.id)+'" data-pinned="'+(item.pinned?'true':'false')+'">'+(item.pinned?'Unpin question':'Pin question')+'</button><button type="button" class="secondary" data-action="support-resolve" data-id="'+safe(item.id)+'" data-resolved="'+(item.resolved?'true':'false')+'">'+(item.resolved?'Reopen question':'Mark as answered')+'</button></div>':""}
+      ${isAdmin()?'<div class="support-chat-admin-tools"><button type="button" class="secondary" data-action="support-pin" data-id="'+safe(item.id)+'" data-pinned="'+(item.pinned?'true':'false')+'">'+(item.pinned?'Unpin question':'📌 Pin question')+'</button><button type="button" class="secondary" data-action="support-resolve" data-id="'+safe(item.id)+'" data-resolved="'+(item.resolved?'true':'false')+'">'+(item.resolved?'Reopen question':'✓ Mark answered')+'</button></div>':""}
     </section>`;
+  const messageArea=page.querySelector(".support-chat-messages");
+  if(messageArea)messageArea.scrollTop=messageArea.scrollHeight;
 }
 document.addEventListener("submit",async event=>{
   const form=event.target;
