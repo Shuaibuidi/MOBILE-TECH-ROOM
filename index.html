@@ -1900,7 +1900,7 @@ async function requestSecureLessonMedia(mediaUrl,courseId){
   const match=parsed.pathname.match(/\/files\/([^/]+)\/(?:view|download)$/);
   if(!match)throw new Error("The Appwrite lesson file link is invalid.");
   const fileId=decodeURIComponent(match[1]);
-  const token=await currentUser.getIdToken(true);
+  const token=await currentUser.getIdToken();
   const endpoint="https://starter-function-9cke.sgp.appwrite.run";
   const query=new URLSearchParams({fileId,courseId,stream:"1"});
   const response=await fetch(endpoint+"?"+query.toString(),{method:"GET",headers:{Authorization:"Bearer "+token}});
@@ -2653,19 +2653,20 @@ function quizQuestionEditor(q={},i=0){
 async function renderQuizzes(){
  page.innerHTML="<div class='panel'>Loading quizzes...</div>";
  try{
+  const staff=isStaff();
   const cacheKey = "mtr_quiz_list_" + currentUser.uid + "_" + (profile?.role || "user");
   let data = null;
   try {
    const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
    if (cached && Date.now() - cached.savedAt < 120000 && cached.data?.success) data = cached.data;
   } catch (_) {}
-  if (data) await loadCourses();
+  if (data) { if(staff) await loadCourses(); }
   else {
-   const [,fresh] = await Promise.all([loadCourses(),callQuizApi("quiz-list")]);
+   const [,fresh] = await Promise.all([staff?loadCourses():Promise.resolve(),callQuizApi("quiz-list")]);
    data = fresh;
    try { localStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), data })); } catch (_) {}
   }
-  const items=data.quizzes||[],staff=isStaff();
+  const items=data.quizzes||[];
   let h='<section class="dashboard-hero"><p class="uppercase-accent">ASSESSMENT CENTRE</p><h2>Quizzes &amp; Exams</h2><p>Multiple-choice tests, automatic marking and results.</p></section>';
   if(staff&&courses.length){
    h+='<section class="panel"><h2 id="quizEditorHeading">Create a Quiz</h2><form id="quizForm"><label class="muted">Course</label><select id="quizCourse">';
