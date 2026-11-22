@@ -1827,6 +1827,41 @@ function supportContactPanel(compact=false){
  const href="https://wa.me/265999290495?text="+encodeURIComponent(message);
  return `<section class="support-contact-card ${compact?"support-contact-compact":""}"><div class="support-contact-copy"><strong>Need help with a course or lesson?</strong><p>Contact your instructor directly on WhatsApp.</p></div><a class="support-whatsapp-button" href="${href}" target="_blank" rel="noopener noreferrer" aria-label="Contact Mobile Tech Room Instructor on WhatsApp"><span aria-hidden="true">◉</span> WhatsApp Support</a></section>`;
 }
+const PAYCHANGU_FUNCTION_URL="https://starter-function-52z5.sgp.appwrite.run";
+
+async function startPayChanguCheckout(courseId){
+ if(!currentUser){appMessage("Please sign in before paying for a course.","warning");return;}
+ const course=courses.find(item=>item.id===courseId)||selectedCourse;
+ if(!course){appMessage("This course could not be found. Please refresh and try again.","error");return;}
+ if(course.accessType!=="paid"){appMessage("This course does not require payment.","warning");return;}
+ const button=document.querySelector('[data-action="pay-course"][data-id="'+CSS.escape(courseId)+'"]');
+ if(button){button.disabled=true;button.textContent="Connecting to PayChangu…";}
+ try{
+  const token=await currentUser.getIdToken();
+  const form=document.createElement("form");
+  form.method="POST";form.action=PAYCHANGU_FUNCTION_URL;form.style.display="none";
+  for(const [name,value] of Object.entries({action:"create-checkout",courseId,firebaseIdToken:token})){
+   const input=document.createElement("input");input.type="hidden";input.name=name;input.value=value;form.append(input);
+  }
+  document.body.append(form);form.submit();
+ }catch(error){
+  if(button){button.disabled=false;button.textContent="Pay with PayChangu";}
+  appMessage(error.message||"Could not start payment. Please try again.","error");
+ }
+}
+
+async function handlePayChanguReturn(){
+ const params=new URLSearchParams(window.location.search),payment=params.get("payment");
+ if(!payment)return;
+ window.history.replaceState({},document.title,window.location.pathname+window.location.hash);
+ if(payment==="return"){
+  appMessage("Thank you. We are checking your payment. Your course will unlock automatically once PayChangu confirms it.","success");
+  try{await showTab("dashboard");}catch(_){}
+ }else if(payment==="cancelled"){
+  appMessage("Payment was not completed. You can try again when you are ready.","warning");
+ }
+}
+
 async function requestCourseProgress(courseId,lessonId=null){
  if(!currentUser)throw new Error("Please sign in to save your learning progress.");
  const token=await currentUser.getIdToken(),action=lessonId?"complete-lesson":"course-progress";
