@@ -2812,7 +2812,7 @@ const labels={dashboard:"⌂  Dashboard",students:"♙  Students",lessons:"▣  
 $("navigation").innerHTML=tabs.map(t=>
 `<button class="${currentTab===t?"active":"secondary"}" data-tab="${t}">${labels[t]||t}</button>`
 ).join("");
-if(currentUser&&(isAdmin()||isStudent()))refreshSupportBadge();
+if(currentUser&&(isAdmin()||isStudent())){startSupportBadgeUpdates();refreshSupportBadge();}
 
 // Give administrators their actual management sections in the phone navigation.
 // The previous generic mobile bar hid Students and Instructors on small screens.
@@ -2880,6 +2880,8 @@ let supportOldestDoc=null;
 let supportLoadingOlder=false;
 let supportReadState=null;
 let supportLiveUnsubscribe=null;
+let supportBadgeUnsubscribe=null;
+let supportBadgeListenerUid="";
 
 function supportDate(value){
   try{
@@ -2908,8 +2910,7 @@ async function getSupportUnreadCount(){
     }).length;
   }catch(error){console.warn("Support unread count:",error);return 0;}
 }
-async function refreshSupportBadge(){
-  const count=await getSupportUnreadCount();
+function applySupportBadgeCount(count){
   document.querySelectorAll('[data-tab="support"],[data-dashboard-tab="support"]').forEach(button=>{
     let badge=button.querySelector(".support-unread-badge");
     if(count){
@@ -2917,6 +2918,29 @@ async function refreshSupportBadge(){
       badge.textContent=count>99?"99+":String(count);
     }else if(badge)badge.remove();
   });
+}
+async function refreshSupportBadge(){
+  const count=await getSupportUnreadCount();
+  applySupportBadgeCount(count);
+}
+function startSupportBadgeUpdates(){
+  if(!currentUser||(!isAdmin()&&!isStudent()))return;
+  if(supportBadgeUnsubscribe&&supportBadgeListenerUid===currentUser.uid)return;
+  if(supportBadgeUnsubscribe)supportBadgeUnsubscribe();
+  supportBadgeListenerUid=currentUser.uid;
+  const badgeQuery=query(collection(db,"supportMessages"),orderBy("createdAt","desc"),limit(500));
+  supportBadgeUnsubscribe=onSnapshot(badgeQuery,async snap=>{
+    try{
+      const stateSnap=await getDoc(supportStateRef());
+      const lastRead=stateSnap.exists()?stateSnap.data().lastReadAt:null;
+      const count=snap.docs.filter(d=>{
+        const message=d.data();
+        if(message.senderId===currentUser.uid||!message.createdAt)return false;
+        return !lastRead||message.createdAt.toMillis()>lastRead.toMillis();
+      }).length;
+      applySupportBadgeCount(count);
+    }catch(error){console.warn("Could not refresh unread Support count:",error);}
+  },error=>console.warn("Support unread listener:",error));
 }
 async function markSupportMessagesRead(){
   await setDoc(supportStateRef(),{lastReadAt:serverTimestamp()},{merge:true});
