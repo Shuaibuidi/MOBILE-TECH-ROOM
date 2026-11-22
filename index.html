@@ -3103,8 +3103,6 @@ async function renderLearningSupportRoom(){
           <div class="support-chat-heading"><strong>Mobile Tech Room Community</strong><span>Students and administration · General chat</span></div>
           <span class="support-chat-status">● Live chat</span>
         </header>
-        <div class="support-chat-topic"><span>Welcome to the community chat</span><span>Be respectful and help one another</span></div>
-        <div class="support-chat-history"><button type="button" class="secondary" data-action="support-load-older" ${snap.docs.length<SUPPORT_PAGE_SIZE?'disabled':''}>↑ Load older messages</button><span class="support-history-hint">${snap.docs.length<SUPPORT_PAGE_SIZE?'All available messages are shown':'Older messages are available'}</span></div>
         <div id="supportChatMessages" class="support-chat-messages" aria-label="Community conversation"><p class="support-chat-empty">Loading messages…</p></div>
         <form id="supportReplyForm" class="support-chat-compose">
           <div id="supportReplyPreview" class="support-reply-preview hidden"></div>
@@ -3113,6 +3111,14 @@ async function renderLearningSupportRoom(){
         </form>
       </section>`;
     renderSupportMessages();
+    const supportMessageArea=$("supportChatMessages");
+    if(supportMessageArea){
+      supportMessageArea.addEventListener("scroll",()=>{
+        if(supportMessageArea.scrollTop<=36&&supportHasOlderMessages&&!supportLoadingOlder){
+          loadOlderSupportMessages(null);
+        }
+      },{passive:true});
+    }
     await markSupportMessagesRead();
     refreshSupportBadge();
     startSupportLiveUpdates();
