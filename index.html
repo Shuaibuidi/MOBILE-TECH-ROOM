@@ -3220,12 +3220,12 @@ try{
    html+="<label class='muted'>Choose course to edit (or create a new one)</label><select id='courseInfoSelect'><option value=''>＋ Create new course</option>"+courses.map(c=>"<option value='"+safe(c.id)+"'>"+safe(c.title)+"</option>").join("")+"</select><label class='muted'>Course name</label><input id='courseTitle' placeholder='e.g. Phone Flashing and Unlocking' required>";
    html+="<label class='muted'>Course description</label><textarea id='overviewDescription' placeholder='Explain what this course is about and who it is for'></textarea>";
    html+="<label class='muted'>Student Learning Support</label><input id='overviewDuration' value='3 months (12 weeks)' placeholder='e.g. 3 months (12 weeks)'>";
-   html+="<label class='muted'>Learning schedule / time</label><input id='overviewSchedule' placeholder='e.g. 3 days per week, 2 hours per day'>";
+   
    html+="<label class='muted'>How students will learn</label><textarea id='overviewMethod' placeholder='Explain notes, practical demonstrations, video links and assignments'></textarea>";
    html+="<label class='muted'>Skills students will gain</label><textarea id='overviewOutcomes' placeholder='List the practical skills and knowledge students will gain'></textarea>";
    html+="<label class='muted'>Course requirements</label><textarea id='overviewRequirements' placeholder='Explain what students need before joining'></textarea>";
    html+="<label class='muted'>Assessment and certificate</label><textarea id='overviewAssessment' placeholder='Explain quizzes, practical work, final assessment and certificate requirements'></textarea>";
-   html+="<label class='muted'>Complete 12-week curriculum (one week per line)</label><textarea id='overviewCurriculum' rows='12' placeholder='Week 1: Introduction and safety&#10;Week 2: Tools and equipment&#10;Week 3: ...&#10;Continue up to Week 12'></textarea>";
+   
    html+="<label class='muted'>Course access</label><select id='courseAccess'><option value='free'>Free</option><option value='paid'>Paid</option></select>";
    html+="<div id='coursePriceField' class='hidden'><label class='muted'>Course fee (MK)</label><input id='coursePrice' type='number' min='1' step='1' placeholder='e.g. 25000'></div>";
    html+="<button type='submit'>Save Course Information</button></form></section>";
