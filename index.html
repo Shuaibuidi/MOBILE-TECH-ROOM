@@ -288,7 +288,7 @@ button:hover{transform:none!important}
 @media(max-width:420px){.media-file-grid{grid-template-columns:1fr;gap:9px}.media-file-card{min-height:100px;padding:11px}.media-file-icon,.media-file-thumb{width:68px;height:68px}.media-file-card{grid-template-columns:68px minmax(0,1fr)}}
 .student-lesson-media{margin:12px 0;padding:0;background:transparent;border:0;overflow:visible}
 .media-lightbox-audio{display:block;width:min(100%,620px);margin:20px auto}
-.media-lightbox-pdf{display:block;width:100%;height:min(72vh,760px);border:0;border-radius:10px;background:#fff}
+.media-pdf-container{width:100%;max-height:calc(100dvh - 115px);overflow:auto;overscroll-behavior:contain;background:#263548;border-radius:10px;padding:10px;box-sizing:border-box}.media-pdf-pages{display:flex;flex-direction:column;align-items:center;gap:14px}.media-pdf-page{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 3px 14px #0008;border-radius:2px}.media-pdf-container .muted{color:#fff}
 @media(max-width:420px){.media-file-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.media-file-card{min-height:108px;padding:8px}.media-file-thumb{height:64px}.media-file-name{font-size:11px}}
 
 /* =========================================================
@@ -1890,6 +1890,73 @@ function downloadCertificate(b){
  const end='</div><div class="seal">MTR<br>VERIFIED</div><div class="meta">Completed on '+safe(date)+'</div><div class="id">Certificate No: '+safe(id)+'</div></div></main></body></html>';
 
  w.document.open();w.document.write(a+safe(name)+z+safe(course)+end);w.document.close();
+}
+
+async function loadPdfJsLibrary(){
+  if(window.pdfjsLib)return window.pdfjsLib;
+  if(window.__mtrPdfJsLoading)return window.__mtrPdfJsLoading;
+  window.__mtrPdfJsLoading=new Promise((resolve,reject)=>{
+    const script=document.createElement("script");
+    script.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+    script.async=true;
+    script.onload=()=>window.pdfjsLib?resolve(window.pdfjsLib):reject(new Error("PDF viewer library did not initialise."));
+    script.onerror=()=>reject(new Error("PDF viewer could not load. Check your internet connection and try again."));
+    document.head.append(script);
+  });
+  try{return await window.__mtrPdfJsLoading;}catch(error){window.__mtrPdfJsLoading=null;throw error;}
+}
+
+async function renderLessonPdf(pdfUrl,container,mediaTitle){
+  const status=document.createElement("p");
+  status.className="muted";
+  status.style.cssText="text-align:center;color:#fff;padding:16px";
+  status.textContent="Loading PDF…";
+  const pages=document.createElement("div");
+  pages.className="media-pdf-pages";
+  container.append(status,pages);
+  try{
+    const response=await fetch(pdfUrl);
+    if(!response.ok)throw new Error("The PDF file could not be downloaded.");
+    const bytes=new Uint8Array(await response.arrayBuffer());
+    if(!bytes.length)throw new Error("The PDF file is empty.");
+    const pdfjs=await loadPdfJsLibrary();
+    pdfjs.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    const documentPdf=await pdfjs.getDocument({data:bytes,disableWorker:true,isEvalSupported:false}).promise;
+    status.textContent="Rendering "+documentPdf.numPages+" page(s)…";
+    for(let pageNumber=1;pageNumber<=documentPdf.numPages;pageNumber++){
+      const page=await documentPdf.getPage(pageNumber);
+      const base=page.getViewport({scale:1});
+      const availableWidth=Math.max(260,Math.min(container.clientWidth||900,1000));
+      const scale=Math.min(2.2,Math.max(0.7,(availableWidth-12)/base.width));
+      const viewport=page.getViewport({scale});
+      const ratio=Math.min(2,window.devicePixelRatio||1);
+      const canvas=document.createElement("canvas");
+      canvas.className="media-pdf-page";
+      canvas.setAttribute("role","img");
+      canvas.setAttribute("aria-label",mediaTitle+" page "+pageNumber);
+      canvas.width=Math.floor(viewport.width*ratio);
+      canvas.height=Math.floor(viewport.height*ratio);
+      canvas.style.width=Math.floor(viewport.width)+"px";
+      canvas.style.height=Math.floor(viewport.height)+"px";
+      const context=canvas.getContext("2d",{alpha:false});
+      context.setTransform(ratio,0,0,ratio,0,0);
+      pages.append(canvas);
+      await page.render({canvasContext:context,viewport}).promise;
+      status.textContent="Loading page "+pageNumber+" of "+documentPdf.numPages+"…";
+    }
+    status.remove();
+    documentPdf.cleanup();
+  }catch(error){
+    status.textContent=(error&&error.message?error.message:"PDF could not be displayed.")+" You can try downloading the file instead.";
+    const download=document.createElement("a");
+    download.href=pdfUrl;
+    download.download=(mediaTitle||"lesson").replace(/[^a-z0-9._-]/gi,"_")+".pdf";
+    download.textContent="Download PDF";
+    download.className="btn";
+    download.style.cssText="display:block;text-align:center;margin:8px auto;color:white";
+    container.append(download);
+    throw error;
+  }
 }
 
 async function requestSecureLessonMedia(mediaUrl,courseId){
@@ -3539,8 +3606,9 @@ if(action==="view-media"||action==="open-secure-media"){
       streamSecureLessonAudio(mediaUrl,courseId,audio).then(()=>loading.remove()).catch(error=>{loading.textContent=error.message||"Audio could not be loaded.";appMessage(loading.textContent,"error");});
     }else audio.src=mediaUrl;
   }else if(mediaType==="pdf"){
-    const frame=document.createElement("iframe");frame.className="media-lightbox-pdf";frame.src=mediaUrl+"#toolbar=0&navpanes=0&scrollbar=0";frame.title=mediaTitle;inner.append(frame);
-    
+    const pdfContainer=document.createElement("div");pdfContainer.className="media-pdf-container";pdfContainer.setAttribute("aria-label",mediaTitle);
+    inner.append(pdfContainer);
+    renderLessonPdf(mediaUrl,pdfContainer,mediaTitle).catch(error=>console.warn("Lesson PDF rendering failed:",error));
   }
   viewer.append(inner);viewer.addEventListener("click",event=>{if(event.target===viewer)cleanup();});
   document.body.append(viewer);
