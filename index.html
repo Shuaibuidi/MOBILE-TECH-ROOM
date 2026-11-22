@@ -3325,7 +3325,15 @@ async function showTab(tab){
 if(tab==="support"&&currentTab!=="support")supportReturnTab=currentTab;
 if(tab!=="support")stopSupportLiveUpdates();
 currentTab=tab;
-document.body.classList.toggle("support-fullscreen-mode",tab==="support");
+const appPanel=$("appPanel");
+const appMessageNode=$("appMessage");
+if(tab==="support"){
+  document.body.classList.add("support-fullscreen-mode");
+  if(page.parentElement!==document.body)document.body.appendChild(page);
+}else{
+  document.body.classList.remove("support-fullscreen-mode");
+  if(appPanel&&page.parentElement!==appPanel)appPanel.insertBefore(page,appMessageNode||null);
+}
 const appFooter=$("appFooter");
 if(appFooter)appFooter.style.display=tab==="support"?"none":"";
 buildNavigation();
