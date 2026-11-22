@@ -1970,7 +1970,7 @@ body.login-mode #authPanel:after{font-size:clamp(12px,1.8vw,15px)!important;padd
 </section>
 </main>
 
-<footer>Mobile Tech Room · Learn mobile technology skills</footer>
+<footer id="appFooter">Mobile Tech Room · Learn mobile technology skills</footer>
 
 <script type="module">
 import {initializeApp} from
@@ -3240,6 +3240,8 @@ document.addEventListener("submit",async event=>{
 async function showTab(tab){
 if(tab!=="support")stopSupportLiveUpdates();
 currentTab=tab;
+const appFooter=$("appFooter");
+if(appFooter)appFooter.style.display=tab==="support"?"none":"";
 buildNavigation();
 $("appMessage").innerHTML="";
 selectedCourse=null;
