@@ -1178,8 +1178,8 @@ hr{border-color:#263f60!important}
   }
   .mobile-bottom-nav::-webkit-scrollbar{display:none!important}
   .mobile-bottom-nav button{
-    display:flex!important;flex:0 0 76px!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
-    gap:2px!important;min-width:76px!important;min-height:55px!important;margin:0!important;padding:5px 3px!important;
+    display:flex!important;flex:0 0 calc((100vw - 24px)/5)!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+    gap:2px!important;min-width:0!important;min-height:55px!important;margin:0!important;padding:5px 2px!important;
     white-space:normal!important;text-align:center!important;line-height:1.15!important;overflow:hidden!important;
     background:transparent!important;color:#243b5b!important;border:0!important;border-radius:10px!important;
     box-shadow:none!important;font-size:10px!important;font-weight:700!important;
@@ -4464,8 +4464,9 @@ await changeUser(id,{role:"student",status:"approved"},"Instructor permissions r
 #mtrLanguageControl{position:fixed;right:14px;bottom:16px;z-index:200000;display:flex;align-items:center;gap:7px;padding:8px 10px;background:#061a31;border:1px solid #28b9df;border-radius:14px;box-shadow:0 8px 24px #0008;color:#fff;font:700 12px Arial,sans-serif;max-width:calc(100vw - 20px)}
 #mtrLanguageControl label{white-space:nowrap}
 #mtrLanguageControl select{width:auto;min-width:112px;max-width:46vw;margin:0;padding:8px 26px 8px 9px;background:#102b49;color:#fff;border:1px solid #3989b7;border-radius:9px;font-size:12px}
-@media(max-width:999px){#mtrLanguageControl{right:10px;bottom:calc(82px + env(safe-area-inset-bottom));padding:7px 9px}}
-@media(max-width:420px){#mtrLanguageControl{right:9px;bottom:calc(78px + env(safe-area-inset-bottom));padding:6px 8px;gap:5px}#mtrLanguageControl label{font-size:11px}#mtrLanguageControl select{min-width:94px;font-size:11px}}
+body.login-mode #mtrLanguageControl{display:flex!important}
+body:not(.login-mode) #mtrLanguageControl{display:none!important}
+@media(max-width:420px){#mtrLanguageControl{right:9px;bottom:calc(14px + env(safe-area-inset-bottom));padding:6px 8px;gap:5px}#mtrLanguageControl label{font-size:11px}#mtrLanguageControl select{min-width:94px;font-size:11px}}
 </style>
 <script>
 (function(){
@@ -4553,7 +4554,8 @@ function skipNode(node){const el=node.parentElement;if(!el)return true;return !!
 function translateTree(root){const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){if(skipNode(node))continue;const next=exact(node.nodeValue);if(next!==node.nodeValue)node.nodeValue=next;}if(root.querySelectorAll){root.querySelectorAll("input[placeholder],textarea[placeholder],[aria-label],[title]").forEach(el=>{["placeholder","aria-label","title"].forEach(attr=>{const v=el.getAttribute(attr);if(v){const n=exact(v);if(n!==v)el.setAttribute(attr,n);}});});}}
 function apply(){language=localStorage.getItem(KEY)==="ny"?"ny":"en";document.documentElement.lang=language==="ny"?"ny":"en";if(observer)observer.disconnect();translateTree(document.body);if(observer)observer.observe(document.body,{childList:true,subtree:true,characterData:true});const control=document.getElementById("mtrLanguageSelect");if(control)control.value=language;}
 function setLanguage(next){language=next==="ny"?"ny":"en";localStorage.setItem(KEY,language);apply();document.dispatchEvent(new CustomEvent("mtr-language-change",{detail:{language}}));}
-function mount(){if(!document.body)return;let box=document.getElementById("mtrLanguageControl");if(!box){box=document.createElement("div");box.id="mtrLanguageControl";box.innerHTML='<label for="mtrLanguageSelect">🌐 Language / Chinenero</label><select id="mtrLanguageSelect" aria-label="Choose language"><option value="en">🇬🇧 English</option><option value="ny">🇲🇼 Chichewa</option></select>';document.body.appendChild(box);box.querySelector("select").addEventListener("change",e=>setLanguage(e.target.value));}box.querySelector("select").value=language;apply();}
+function syncControlVisibility(){const box=document.getElementById("mtrLanguageControl");if(!box)return;const loginVisible=document.body.classList.contains("login-mode")&&!document.getElementById("authPanel")?.classList.contains("hidden");box.style.display=loginVisible?"flex":"none";}
+function mount(){if(!document.body)return;let box=document.getElementById("mtrLanguageControl");if(!box){box=document.createElement("div");box.id="mtrLanguageControl";box.innerHTML='<label for="mtrLanguageSelect">🌐 Language / Chinenero</label><select id="mtrLanguageSelect" aria-label="Choose language"><option value="en">🇬🇧 English</option><option value="ny">🇲🇼 Chichewa</option></select>';document.body.appendChild(box);box.querySelector("select").addEventListener("change",e=>setLanguage(e.target.value));}box.querySelector("select").value=language;apply();syncControlVisibility();const authObserver=new MutationObserver(syncControlVisibility);["authPanel","appPanel"].forEach(id=>{const el=document.getElementById(id);if(el)authObserver.observe(el,{attributes:true,attributeFilter:["class"]});});const bodyObserver=new MutationObserver(syncControlVisibility);bodyObserver.observe(document.body,{attributes:true,attributeFilter:["class"]});}
 document.addEventListener("mtr-language-ready",e=>{if(e.detail&&e.detail.language)setLanguage(e.detail.language);});
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",mount);else mount();
 observer=new MutationObserver(records=>{for(const record of records){if(record.type==="childList")record.addedNodes.forEach(n=>{if(n.nodeType===Node.TEXT_NODE){if(!skipNode(n)){const v=exact(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v;}}else if(n.nodeType===Node.ELEMENT_NODE)translateTree(n);});else if(record.type==="characterData"&&!skipNode(record.target)){const v=exact(record.target.nodeValue);if(v!==record.target.nodeValue)record.target.nodeValue=v;}}});
