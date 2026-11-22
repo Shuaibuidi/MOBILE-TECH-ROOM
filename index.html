@@ -2693,6 +2693,60 @@ input::placeholder,textarea::placeholder{color:#9aaac0!important}
 
 </style></head><body><main class="sheet"><header class="brand"><div class="brand-name">MOBILE TECH ROOM</div><div class="brand-tag">LEARN • REPAIR • INNOVATE</div></header>
 <p class="kicker">MOBILE TECH LESSON</p><h1>${safe(cleanTitle)}</h1><article>${content}</article></main>
+
+<!-- Mobile navigation: show exactly four complete items; swipe horizontally for the rest. -->
+<style>
+@media (max-width:999px){
+  #mobileBottomNav{
+    display:flex!important;
+    flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    justify-content:flex-start!important;
+    align-items:stretch!important;
+    gap:6px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    overscroll-behavior-x:contain!important;
+    -webkit-overflow-scrolling:touch!important;
+    scroll-snap-type:x proximity!important;
+    scrollbar-width:none!important;
+    padding:8px 9px calc(8px + env(safe-area-inset-bottom,0px))!important;
+  }
+  #mobileBottomNav::-webkit-scrollbar{display:none!important}
+  #mobileBottomNav button{
+    flex:0 0 calc((100% - 18px)/4)!important;
+    width:calc((100% - 18px)/4)!important;
+    min-width:calc((100% - 18px)/4)!important;
+    max-width:calc((100% - 18px)/4)!important;
+    min-height:66px!important;
+    height:auto!important;
+    padding:7px 4px!important;
+    margin:0!important;
+    overflow:visible!important;
+    white-space:normal!important;
+    text-align:center!important;
+    scroll-snap-align:start!important;
+    line-height:1.2!important;
+  }
+  #mobileBottomNav button .bottom-nav-icon{
+    flex:0 0 auto!important;
+    line-height:1.1!important;
+  }
+  #mobileBottomNav button > span:last-child{
+    display:block!important;
+    width:100%!important;
+    max-width:100%!important;
+    white-space:normal!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    overflow-wrap:anywhere!important;
+    word-break:normal!important;
+    font-size:clamp(9px,2.8vw,11px)!important;
+    line-height:1.2!important;
+  }
+}
+</style>
+
 </body></html>`;
 
   // Capacitor Android: use the native Android Print Framework, not window.print().
