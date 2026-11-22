@@ -2900,6 +2900,18 @@ let supportHistoryUnsubscribes=[];
 let supportBadgeUnsubscribe=null;
 let supportBadgeListenerUid="";
 
+function supportTimestampMillis(value){
+  if(!value)return 0;
+  try{
+    if(typeof value.toMillis==="function")return value.toMillis();
+    if(typeof value.toDate==="function")return value.toDate().getTime();
+    if(value instanceof Date)return value.getTime();
+    if(typeof value==="number")return value;
+    if(typeof value==="string"){const parsed=Date.parse(value);return Number.isNaN(parsed)?0:parsed;}
+    if(typeof value.seconds==="number")return value.seconds*1000+(Number(value.nanoseconds)||0)/1000000;
+  }catch(error){console.warn("Invalid Support timestamp:",error);}
+  return 0;
+}
 function supportDate(value){
   try{
     const date=value?.toDate?value.toDate():value?.seconds?new Date(value.seconds*1000):value?new Date(value):null;
@@ -2923,7 +2935,7 @@ async function getSupportUnreadCount(){
       const m=d.data();
       if(m.senderId===currentUser.uid||!m.createdAt)return false;
       if(!lastRead)return true;
-      return m.createdAt.toMillis()>lastRead.toMillis();
+      return supportTimestampMillis(m.createdAt)>supportTimestampMillis(lastRead);
     }).length;
   }catch(error){console.warn("Support unread count:",error);return 0;}
 }
@@ -2954,7 +2966,7 @@ function startSupportBadgeUpdates(){
       const count=snap.docs.filter(d=>{
         const message=d.data();
         if(message.senderId===currentUser.uid||!message.createdAt)return false;
-        return !lastRead||message.createdAt.toMillis()>lastRead.toMillis();
+        return !lastRead||supportTimestampMillis(message.createdAt)>supportTimestampMillis(lastRead);
       }).length;
       applySupportBadgeCount(count);
     }catch(error){console.warn("Could not refresh unread Support count:",error);}
@@ -2980,10 +2992,10 @@ function supportMessageMarkup(message){
 function renderSupportMessages(options={}){
   const area=$("supportChatMessages");if(!area)return;
   const oldHeight=area.scrollHeight,oldTop=area.scrollTop,nearBottom=oldHeight-oldTop-area.clientHeight<90;
-  const ordered=[...supportMessages].sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0));
+  const ordered=[...supportMessages].sort((a,b)=>supportTimestampMillis(a.createdAt)-supportTimestampMillis(b.createdAt));
   const lastRead=supportReadState?.lastReadAt;let unreadDividerAdded=false;
   const rendered=ordered.map(message=>{
-    const unread=message.senderId!==currentUser.uid&&message.createdAt&&(!lastRead||message.createdAt.toMillis()>lastRead.toMillis());
+    const unread=message.senderId!==currentUser.uid&&message.createdAt&&(!lastRead||supportTimestampMillis(message.createdAt)>supportTimestampMillis(lastRead));
     let divider="";if(unread&&!unreadDividerAdded){divider='<div class="support-chat-unread-divider"><span>NEW / UNREAD MESSAGES</span></div>';unreadDividerAdded=true;}
     return divider+supportMessageMarkup(message);
   }).join("");
@@ -3002,7 +3014,7 @@ function startSupportLiveUpdates(){
     const liveDocs=snap.docs,liveIds=new Set(liveDocs.map(d=>d.id));
     const retained=supportMessages.filter(m=>!liveIds.has(m.id));
     supportMessages=[...retained,...liveDocs.map(d=>({id:d.id,...d.data()}))];
-    supportMessages.sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0));
+    supportMessages.sort((a,b)=>supportTimestampMillis(a.createdAt)-supportTimestampMillis(b.createdAt));
     renderSupportMessages({preservePosition:true});
     if(currentTab==="support")markSupportMessagesRead().then(()=>renderSupportMessages({preservePosition:true}));
     refreshSupportBadge();
@@ -3069,7 +3081,7 @@ async function loadOlderSupportMessages(button){
       supportMessages=[...supportMessages,...livePage.filter(m=>!currentIds.has(m.id))];
       const refreshed=new Map(livePage.map(m=>[m.id,m]));
       supportMessages=supportMessages.map(m=>refreshed.get(m.id)||m);
-      supportMessages.sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0));
+      supportMessages.sort((a,b)=>supportTimestampMillis(a.createdAt)-supportTimestampMillis(b.createdAt));
       renderSupportMessages({preservePosition:true});
     },error=>console.warn("Older support history listener:",error)));
     const existingIds=new Set(supportMessages.map(m=>m.id));
@@ -3147,7 +3159,7 @@ document.addEventListener("submit",async event=>{
     const latestDocs=snap.docs,latestIds=new Set(latestDocs.map(d=>d.id));
     const retained=supportMessages.filter(m=>!latestIds.has(m.id));
     supportMessages=[...retained,...latestDocs.map(d=>({id:d.id,...d.data()}))];
-    supportMessages.sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0));
+    supportMessages.sort((a,b)=>supportTimestampMillis(a.createdAt)-supportTimestampMillis(b.createdAt));
     if(latestDocs.length&&!supportOldestDoc)supportOldestDoc=latestDocs[latestDocs.length-1];
     renderSupportMessages();
     await markSupportMessagesRead();
