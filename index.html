@@ -3419,30 +3419,42 @@ await renderCourses();
 }
 
 async function editLesson(id){
-if(!isAdmin()){
-appMessage("Only the administrator can edit lessons.","error");
-return;
-}
+if(!isAdmin()){appMessage("Only the administrator can edit lessons.","error");return;}
 const courseId=selectedCourse.id;
 const ref=doc(db,"courses",courseId,"lessons",id);
-const snap=await getDoc(ref);
-if(!snap.exists())return;
-const l=snap.data();
-const title=prompt("Lesson title:",l.title);
-if(title===null)return;
-const topic=prompt("Topic:",l.topic||"");
-if(topic===null)return;
-const section=prompt("Section:",l.section||"");
-if(section===null)return;
-const content=prompt("Lesson content (plain text):",l.content||"");
-if(content===null)return;
+const snap=await getDoc(ref);if(!snap.exists())return;
+const lesson=snap.data();
+page.innerHTML=`
+<section class="panel">
+<button class="secondary" data-action="back-course-lessons">← Back to lessons</button>
+<h2>Edit Written Lesson</h2>
+<form id="editWrittenLessonForm">
+<label class="muted" for="editLessonTitle">Lesson title</label><input id="editLessonTitle" required value="${safe(lesson.title||"")}">
+<label class="muted" for="editLessonTopic">Topic</label><input id="editLessonTopic" value="${safe(lesson.topic||"")}">
+<label class="muted" for="editLessonSection">Section</label><input id="editLessonSection" value="${safe(lesson.section||"")}">
+<label class="muted">What students will learn</label>${richEditorToolbar("editLessonOutcomes")}
+<div id="editLessonOutcomes" class="lesson-editor" contenteditable="true" role="textbox" aria-multiline="true">${formatLessonContent(lesson.learningOutcomes||"")}</div>
+<label class="muted">Full written lesson</label>
+<div class="lesson-word-editor-shell"><div class="lesson-word-editor-heading"><strong>Lesson document editor</strong><span class="muted">Formatting • tables • images • page design</span></div>${richEditorToolbar("editLessonContent")}
+<div id="editLessonContent" class="lesson-editor lesson-word-editor" contenteditable="true" role="textbox" aria-multiline="true">${formatLessonContent(lesson.content||"")}</div></div>
+<label class="muted" for="editLessonResourceUrl">Video or Audio Link (Optional)</label><input id="editLessonResourceUrl" type="url" value="${safe(lesson.resourceUrl||"")}" placeholder="https://...">
+<button type="submit">Save Changes</button>
+</form></section>`;
+bindRichTextEditor("editLessonOutcomes","editLessonOutcomesToolbar");
+bindRichTextEditor("editLessonContent","editLessonContentToolbar");
+$("editWrittenLessonForm").onsubmit=async event=>{
+event.preventDefault();
+const content=$("editLessonContent").innerHTML.trim(),resourceUrl=$("editLessonResourceUrl").value.trim();
+if(!$("editLessonContent").innerText.trim()){appMessage("Write the lesson content before saving.","error");return;}
+if(content.length>700000){appMessage("This lesson is too large. Please reduce the text or number of images.","error");return;}
+if(resourceUrl&&!/^https:\/\/.+/i.test(resourceUrl)){appMessage("Please enter a valid HTTPS learning link.","error");return;}
 try{
-await updateDoc(ref,{title:title.trim(),topic:topic.trim(),section:section.trim(),content:content.trim()});
-appMessage("Lesson updated.");
+await updateDoc(ref,{title:$("editLessonTitle").value.trim(),topic:$("editLessonTopic").value.trim(),section:$("editLessonSection").value.trim(),learningOutcomes:$("editLessonOutcomes").innerHTML.trim(),type:"written",content,resourceUrl});
+appMessage("Written lesson updated successfully.");
 await renderLessons(courseId);
-}catch(e){appMessage(e.message,"error")}
+}catch(error){appMessage("Could not update lesson: "+error.message,"error");}
+};
 }
-
 async function deleteLesson(id){
 if(!isAdmin()){
 appMessage("Only the administrator can delete lessons.","error");
