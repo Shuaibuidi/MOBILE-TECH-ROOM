@@ -3248,7 +3248,7 @@ async function renderCourseDetails(id){
  html+="<div class='panel'><h3>How students will learn</h3>"+info(course.learningMethod)+"</div><div class='panel'><h3>Skills students will gain</h3>"+info(course.learningOutcomes)+"</div><div class='panel'><h3>Course requirements</h3>"+info(course.requirements)+"</div><div class='panel'><h3>Complete 12-week curriculum</h3>"+(lines.length?"<ol>"+lines.map(x=>"<li>"+formatLessonContent(x)+"</li>").join("")+"</ol>":"<p class='muted'>The full curriculum is being prepared.</p>")+"</div><div class='panel'><h3>Assessment and certificate</h3>"+info(course.assessment)+"</div>";
  if(course.accessType==="paid")html+="<div class='panel'><h3>Course fee: MK "+safe(Number(course.price||0).toLocaleString("en-US"))+"</h3><p class='muted'>Actual lesson materials unlock after payment is confirmed.</p>"+(isStudent()?"<button data-action='pay-course' data-id='"+safe(id)+"'>Enrol and Pay</button>":"")+"</div>";
  else if(isStudent())html+="<div class='panel'><button data-action='open-course' data-id='"+safe(id)+"'>Start Learning</button></div>";
- if(isStaff())html+="<div class='panel'><p class='muted'>Edit course information from the Course Information form. Lessons are managed separately.</p><button data-action='back-courses'>Back to Courses and Lessons</button></div>";
+ if(isStaff())html+="<div class='panel'><h3>Course Lesson Management</h3><p class='muted'>Open this section to view all lessons already saved for this course, add new lessons, or manage existing lessons.</p><button data-action='open-course' data-id='"+safe(id)+"'>Manage Lessons →</button><button class='secondary' data-action='back-courses'>Back to Courses and Lessons</button></div>";
  page.innerHTML=html+supportContactPanel(true);
 }
 
