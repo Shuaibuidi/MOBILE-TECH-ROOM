@@ -2913,7 +2913,7 @@ async function renderAdminNotifications() {
           </div>
           ${item.read ? "<span class='notification-read-label'>Read</span>" : `<button type="button" class="secondary notification-read-button" data-notification-read="${safe(item.id)}">Mark read</button>`}
         </article>`;
-      }).join("") : "<p class='muted'>No notifications yet. New verified payments and student registrations will appear here.</p>"}</div>`;
+      }).join("") : ""}</div>`;
     panel.querySelectorAll("[data-notification-read]").forEach(button => {
       button.addEventListener("click", async () => {
         button.disabled = true;
