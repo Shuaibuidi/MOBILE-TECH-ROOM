@@ -1952,6 +1952,64 @@ body.login-mode #authPanel:after{font-size:clamp(12px,1.8vw,15px)!important;padd
 }
 </style>
 
+<style id="support-true-fullscreen-mode">
+/* WhatsApp-like immersive support: hide the academy chrome only while chat is open. */
+body.support-fullscreen-mode{overflow:hidden!important;height:100dvh!important;background:#e9e5dc!important}
+body.support-fullscreen-mode .academy-header,
+body.support-fullscreen-mode #navigation,
+body.support-fullscreen-mode #mobileBottomNav,
+body.support-fullscreen-mode #appFooter,
+body.support-fullscreen-mode #appMessage{display:none!important}
+body.support-fullscreen-mode main{margin:0!important;padding:0!important;width:100%!important;max-width:none!important}
+body.support-fullscreen-mode #appPanel{display:block!important;position:static!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;min-height:0!important}
+body.support-fullscreen-mode #page{
+  display:block!important;position:fixed!important;inset:0!important;z-index:99999!important;
+  width:100vw!important;height:100dvh!important;max-width:none!important;max-height:none!important;
+  margin:0!important;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)!important;
+  overflow:hidden!important;box-sizing:border-box!important;background:#e9e5dc!important;
+}
+body.support-fullscreen-mode .support-chat-shell{
+  display:flex!important;flex-direction:column!important;gap:0!important;
+  width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;
+  max-width:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;
+  overflow:hidden!important;box-shadow:none!important;box-sizing:border-box!important;
+}
+body.support-fullscreen-mode .support-chat-header{flex:0 0 auto!important;min-height:66px;box-sizing:border-box}
+body.support-fullscreen-mode .support-chat-back{
+  display:grid!important;place-items:center;flex:0 0 38px!important;width:38px!important;height:42px!important;
+  margin:0!important;padding:0!important;border:0!important;border-radius:50%!important;
+  background:transparent!important;color:#fff!important;font-size:34px!important;line-height:1!important;
+  box-shadow:none!important;cursor:pointer;
+}
+body.support-fullscreen-mode .support-chat-messages{
+  display:block!important;flex:1 1 0!important;min-height:0!important;height:auto!important;max-height:none!important;
+  width:100%!important;overflow-x:hidden!important;overflow-y:auto!important;
+  overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;
+  box-sizing:border-box!important;padding:16px 12px 22px!important;
+}
+body.support-fullscreen-mode .support-chat-compose{
+  display:flex!important;flex:0 0 auto!important;position:relative!important;width:100%!important;
+  margin:0!important;padding:10px 12px max(10px,env(safe-area-inset-bottom,0px))!important;
+  box-sizing:border-box!important;background:#f7f7f7!important;border-top:1px solid #d8ded9!important;
+  align-items:flex-end!important;gap:8px!important;
+}
+body.support-fullscreen-mode .support-chat-compose textarea{
+  flex:1 1 auto!important;width:0!important;min-width:0!important;height:44px!important;min-height:44px!important;
+  max-height:120px!important;resize:none!important;margin:0!important;border:1px solid #d6ddd8!important;
+  border-radius:24px!important;background:#fff!important;padding:11px 16px!important;box-sizing:border-box!important;
+}
+body.support-fullscreen-mode .support-chat-compose button{
+  flex:0 0 46px!important;width:46px!important;height:46px!important;border-radius:50%!important;margin:0!important;
+}
+@media(max-width:520px){
+ body.support-fullscreen-mode .support-chat-header{padding:10px 12px!important;gap:8px!important}
+ body.support-fullscreen-mode .support-chat-heading strong{font-size:15px!important}
+ body.support-fullscreen-mode .support-chat-heading span{font-size:10px!important}
+ body.support-fullscreen-mode .support-chat-status{font-size:9px!important}
+ body.support-fullscreen-mode .support-chat-messages{padding:12px 9px 18px!important}
+ body.support-fullscreen-mode .support-chat-compose{padding:8px 10px max(8px,env(safe-area-inset-bottom,0px))!important}
+}
+</style>
 </head>
 <body class="login-mode">
 
@@ -2031,6 +2089,7 @@ let authStateGeneration=0;
 let registerMode=false;
 let registrationInProgress=false;
 let currentTab="dashboard";
+let supportReturnTab="dashboard";
 let selectedCourse=null;
 let courses=[];
 let coursesCacheAt=0;
@@ -3119,6 +3178,7 @@ async function renderLearningSupportRoom(){
     page.innerHTML=`
       <section class="support-chat-shell">
         <header class="support-chat-header">
+          <button type="button" class="support-chat-back" data-action="support-exit-fullscreen" aria-label="Back to app">‹</button>
           <div class="support-chat-avatar">💬</div>
           <div class="support-chat-heading"><strong>Mobile Tech Room Community</strong><span>Students and administration · General chat</span></div>
           <span class="support-chat-status">● Live chat</span>
@@ -3190,6 +3250,10 @@ async function loadOlderSupportMessages(button){
   }finally{supportLoadingOlder=false;}
 }
 document.addEventListener("click",async event=>{
+  if(event.target.closest('[data-action="support-exit-fullscreen"]')){
+    await showTab(supportReturnTab||"dashboard");
+    return;
+  }
   const replyButton=event.target.closest('[data-action="support-reply-message"]');
   if(replyButton){
     const message=supportMessages.find(item=>item.id===replyButton.dataset.id);
@@ -3258,8 +3322,10 @@ document.addEventListener("submit",async event=>{
 });
 
 async function showTab(tab){
+if(tab==="support"&&currentTab!=="support")supportReturnTab=currentTab;
 if(tab!=="support")stopSupportLiveUpdates();
 currentTab=tab;
+document.body.classList.toggle("support-fullscreen-mode",tab==="support");
 const appFooter=$("appFooter");
 if(appFooter)appFooter.style.display=tab==="support"?"none":"";
 buildNavigation();
