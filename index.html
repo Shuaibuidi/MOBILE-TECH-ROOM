@@ -2896,6 +2896,7 @@ let supportLoadingOlder=false;
 let supportHasOlderMessages=true;
 let supportReadState=null;
 let supportLiveUnsubscribe=null;
+let supportHistoryUnsubscribes=[];
 let supportBadgeUnsubscribe=null;
 let supportBadgeListenerUid="";
 
@@ -2989,7 +2990,11 @@ function renderSupportMessages(options={}){
   area.innerHTML=ordered.length?rendered:'<div class="support-chat-empty">👋 Welcome! Start the conversation with the Mobile Tech Room community.</div>';
   if(options.preservePosition&&!nearBottom)area.scrollTop=oldTop+(area.scrollHeight-oldHeight);else area.scrollTop=area.scrollHeight;
 }
-function stopSupportLiveUpdates(){if(supportLiveUnsubscribe){supportLiveUnsubscribe();supportLiveUnsubscribe=null;}}
+function stopSupportLiveUpdates(){
+  if(supportLiveUnsubscribe){supportLiveUnsubscribe();supportLiveUnsubscribe=null;}
+  supportHistoryUnsubscribes.forEach(unsubscribe=>{try{unsubscribe();}catch(_){}});
+  supportHistoryUnsubscribes=[];
+}
 function startSupportLiveUpdates(){
   stopSupportLiveUpdates();
   const liveQuery=query(collection(db,"supportMessages"),orderBy("createdAt","desc"),limit(SUPPORT_PAGE_SIZE));
@@ -3054,6 +3059,19 @@ async function loadOlderSupportMessages(button){
       return;
     }
     const older=snap.docs.map(d=>({id:d.id,...d.data()})).reverse();
+    const pageIds=new Set(snap.docs.map(d=>d.id));
+    supportHistoryUnsubscribes.push(onSnapshot(q,historySnap=>{
+      const liveDocs=historySnap.docs;
+      const liveIds=new Set(liveDocs.map(d=>d.id));
+      supportMessages=supportMessages.filter(m=>!pageIds.has(m.id)||liveIds.has(m.id));
+      const livePage=liveDocs.map(d=>({id:d.id,...d.data()}));
+      const currentIds=new Set(supportMessages.map(m=>m.id));
+      supportMessages=[...supportMessages,...livePage.filter(m=>!currentIds.has(m.id))];
+      const refreshed=new Map(livePage.map(m=>[m.id,m]));
+      supportMessages=supportMessages.map(m=>refreshed.get(m.id)||m);
+      supportMessages.sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0));
+      renderSupportMessages({preservePosition:true});
+    },error=>console.warn("Older support history listener:",error)));
     const existingIds=new Set(supportMessages.map(m=>m.id));
     supportMessages=[...older.filter(m=>!existingIds.has(m.id)),...supportMessages];
     supportOldestDoc=snap.docs[snap.docs.length-1];
