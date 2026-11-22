@@ -1838,6 +1838,13 @@ body.login-mode #authPanel:after{font-size:clamp(12px,1.8vw,15px)!important;padd
 @media(max-width:520px){.support-chat-shell{border-radius:13px;margin:0 -2px}.support-chat-messages{padding:12px 8px;max-height:60vh}.support-chat-bubble{max-width:90%}.support-chat-text{font-size:13.5px}.support-chat-header{padding:11px 10px}}
 </style>
 
+<style id="support-general-chat-theme">
+.support-unread-badge{display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;margin-left:7px;border-radius:12px;background:#e53935;color:#fff;font-size:10px;font-weight:900;vertical-align:middle}
+.support-chat-history{display:flex;justify-content:center;padding:7px;background:#f0f2ed;border-top:1px solid #d6ded7}
+.support-chat-history button{width:auto;min-height:32px;margin:0;padding:5px 13px;border-radius:18px;font-size:11px}
+.support-chat-history button:disabled{opacity:.55}
+.support-chat-header{background:#075e54!important}
+</style>
 </head>
 <body class="login-mode">
 
@@ -1892,7 +1899,7 @@ onAuthStateChanged,signOut,updateProfile
 import {
 getFirestore,doc,getDoc,setDoc,collection,
 getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,
-query,where,orderBy,limit
+query,where,orderBy,limit,startAfter
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 
@@ -2793,6 +2800,7 @@ const labels={dashboard:"⌂  Dashboard",students:"♙  Students",lessons:"▣  
 $("navigation").innerHTML=tabs.map(t=>
 `<button class="${currentTab===t?"active":"secondary"}" data-tab="${t}">${labels[t]||t}</button>`
 ).join("");
+if(currentUser&&(isAdmin()||isStudent()))refreshSupportBadge();
 
 // Give administrators their actual management sections in the phone navigation.
 // The previous generic mobile bar hid Students and Instructors on small screens.
@@ -2851,8 +2859,14 @@ function applyGlobalCourseSearch(){
 }
 
 
-let supportCourseId="";
-let supportQuestionId="";
+// ==============================
+// GENERAL COMMUNITY SUPPORT CHAT
+// ==============================
+const SUPPORT_PAGE_SIZE=50;
+let supportMessages=[];
+let supportOldestDoc=null;
+let supportLoadingOlder=false;
+let supportReadState=null;
 
 function supportDate(value){
   try{
@@ -2861,149 +2875,141 @@ function supportDate(value){
   }catch(_){return "Just now";}
 }
 function supportAuthorLabel(item){
-  return item.role==="admin"?"Admin":(item.authorName||"Student");
+  return item.authorName||(item.role==="admin"?"Admin":"Student");
 }
-async function getSupportCourses(){
-  await loadCourses();
-  if(isAdmin())return courses;
-  if(!isStudent())return [];
-  const snap=await getDocs(collection(db,"users",currentUser.uid,"enrollments"));
-  const active=new Set(snap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
-  return courses.filter(c=>c.accessType!=="paid"||active.has(c.id));
+function supportStateRef(){
+  return doc(db,"users",currentUser.uid,"supportState","general");
+}
+async function getSupportUnreadCount(){
+  if(!currentUser||(!isAdmin()&&!isStudent()))return 0;
+  try{
+    const stateSnap=await getDoc(supportStateRef());
+    const lastRead=stateSnap.exists()?stateSnap.data().lastReadAt:null;
+    const q=query(collection(db,"supportMessages"),orderBy("createdAt","desc"),limit(100));
+    const snap=await getDocs(q);
+    return snap.docs.filter(d=>{
+      const m=d.data();
+      if(m.senderId===currentUser.uid||!m.createdAt)return false;
+      if(!lastRead)return true;
+      return m.createdAt.toMillis()>lastRead.toMillis();
+    }).length;
+  }catch(error){console.warn("Support unread count:",error);return 0;}
+}
+async function refreshSupportBadge(){
+  const count=await getSupportUnreadCount();
+  document.querySelectorAll('[data-tab="support"],[data-dashboard-tab="support"]').forEach(button=>{
+    let badge=button.querySelector(".support-unread-badge");
+    if(count){
+      if(!badge){badge=document.createElement("span");badge.className="support-unread-badge";button.append(badge);}
+      badge.textContent=count>99?"99+":String(count);
+    }else if(badge)badge.remove();
+  });
+}
+async function markSupportMessagesRead(){
+  await setDoc(supportStateRef(),{lastReadAt:serverTimestamp()},{merge:true});
+  supportReadState={lastReadAt:new Date()};
+  refreshSupportBadge();
+}
+function supportMessageMarkup(message){
+  const mine=message.senderId===currentUser.uid;
+  return `
+    <div class="support-chat-row ${mine?'mine':'theirs'}" data-message-id="${safe(message.id)}">
+      <article class="support-chat-bubble ${mine?'mine':'theirs'}">
+        <div class="support-chat-author">${safe(mine?'You':supportAuthorLabel(message))}${message.role==='admin'&&!mine?'<span class="support-admin-chip">ADMIN</span>':""}</div>
+        <div class="support-chat-text">${safe(message.text||"")}</div>
+        <div class="support-chat-time">${safe(supportDate(message.createdAt))}${mine?' <span>✓✓</span>':""}</div>
+      </article>
+    </div>`;
+}
+function renderSupportMessages(){
+  const area=$("supportChatMessages");
+  if(!area)return;
+  const ordered=[...supportMessages].sort((a,b)=>{
+    const at=a.createdAt?.toMillis?.()||0,bt=b.createdAt?.toMillis?.()||0;
+    return at-bt;
+  });
+  area.innerHTML=ordered.length
+    ?ordered.map(supportMessageMarkup).join("")
+    :'<div class="support-chat-empty">👋 Welcome! Start the conversation with the Mobile Tech Room community.</div>';
+  area.scrollTop=area.scrollHeight;
 }
 async function renderLearningSupportRoom(){
-  page.innerHTML='<section class="panel support-loading"><h2>💬 Learning Support Room</h2><p class="muted">Loading your course support rooms…</p></section>';
+  page.innerHTML='<section class="support-chat-shell"><div class="support-chat-header"><div class="support-chat-avatar">💬</div><div class="support-chat-heading"><strong>Mobile Tech Room Community</strong><span>Loading conversation…</span></div></div></section>';
   try{
-    const available=await getSupportCourses();
-    if(!currentUser||( !isAdmin()&&!isStudent()))return;
-    if(!available.length){
-      page.innerHTML='<section class="panel"><h2>💬 Learning Support Room</h2><p class="muted">There are no available course rooms yet. Enrol in a course to join its learning discussions.</p></section>';
-      return;
-    }
-    if(!supportCourseId||!available.some(c=>c.id===supportCourseId))supportCourseId=available[0].id;
+    if(!currentUser||(!isAdmin()&&!isStudent()))return;
+    const stateSnap=await getDoc(supportStateRef());
+    supportReadState=stateSnap.exists()?stateSnap.data():null;
+    const q=query(collection(db,"supportMessages"),orderBy("createdAt","desc"),limit(SUPPORT_PAGE_SIZE));
+    const snap=await getDocs(q);
+    supportMessages=snap.docs.map(d=>({id:d.id,...d.data()})).reverse();
+    supportOldestDoc=snap.docs.length?snap.docs[snap.docs.length-1]:null;
     page.innerHTML=`
-      <section class="support-hero">
-        <span class="support-eyebrow">LEARN TOGETHER</span>
-        <h2>💬 Learning Support Room</h2>
-        <p>Ask questions, share solutions and get help from the admin and fellow students.</p>
-      </section>
-      <section class="panel support-room-panel">
-        <label for="supportCourseSelect">Choose a course discussion</label>
-        <select id="supportCourseSelect">${available.map(c=>'<option value="'+safe(c.id)+'" '+(c.id===supportCourseId?'selected':'')+'>'+safe(c.title)+'</option>').join("")}</select>
-        <div class="support-room-intro"><strong>${safe(available.find(c=>c.id===supportCourseId)?.title||"Course discussion")}</strong><p class="muted">Keep questions related to this course so everyone can find useful answers.</p></div>
-        <form id="supportQuestionForm" class="support-compose">
-          <label for="supportQuestionTitle">Your question</label>
-          <input id="supportQuestionTitle" maxlength="120" placeholder="e.g. How do I identify the phone test point?" required>
-          <label for="supportQuestionBody">Explain what you need help with</label>
-          <textarea id="supportQuestionBody" maxlength="2500" rows="4" placeholder="Describe the lesson or step you are having difficulty with…" required></textarea>
-          <button type="submit">Post Question</button>
+      <section class="support-chat-shell">
+        <header class="support-chat-header">
+          <div class="support-chat-avatar">💬</div>
+          <div class="support-chat-heading"><strong>Mobile Tech Room Community</strong><span>Students and administration · General chat</span></div>
+          <span class="support-chat-status">● Online room</span>
+        </header>
+        <div class="support-chat-topic"><span>Welcome to the community chat</span><span>Be respectful and help one another</span></div>
+        <div id="supportChatMessages" class="support-chat-messages" aria-label="Community conversation">
+          <p class="support-chat-empty">Loading messages…</p>
+        </div>
+        <div class="support-chat-history"><button type="button" class="secondary" data-action="support-load-older" ${snap.docs.length<SUPPORT_PAGE_SIZE?'disabled':''}>↑ Load older messages</button></div>
+        <form id="supportReplyForm" class="support-chat-compose">
+          <textarea id="supportReplyText" maxlength="2000" rows="1" placeholder="Type a message…" required aria-label="Write a community message"></textarea>
+          <button type="submit" aria-label="Send message">➤</button>
         </form>
-        <div class="support-list-heading"><h3>Course discussions</h3><span class="tag">Latest 30</span></div>
-        <div id="supportQuestionList" class="support-question-list"><p class="muted">Loading discussions…</p></div>
       </section>`;
-    $("supportCourseSelect").addEventListener("change",async e=>{supportCourseId=e.target.value;supportQuestionId="";await renderLearningSupportRoom();});
-    await loadSupportQuestions();
+    renderSupportMessages();
+    await markSupportMessagesRead();
+    refreshSupportBadge();
   }catch(error){
-    page.innerHTML='<section class="panel"><h2>Learning Support Room</h2><p class="error">Could not load support rooms: '+safe(error.message)+'</p><p class="muted">If this is a permissions error, the Firebase Firestore security rules need to allow approved course members and the admin to use the support area.</p><button class="secondary" data-action="retry-support">Try Again</button></section>';
+    page.innerHTML='<section class="panel"><h2>Learning Support</h2><p class="error">Could not load the community chat: '+safe(error.message)+'</p><p class="muted">The new community chat needs its Firestore permissions published before it can be used.</p><button class="secondary" data-action="retry-support">Try Again</button></section>';
   }
 }
-async function loadSupportQuestions(){
-  const target=$("supportQuestionList");if(!target||!supportCourseId)return;
-  target.innerHTML='<p class="muted">Loading discussions…</p>';
-  const q=query(collection(db,"courses",supportCourseId,"supportQuestions"),orderBy("createdAt","desc"),limit(30));
-  const snap=await getDocs(q);
-  const items=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{
-    if(!!a.pinned!==!!b.pinned)return a.pinned?-1:1;
-    const at=a.createdAt?.toMillis?.()||0,bt=b.createdAt?.toMillis?.()||0;return bt-at;
-  });
-  if(!items.length){target.innerHTML='<div class="support-empty"><span>💡</span><strong>No questions yet</strong><p class="muted">Be the first to start a helpful discussion for this course.</p></div>';return;}
-  target.innerHTML=items.map(item=>`
-    <article class="support-question-card">
-      <div class="support-question-top"><span class="support-author">${safe(supportAuthorLabel(item))}</span><span class="support-date">${safe(supportDate(item.createdAt))}</span></div>
-      <h4>${safe(item.title||"Student question")}</h4>
-      <p>${safe(item.body||"")}</p>
-      <div class="support-question-meta">${item.pinned?'<span class="tag">📌 Pinned</span>':""}<span class="tag ${item.resolved?'support-resolved':''}">${item.resolved?"✓ Answered":"Open question"}</span></div>
-      <button type="button" data-action="support-open-question" data-id="${safe(item.id)}">Open discussion &amp; replies →</button>
-      ${isAdmin()?'<div class="support-admin-tools"><button type="button" class="secondary" data-action="support-pin" data-id="'+safe(item.id)+'" data-pinned="'+(item.pinned?'true':'false')+'">'+(item.pinned?'Unpin':'Pin')+'</button><button type="button" class="secondary" data-action="support-resolve" data-id="'+safe(item.id)+'" data-resolved="'+(item.resolved?'true':'false')+'">'+(item.resolved?'Reopen':'Mark answered')+'</button></div>':""}
-    </article>`).join("");
-}
-async function renderSupportQuestion(questionId){
-  supportQuestionId=questionId;
-  const base=doc(db,"courses",supportCourseId,"supportQuestions",questionId);
-  const snap=await getDoc(base);
-  if(!snap.exists()){appMessage("This discussion is no longer available.","warning");await loadSupportQuestions();return;}
-  const item={id:snap.id,...snap.data()};
-  const replySnap=await getDocs(query(collection(base,"replies"),orderBy("createdAt","asc"),limit(50)));
-  const replies=replySnap.docs.map(d=>({id:d.id,...d.data()}));
-  const courseName=courses.find(c=>c.id===supportCourseId)?.title||"Course discussion";
-  const questionMine=item.authorId===currentUser.uid;
-  const messagesHtml=[{
-    ...item,
-    text:item.body||"",
-    messageTitle:item.title||"Student question",
-    isQuestion:true,
-    mine:questionMine
-  },...replies.map(r=>({...r,mine:r.authorId===currentUser.uid}))].map(message=>`
-    <div class="support-chat-row ${message.mine?'mine':'theirs'}">
-      <article class="support-chat-bubble ${message.mine?'mine':'theirs'} ${message.isQuestion?'question':''}">
-        <div class="support-chat-author">${safe(message.mine?'You':supportAuthorLabel(message))}${message.role==='admin'&&!message.mine?'<span class="support-admin-chip">ADMIN</span>':""}</div>
-        ${message.isQuestion?`<div class="support-chat-question-title">${safe(message.messageTitle)}</div>`:""}
-        <div class="support-chat-text">${safe(message.text||"")}</div>
-        <div class="support-chat-time">${safe(supportDate(message.createdAt))} <span aria-hidden="true">${message.mine?'✓✓':""}</span></div>
-      </article>
-    </div>`).join("");
-  page.innerHTML=`
-    <section class="support-chat-shell">
-      <header class="support-chat-header">
-        <button type="button" class="support-chat-back" data-action="support-back" aria-label="Back to discussions">‹</button>
-        <div class="support-chat-avatar">💬</div>
-        <div class="support-chat-heading"><strong>Learning Support</strong><span>${safe(courseName)}</span></div>
-        <span class="support-chat-status">${item.resolved?'✓ Answered':'● Open'}</span>
-      </header>
-      <div class="support-chat-topic">
-        ${item.pinned?'<span>📌 Pinned discussion</span>':""}
-        <span>${item.resolved?'This question has been answered':'Course learning discussion'}</span>
-      </div>
-      <div class="support-chat-messages" aria-label="Conversation">
-        <div class="support-chat-day"><span>DISCUSSION STARTED</span></div>
-        ${messagesHtml||'<p class="support-chat-empty">No messages yet.</p>'}
-      </div>
-      <form id="supportReplyForm" class="support-chat-compose">
-        <textarea id="supportReplyText" maxlength="2000" rows="1" placeholder="Type a message…" required aria-label="Write a reply"></textarea>
-        <button type="submit" aria-label="Send message">➤</button>
-      </form>
-      ${isAdmin()?'<div class="support-chat-admin-tools"><button type="button" class="secondary" data-action="support-pin" data-id="'+safe(item.id)+'" data-pinned="'+(item.pinned?'true':'false')+'">'+(item.pinned?'Unpin question':'📌 Pin question')+'</button><button type="button" class="secondary" data-action="support-resolve" data-id="'+safe(item.id)+'" data-resolved="'+(item.resolved?'true':'false')+'">'+(item.resolved?'Reopen question':'✓ Mark answered')+'</button></div>':""}
-    </section>`;
-  const messageArea=page.querySelector(".support-chat-messages");
-  if(messageArea)messageArea.scrollTop=messageArea.scrollHeight;
+async function loadOlderSupportMessages(button){
+  if(supportLoadingOlder||!supportOldestDoc)return;
+  supportLoadingOlder=true;
+  if(button){button.disabled=true;button.textContent="Loading…";}
+  try{
+    const q=query(collection(db,"supportMessages"),orderBy("createdAt","desc"),startAfter(supportOldestDoc),limit(SUPPORT_PAGE_SIZE));
+    const snap=await getDocs(q);
+    if(snap.empty){if(button)button.textContent="No older messages";return;}
+    const older=snap.docs.map(d=>({id:d.id,...d.data()})).reverse();
+    supportMessages=[...older,...supportMessages];
+    supportOldestDoc=snap.docs[snap.docs.length-1];
+    const area=$("supportChatMessages");
+    const oldHeight=area?.scrollHeight||0;
+    renderSupportMessages();
+    if(area)area.scrollTop=area.scrollHeight-oldHeight;
+    if(button){button.disabled=snap.docs.length<SUPPORT_PAGE_SIZE;button.textContent=snap.docs.length<SUPPORT_PAGE_SIZE?"No more older messages":"↑ Load older messages";}
+  }catch(error){appMessage(error.message||"Could not load older messages.","error");if(button){button.disabled=false;button.textContent="↑ Load older messages";}}
+  finally{supportLoadingOlder=false;}
 }
 document.addEventListener("submit",async event=>{
   const form=event.target;
-  if(form.id!=="supportQuestionForm"&&form.id!=="supportReplyForm")return;
+  if(form.id!=="supportReplyForm")return;
   event.preventDefault();
-  const submit=form.querySelector('button[type="submit"]');if(submit){submit.disabled=true;submit.textContent=form.id==="supportQuestionForm"?"Posting…":"Sending…";}
+  const field=$("supportReplyText"),sendButton=form.querySelector('button[type="submit"]');
+  const textValue=field?.value.trim();
+  if(!textValue)return;
+  if(sendButton){sendButton.disabled=true;sendButton.textContent="…";}
   try{
-    if(form.id==="supportQuestionForm"){
-      const title=$("supportQuestionTitle").value.trim(),body=$("supportQuestionBody").value.trim();
-      if(!title||!body)throw new Error("Enter both a question title and its details.");
-      await addDoc(collection(db,"courses",supportCourseId,"supportQuestions"),{
-        title,body,courseId:supportCourseId,authorId:currentUser.uid,
-        authorName:profile?.fullName||currentUser.displayName||currentUser.email||"Student",
-        role:isAdmin()?"admin":"student",pinned:false,resolved:false,createdAt:serverTimestamp()
-      });
-      form.reset();appMessage("Your question has been posted.","success");await loadSupportQuestions();
-    }else{
-      const textValue=$("supportReplyText").value.trim();if(!textValue)throw new Error("Write a reply first.");
-      const base=doc(db,"courses",supportCourseId,"supportQuestions",supportQuestionId);
-      await addDoc(collection(base,"replies"),{
-        text:textValue,authorId:currentUser.uid,
-        authorName:profile?.fullName||currentUser.displayName||currentUser.email||"Student",
-        role:isAdmin()?"admin":"student",createdAt:serverTimestamp()
-      });
-      await renderSupportQuestion(supportQuestionId);
-    }
+    await addDoc(collection(db,"supportMessages"),{
+      text:textValue,
+      senderId:currentUser.uid,
+      authorName:profile?.fullName||currentUser.displayName||currentUser.email||"Member",
+      role:isAdmin()?"admin":"student",
+      createdAt:serverTimestamp()
+    });
+    field.value="";
+    const snap=await getDocs(query(collection(db,"supportMessages"),orderBy("createdAt","desc"),limit(SUPPORT_PAGE_SIZE)));
+    supportMessages=snap.docs.map(d=>({id:d.id,...d.data()})).reverse();
+    supportOldestDoc=snap.docs.length?snap.docs[snap.docs.length-1]:null;
+    renderSupportMessages();
+    await markSupportMessagesRead();
   }catch(error){appMessage(error.message||"Could not send your message.","error");}
-  finally{if(submit){submit.disabled=false;submit.textContent=form.id==="supportQuestionForm"?"Post Question":"Send Reply";}}
+  finally{if(sendButton){sendButton.disabled=false;sendButton.textContent="➤";}}
 });
 
 async function showTab(tab){
@@ -3931,8 +3937,7 @@ const id=b.dataset.id;
 try{
 if(action==="manage-instructors"&&isAdmin()){await renderUsers("instructor");return;}
 if(action==="retry-support"&&(isAdmin()||isStudent())){await renderLearningSupportRoom();return;}
-if(action==="support-back"){supportQuestionId="";await renderLearningSupportRoom();return;}
-if(action==="support-open-question"&&(isAdmin()||isStudent())){await renderSupportQuestion(id);return;}
+if(action==="support-load-older"){await loadOlderSupportMessages(b);return;}
 if(action==="support-pin"&&isAdmin()){
  const ref=doc(db,"courses",supportCourseId,"supportQuestions",id);
  await updateDoc(ref,{pinned:b.dataset.pinned!=="true"});
