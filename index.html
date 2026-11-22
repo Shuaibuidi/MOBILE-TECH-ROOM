@@ -1480,7 +1480,7 @@ footer{color:#71839a!important}
 .reference-completion{color:#143a83!important;font-weight:800!important;font-size:14px!important}
 .reference-next-row button{flex:1!important;min-height:58px!important;border:0!important;border-radius:28px!important;background:linear-gradient(110deg,#0758d4,#0642b7)!important;color:#fff!important;font-size:20px!important;font-weight:850!important;box-shadow:0 5px 12px #063c9b2b!important}
 .reference-next-row button.secondary{background:#e7efff!important;color:#1045a5!important;box-shadow:none!important}
-.reference-admin-actions{display:flex!important;gap:9px!important;margin-top:14px!important;padding-top:12px!important;border-top:1px solid #edf0f5!important}
+.reference-admin-actions{display:flex!important;flex-direction:column!important;gap:7px!important;margin-top:14px!important;padding:13px!important;border:1px solid #dbe5f2!important;border-radius:12px!important;background:#f4f7fc!important}.reference-admin-label{margin:0!important;color:#34445a!important;font-size:12px!important;font-weight:800!important;letter-spacing:.03em!important}.reference-admin-actions .actions{display:flex!important;flex-wrap:wrap!important;gap:8px!important}.reference-admin-actions button{flex:1 1 135px!important;min-height:43px!important}
 @media(max-width:520px){
  .reference-lesson-card{padding:11px!important;border-radius:17px!important}
  .reference-lesson-title-row,.reference-topic-row,.reference-written-row,.reference-media-row{gap:10px!important}
@@ -3371,7 +3371,7 @@ ${l.section?`<div class="reference-topic-row"><div class="reference-round-icon">
 ${l.learningOutcomes?`<div class="reference-topic-row"><div class="reference-round-icon">✓</div><div class="reference-topic-content"><strong>What you will learn</strong><p>${formatLessonContent(l.learningOutcomes)}</p></div></div>`:""}${l.resourceUrl&&/^https:\/\//i.test(l.resourceUrl)?`<div class="reference-topic-row"><div class="reference-round-icon">↗</div><div class="reference-topic-content"><strong>Video or Audio Link</strong><p><a class="lesson-resource-link" href="${safe(l.resourceUrl)}" target="_blank" rel="noopener noreferrer">Open Learning Link ↗</a></p></div></div>`:""}
 ${(l.type||"written")==="written"?`<div class="reference-written-row"><div class="reference-round-icon">▤</div><div class="reference-topic-content"><strong>Lesson Content</strong><div class="lesson-body">${formatLessonContent(l.content||"")}</div></div></div>`:""}
 ${renderReferenceMedia(l)}
-${isAdmin()?`<div class="actions reference-admin-actions"><button class="secondary" data-action="edit-lesson" data-id="${safe(l.id)}">Edit</button><button class="danger" data-action="delete-lesson" data-id="${safe(l.id)}">Delete</button></div>`:""}
+${isAdmin()?`<div class="reference-admin-actions"><p class="reference-admin-label">Manage this uploaded lesson</p><div class="actions"><button type="button" class="secondary" data-action="edit-lesson" data-id="${safe(l.id)}" aria-label="Edit ${safe(l.title||"lesson")}">✎ Edit Lesson</button><button type="button" class="danger" data-action="delete-lesson" data-id="${safe(l.id)}" aria-label="Delete ${safe(l.title||"lesson")}">🗑 Delete Lesson</button></div></div>`:""}
 </li>`;
 });
 if(lessons.length)html+="</ol>";
