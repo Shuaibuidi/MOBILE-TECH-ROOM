@@ -3899,7 +3899,7 @@ try{
        if(!title){appMessage("Enter the course name.","error");return;}
        const accessType=access.value;
        if(accessType==="paid"&&(!price.value||Number(price.value)<=0)){appMessage("Enter a valid course fee.","error");return;}
-       const payload={title,category:"Technology",description:$("overviewDescription").value.trim(),duration:$("overviewDuration").value.trim()||"3 months (12 weeks)",learningMethod:$("overviewMethod").value.trim(),learningOutcomes:$("overviewOutcomes").value.trim(),requirements:$("overviewRequirements").value.trim(),assessment:$("overviewAssessment").value.trim(),accessType,price:accessType==="paid"?Number(price.value):0,createdBy:currentUser.uid,status:"published",updatedAt:serverTimestamp()};
+       const payload={title,category:"Technology",description:$("overviewDescription").value.trim(),duration:$("overviewDuration").value.trim()||"3 months (12 weeks)",learningSchedule:"",learningMethod:$("overviewMethod").value.trim(),learningOutcomes:$("overviewOutcomes").value.trim(),requirements:$("overviewRequirements").value.trim(),assessment:$("overviewAssessment").value.trim(),curriculum:"",accessType,price:accessType==="paid"?Number(price.value):0,createdBy:currentUser.uid,status:"published",updatedAt:serverTimestamp()};
        if(!savedCourseId)savedCourseId=doc(collection(db,"courses")).id;
        await setDoc(doc(db,"courses",savedCourseId),{...payload,...(courses.find(course=>course.id===savedCourseId)?.createdAt?{}:{createdAt:serverTimestamp()})},{merge:true});
        invalidateCoursesCache();await loadCourses();
@@ -3922,7 +3922,7 @@ try{
        if(content.length>700000){appMessage("This lesson is too large. Please reduce the text or number of images.","error");return;}
        if(resourceUrl&&!/^https:\/\/.+/i.test(resourceUrl)){appMessage("Please enter a valid HTTPS learning link.","error");return;}
        const existing=await getDocs(collection(db,"courses",courseId,"lessons"));
-       await addDoc(collection(db,"courses",courseId,"lessons"),{title:$("lessonTitle").value.trim(),topic:$("lessonTopic").value.trim(),section:$("lessonSection").value.trim(),learningOutcomes:$("lessonOutcomes").innerHTML.trim(),lessonNumber:existing.size+1,type:"written",content,resourceUrl,createdBy:currentUser.uid,createdAt:serverTimestamp()});
+       await addDoc(collection(db,"courses",courseId,"lessons"),{title:$("lessonTitle").value.trim(),topic:$("lessonTopic").value.trim(),section:$("lessonSection").value.trim(),learningOutcomes:$("lessonOutcomes").innerHTML.trim(),lessonNumber:existing.size+1,type:"written",content,mediaUrl:"",resourceUrl,createdBy:currentUser.uid,createdAt:serverTimestamp()});
        appMessage("Written lesson saved successfully. Course information was not changed.","success");
        invalidateCoursesCache();await loadCourses();await renderCourses();
      }catch(error){appMessage("Could not save lesson: "+error.message,"error");}
@@ -4090,6 +4090,7 @@ learningOutcomes:$("lessonOutcomes").innerHTML.trim(),
 lessonNumber:lessons.length+1,
 type:"written",
 content,
+mediaUrl:"",
 resourceUrl:resourceUrl,
 createdBy:currentUser.uid,
 createdAt:serverTimestamp()
