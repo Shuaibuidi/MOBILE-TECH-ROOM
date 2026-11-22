@@ -1726,7 +1726,12 @@ body.login-mode #authPanel:after{font-size:clamp(12px,1.8vw,15px)!important;padd
  body.login-mode #switchText{font-size:13px!important}
  body.login-mode #authPanel:after{font-size:12px!important}
 }
-</style></head>
+</style><style>
+.quiz-loading{min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.quiz-loading-spinner{width:38px;height:38px;border:4px solid #315273;border-top-color:#12d8ed;border-radius:50%;animation:mtrQuizSpin .75s linear infinite;margin:8px auto 16px}
+@keyframes mtrQuizSpin{to{transform:rotate(360deg)}}
+</style>
+</head>
 <body class="login-mode">
 
 <header class="academy-header">
@@ -2828,28 +2833,54 @@ async function renderQuizzes(){
     else if(del){if(!confirm("Delete this quiz?"))return;try{await callQuizApi("quiz-delete","POST",{quizId:del.dataset.quizDelete});try{localStorage.removeItem(cacheKey);}catch(_){}await renderQuizzes();}catch(err){appMessage(err.message,"error");}}
     else if(res)await renderQuizResults(res.dataset.quizResults);
    };
-  }else page.onclick=async e=>{const b=e.target.closest("[data-quiz-take]");if(b)await renderStudentQuiz(b.dataset.quizTake);};
+  }else{page.addEventListener("pointerdown",e=>{const b=e.target.closest("[data-quiz-take]");if(b)prefetchStudentQuiz(b.dataset.quizTake).catch(()=>{});},{passive:true});page.addEventListener("focusin",e=>{const b=e.target.closest("[data-quiz-take]");if(b)prefetchStudentQuiz(b.dataset.quizTake).catch(()=>{});});page.onclick=async e=>{const b=e.target.closest("[data-quiz-take]");if(b){b.disabled=true;b.textContent="Opening…";await renderStudentQuiz(b.dataset.quizTake);}};}
  }catch(err){page.innerHTML='<section class="panel error">Could not load quizzes: '+safe(err.message)+'</section>';}
 }
-async function renderStudentQuiz(id){
- page.innerHTML="<div class='panel'>Loading quiz...</div>";
+const studentQuizPrefetches = new Map();
+function studentQuizCacheKey(id){return "mtr_student_quiz_"+currentUser.uid+"_"+id;}
+function readStudentQuizCache(id){
  try{
-  const data=await callQuizApi("quiz-get","GET",{quizId:id}),q=data.quiz;
+  const cached=JSON.parse(localStorage.getItem(studentQuizCacheKey(id))||"null");
+  if(cached&&cached.savedAt&&Date.now()-cached.savedAt<180000&&cached.data?.quiz?.questions?.length)return cached.data;
+ }catch(_){}
+ return null;
+}
+async function prefetchStudentQuiz(id){
+ const cached=readStudentQuizCache(id);
+ if(cached)return cached;
+ if(studentQuizPrefetches.has(id))return studentQuizPrefetches.get(id);
+ const request=callQuizApi("quiz-get","GET",{quizId:id}).then(data=>{
+  const q=data.quiz;
+  if(!q||!Array.isArray(q.questions))throw new Error("Quiz questions could not be loaded.");
+  const safeData={quiz:{id:q.id||id,title:q.title||"Quiz",description:q.description||"",courseTitle:q.courseTitle||"",questions:q.questions.map(item=>({text:item.text||"",options:Array.isArray(item.options)?item.options.slice(0,4):[]}))}};
+  try{localStorage.setItem(studentQuizCacheKey(id),JSON.stringify({savedAt:Date.now(),data:safeData}));}catch(_){}
+  return safeData;
+ }).finally(()=>studentQuizPrefetches.delete(id));
+ studentQuizPrefetches.set(id,request);
+ return request;
+}
+async function renderStudentQuiz(id){
+ const cached=readStudentQuizCache(id);
+ if(!cached)page.innerHTML="<section class='panel quiz-loading'><span class='quiz-loading-spinner'></span><h2>Preparing your quiz…</h2><p class='muted'>Loading questions securely. Please wait a moment.</p></section>";
+ try{
+  const data=cached||await prefetchStudentQuiz(id),q=data.quiz;
   let h='<section class="panel"><button class="secondary" id="backToQuizzes">← Quizzes</button><h2>'+safe(q.title)+'</h2><p>'+safe(q.description||"Answer all questions.")+'</p></section><form id="studentQuizForm"><section class="panel">';
   q.questions.forEach((item,i)=>{h+='<div class="quiz-question"><strong>'+(i+1)+'. '+safe(item.text)+'</strong>';item.options.forEach((o,n)=>h+='<label class="quiz-answer"><input type="radio" name="answer-'+i+'" value="'+n+'">'+String.fromCharCode(65+n)+'. '+safe(o)+'</label>');h+='</div>';});
   page.innerHTML=h+'<button type="submit">Submit Answers &amp; Get Score</button></section></form>';$("backToQuizzes").onclick=()=>renderQuizzes();
   $("studentQuizForm").onsubmit=async e=>{
-   e.preventDefault();const answers=q.questions.map((x,i)=>{const v=page.querySelector('input[name="answer-'+i+'"]:checked');return v?Number(v.value):-1;});
-   if(answers.some(x=>x<0)){appMessage("Please answer every question.","warning");return;}
+   e.preventDefault();const submit=e.submitter||$("studentQuizForm").querySelector('button[type="submit"]');if(submit){submit.disabled=true;submit.textContent="Submitting…";}
+   const answers=q.questions.map((x,i)=>{const v=page.querySelector('input[name="answer-'+i+'"]:checked');return v?Number(v.value):-1;});
+   if(answers.some(x=>x<0)){if(submit){submit.disabled=false;submit.textContent="Submit Answers & Get Score";}appMessage("Please answer every question.","warning");return;}
    try{
     const marked=await callQuizApi("quiz-submit","POST",{quizId:id,answers});
     let out='<section class="panel"><button class="secondary" id="backToQuizzes">← Quizzes</button><h2>Quiz Result</h2><div class="quiz-score">'+marked.score+' / '+marked.total+'</div><h3>'+marked.percentage+'% score</h3></section><section class="panel"><h3>Answer Review</h3>';
     marked.review.forEach((a,i)=>out+='<div class="quiz-question"><strong>'+(i+1)+'. '+safe(a.question)+'</strong><p class="'+(a.correct?"quiz-result-good":"quiz-result-bad")+'">'+(a.correct?"Correct":"Incorrect")+'</p><p>Your answer: '+safe(a.options[a.selectedIndex])+'</p><p>Correct answer: <strong>'+safe(a.options[a.correctIndex])+'</strong></p></div>');
     page.innerHTML=out+'</section>';$("backToQuizzes").onclick=()=>renderQuizzes();
-   }catch(err){appMessage(err.message,"error");}
+   }catch(err){if(submit){submit.disabled=false;submit.textContent="Submit Answers & Get Score";}appMessage(err.message,"error");}
   };
  }catch(err){page.innerHTML='<section class="panel error">'+safe(err.message)+'</section><button id="backToQuizzes">Back</button>';$("backToQuizzes").onclick=()=>renderQuizzes();}
 }
+
 async function renderQuizResults(id){
  page.innerHTML="<div class='panel'>Loading results...</div>";
  try{
