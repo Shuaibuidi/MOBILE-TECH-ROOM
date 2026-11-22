@@ -2672,11 +2672,11 @@ page.innerHTML=`<div class="panel">Unable to load account: ${safe(e.message)}</d
 
 function buildNavigation(){
 let tabs=[];
-if(isAdmin())tabs=["dashboard","students","lessons","quizzes","notifications","storage","account"];
+if(isAdmin())tabs=["dashboard","students","lessons","quizzes","notifications","account"];
 else if(isInstructor())tabs=["dashboard","lessons","quizzes"];
 else if(isStudent())tabs=["dashboard","lessons","quizzes"];
 
-const labels={dashboard:"⌂  Dashboard",students:"♙  Students",lessons:"▣  My Courses",quizzes:"☑  Quizzes & Exams",notifications:"🔔  Notifications",storage:"▤  Media Storage",account:"◉  Account"};
+const labels={dashboard:"⌂  Dashboard",students:"♙  Students",lessons:"▣  My Courses",quizzes:"☑  Quizzes & Exams",notifications:"🔔  Notifications",account:"◉  Account"};
 $("navigation").innerHTML=tabs.map(t=>
 `<button class="${currentTab===t?"active":"secondary"}" data-tab="${t}">${labels[t]||t}</button>`
 ).join("");
@@ -2686,7 +2686,7 @@ $("navigation").innerHTML=tabs.map(t=>
 const bottomNav=$("mobileBottomNav");
 if(bottomNav){
   const mobileTabs=isAdmin()
-    ? [["dashboard","⌂","Dashboard"],["students","♙","Students"],["lessons","▣","Courses"],["quizzes","☑","Quizzes"],["notifications","♧","Alerts"],["storage","▤","Storage"],["account","◉","Account"]]
+    ? [["dashboard","⌂","Dashboard"],["students","♙","Students"],["lessons","▣","Courses"],["quizzes","☑","Quizzes"],["notifications","♧","Alerts"],["account","◉","Account"]]
     : [["dashboard","⌂","Home"],["lessons","▣","Courses"],["quizzes","☑","Quizzes"],["progress","▥","Progress"],["about","ⓘ","About"]];
   bottomNav.innerHTML=mobileTabs.map(([tab,icon,label])=>
     `<button type="button" data-dashboard-tab="${tab}" aria-label="${label}"><span class="bottom-nav-icon">${icon}</span><span>${label}</span></button>`
@@ -2704,7 +2704,6 @@ if(refreshAppButton)refreshAppButton.addEventListener("click",async()=>{
   refreshAppButton.disabled=true;refreshAppButton.classList.add("is-refreshing");
   try{
     if(isAdmin()&&currentTab==="notifications")try{localStorage.removeItem("mtr_admin_notifications_"+currentUser.uid);}catch(_){}
-    if(isAdmin()&&currentTab==="storage")try{localStorage.removeItem("mtr_storage_usage_"+currentUser.uid);}catch(_){}
     invalidateCoursesCache();
     if(isAdmin()&&currentTab==="quizzes")try{localStorage.removeItem("mtr_quiz_list_"+currentUser.uid+"_admin");}catch(_){}
     // Reuse the current Firebase ID token when it is still valid. Firebase refreshes it automatically when needed; forcing a refresh on every dashboard tap causes avoidable network failures.
@@ -2752,7 +2751,6 @@ if(tab==="instructors"&&isAdmin())await renderUsers("instructor");
 if(tab==="progress")await renderProgress();
 if(tab==="about")renderAbout();
 if(tab==="notifications"&&isAdmin()){page.innerHTML=`<section class="panel notification-panel" id="adminNotificationsPanel"><h2>Notifications</h2><p class="muted">Loading important activity...</p></section>`;await renderAdminNotifications();}
-if(tab==="storage"&&isAdmin()){page.innerHTML=`<section class="panel" id="storageUsagePanel"><h2>Lesson Media Storage</h2><p class="muted">Checking Appwrite storage...</p></section>`;await renderStorageUsagePanel();}
 if(tab==="account"&&isAdmin())renderAdminAccount();
 const bottomNav=$("mobileBottomNav");
 if(bottomNav)bottomNav.querySelectorAll("[data-dashboard-tab]").forEach(b=>b.classList.toggle("active",b.dataset.dashboardTab===tab));
