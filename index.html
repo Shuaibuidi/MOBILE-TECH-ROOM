@@ -1852,6 +1852,17 @@ body.login-mode #authPanel:after{font-size:clamp(12px,1.8vw,15px)!important;padd
 #navigation .support-unread-badge{margin-left:9px}
 .support-chat-messages{overscroll-behavior:contain;scrollbar-width:thin}
 @media(max-width:520px){.support-chat-history{padding:7px 9px}.support-history-hint{font-size:9px}}
+
+.support-message-actions{display:flex;justify-content:flex-end;gap:5px;margin-top:5px}
+.support-message-action{margin:0;padding:4px 8px;border:0;border-radius:7px;background:#e9f1ec;color:#17624e;box-shadow:none;font-size:10px;line-height:1.3}
+.support-chat-bubble.mine .support-message-action{background:#c6edc0;color:#155a3d}
+.support-message-action.danger{background:#ffe4e7;color:#a51e36}
+.support-chat-quoted{display:flex;flex-direction:column;gap:2px;padding:6px 8px;margin:5px 0 7px;border-left:3px solid #159b82;border-radius:5px;background:#eaf3ed;color:#40594e;font-size:11px}
+.support-chat-quoted span,.support-reply-preview span{white-space:pre-wrap;overflow-wrap:anywhere;max-height:42px;overflow:hidden}
+.support-reply-preview{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;background:#e0eee5;border-left:4px solid #159b82;color:#244b3b}
+.support-reply-preview>div{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:11px}
+.support-reply-preview button{margin:0;padding:3px 9px;background:#d1ded5;color:#234;border-radius:8px}
+
 </style>
 <style id="support-unread-divider-theme">
 .support-chat-unread-divider{display:flex;justify-content:center;margin:15px 0}
@@ -2882,6 +2893,7 @@ const SUPPORT_PAGE_SIZE=50;
 let supportMessages=[];
 let supportOldestDoc=null;
 let supportLoadingOlder=false;
+let supportHasOlderMessages=true;
 let supportReadState=null;
 let supportLiveUnsubscribe=null;
 let supportBadgeUnsubscribe=null;
@@ -2956,16 +2968,13 @@ async function markSupportMessagesRead(){
   supportReadState={lastReadAt:new Date()};
   refreshSupportBadge();
 }
+let supportReplyTarget=null;
 function supportMessageMarkup(message){
   const mine=message.senderId===currentUser.uid;
-  return `
-    <div class="support-chat-row ${mine?'mine':'theirs'}" data-message-id="${safe(message.id)}">
-      <article class="support-chat-bubble ${mine?'mine':'theirs'}">
-        <div class="support-chat-author">${safe(mine?'You':supportAuthorLabel(message))}${message.role==='admin'&&!mine?'<span class="support-admin-chip">ADMIN</span>':""}</div>
-        <div class="support-chat-text">${safe(message.text||"")}</div>
-        <div class="support-chat-time">${safe(supportDate(message.createdAt))}${mine?' <span>✓✓</span>':""}</div>
-      </article>
-    </div>`;
+  const reply=message.replyTo&&typeof message.replyTo==="object"?message.replyTo:null;
+  const replyPreview=reply?'<div class="support-chat-quoted"><strong>'+safe(reply.authorName||"Message")+'</strong><span>'+safe(reply.text||"")+'</span></div>':"";
+  const adminDelete=isAdmin()?'<button type="button" class="support-message-action danger" data-action="support-delete-message" data-id="'+safe(message.id)+'">Delete</button>':"";
+  return '<div class="support-chat-row '+(mine?'mine':'theirs')+'" data-message-id="'+safe(message.id)+'"><article class="support-chat-bubble '+(mine?'mine':'theirs')+'"><div class="support-chat-author">'+safe(mine?'You':supportAuthorLabel(message))+(message.role==='admin'&&!mine?'<span class="support-admin-chip">ADMIN</span>':"")+'</div>'+(replyPreview)+'<div class="support-chat-text">'+safe(message.text||"")+'</div><div class="support-chat-time">'+safe(supportDate(message.createdAt))+(mine?' <span>✓✓</span>':"")+'</div><div class="support-message-actions"><button type="button" class="support-message-action" data-action="support-reply-message" data-id="'+safe(message.id)+'">↩ Reply</button>'+adminDelete+'</div></article></div>';
 }
 function renderSupportMessages(options={}){
   const area=$("supportChatMessages");if(!area)return;
@@ -3005,6 +3014,7 @@ async function renderLearningSupportRoom(){
     const snap=await getDocs(q);
     supportMessages=snap.docs.map(d=>({id:d.id,...d.data()})).reverse();
     supportOldestDoc=snap.docs.length?snap.docs[snap.docs.length-1]:null;
+    supportHasOlderMessages=snap.docs.length===SUPPORT_PAGE_SIZE;
     page.innerHTML=`
       <section class="support-chat-shell">
         <header class="support-chat-header">
@@ -3016,6 +3026,7 @@ async function renderLearningSupportRoom(){
         <div class="support-chat-history"><button type="button" class="secondary" data-action="support-load-older" ${snap.docs.length<SUPPORT_PAGE_SIZE?'disabled':''}>↑ Load older messages</button><span class="support-history-hint">${snap.docs.length<SUPPORT_PAGE_SIZE?'All available messages are shown':'Older messages are available'}</span></div>
         <div id="supportChatMessages" class="support-chat-messages" aria-label="Community conversation"><p class="support-chat-empty">Loading messages…</p></div>
         <form id="supportReplyForm" class="support-chat-compose">
+          <div id="supportReplyPreview" class="support-reply-preview hidden"></div>
           <textarea id="supportReplyText" maxlength="2000" rows="1" placeholder="Type a message…" required aria-label="Write a community message"></textarea>
           <button type="submit" aria-label="Send message">➤</button>
         </form>
@@ -3029,24 +3040,71 @@ async function renderLearningSupportRoom(){
   }
 }
 async function loadOlderSupportMessages(button){
-  if(supportLoadingOlder||!supportOldestDoc)return;
+  if(supportLoadingOlder||!supportOldestDoc||!supportHasOlderMessages)return;
   supportLoadingOlder=true;
   if(button){button.disabled=true;button.textContent="Loading…";}
   try{
     const area=$("supportChatMessages"),oldHeight=area?.scrollHeight||0,oldTop=area?.scrollTop||0;
     const q=query(collection(db,"supportMessages"),orderBy("createdAt","desc"),startAfter(supportOldestDoc),limit(SUPPORT_PAGE_SIZE));
     const snap=await getDocs(q);
-    if(snap.empty){if(button){button.disabled=true;button.textContent="No older messages";}const hint=document.querySelector(".support-history-hint");if(hint)hint.textContent="You have reached the beginning of this chat.";return;}
-    const older=snap.docs.map(d=>({id:d.id,...d.data()})).reverse(),existingIds=new Set(supportMessages.map(m=>m.id));
+    if(snap.empty){
+      supportHasOlderMessages=false;
+      if(button){button.disabled=true;button.textContent="No older messages";}
+      const hint=document.querySelector(".support-history-hint");if(hint)hint.textContent="You have reached the beginning of this chat.";
+      return;
+    }
+    const older=snap.docs.map(d=>({id:d.id,...d.data()})).reverse();
+    const existingIds=new Set(supportMessages.map(m=>m.id));
     supportMessages=[...older.filter(m=>!existingIds.has(m.id)),...supportMessages];
     supportOldestDoc=snap.docs[snap.docs.length-1];
-    renderSupportMessages({preservePosition:true});
-    const updatedArea=$("supportChatMessages");if(updatedArea)updatedArea.scrollTop=oldTop+(updatedArea.scrollHeight-oldHeight);
-    if(button){button.disabled=snap.docs.length<SUPPORT_PAGE_SIZE;button.textContent=snap.docs.length<SUPPORT_PAGE_SIZE?"No more older messages":"↑ Load older messages";}
-    const hint=document.querySelector(".support-history-hint");if(hint)hint.textContent=snap.docs.length<SUPPORT_PAGE_SIZE?"All older messages are now loaded":"Older messages are available";
-  }catch(error){appMessage(error.message||"Could not load older messages.","error");if(button){button.disabled=false;button.textContent="↑ Load older messages";}}
-  finally{supportLoadingOlder=false;}
+    supportHasOlderMessages=snap.docs.length===SUPPORT_PAGE_SIZE;
+    renderSupportMessages();
+    const updatedArea=$("supportChatMessages");
+    if(updatedArea)updatedArea.scrollTop=oldTop+(updatedArea.scrollHeight-oldHeight);
+    if(button){button.disabled=!supportHasOlderMessages;button.textContent=supportHasOlderMessages?"↑ Load older messages":"No more older messages";}
+    const hint=document.querySelector(".support-history-hint");
+    if(hint)hint.textContent=supportHasOlderMessages?"Older messages are available":"All older messages are now loaded";
+  }catch(error){
+    appMessage(error.message||"Could not load older messages.","error");
+    if(button){button.disabled=false;button.textContent="↑ Load older messages";}
+  }finally{supportLoadingOlder=false;}
 }
+document.addEventListener("click",async event=>{
+  const replyButton=event.target.closest('[data-action="support-reply-message"]');
+  if(replyButton){
+    const message=supportMessages.find(item=>item.id===replyButton.dataset.id);
+    if(!message)return;
+    supportReplyTarget=message;
+    const preview=$("supportReplyPreview");
+    if(preview){
+      preview.innerHTML='<div><strong>Replying to '+safe(supportAuthorLabel(message))+'</strong><span>'+safe(message.text||"")+'</span></div><button type="button" aria-label="Cancel reply" data-action="support-cancel-reply">×</button>';
+      preview.classList.remove("hidden");
+    }
+    $("supportReplyText")?.focus();
+    return;
+  }
+  if(event.target.closest('[data-action="support-cancel-reply"]')){
+    supportReplyTarget=null;
+    const preview=$("supportReplyPreview");if(preview){preview.classList.add("hidden");preview.innerHTML="";}
+    return;
+  }
+  const deleteButton=event.target.closest('[data-action="support-delete-message"]');
+  if(deleteButton){
+    if(!isAdmin()){appMessage("Only the administrator can delete chat messages.","error");return;}
+    const id=deleteButton.dataset.id;
+    if(!supportMessages.some(item=>item.id===id))return;
+    if(!confirm("Delete this message for everyone? This cannot be undone."))return;
+    deleteButton.disabled=true;
+    try{
+      await deleteDoc(doc(db,"supportMessages",id));
+      supportMessages=supportMessages.filter(item=>item.id!==id);
+      if(supportReplyTarget?.id===id)supportReplyTarget=null;
+      renderSupportMessages({preservePosition:true});
+      appMessage("Message deleted for everyone.");
+    }catch(error){deleteButton.disabled=false;appMessage("Could not delete message: "+(error.message||"Please try again."),"error");}
+  }
+});
+
 document.addEventListener("submit",async event=>{
   const form=event.target;
   if(form.id!=="supportReplyForm")return;
@@ -3061,9 +3119,12 @@ document.addEventListener("submit",async event=>{
       senderId:currentUser.uid,
       authorName:profile?.fullName||currentUser.displayName||currentUser.email||"Member",
       role:isAdmin()?"admin":"student",
+      ...(supportReplyTarget?{replyTo:{id:supportReplyTarget.id,text:supportReplyTarget.text||"",authorName:supportAuthorLabel(supportReplyTarget),role:supportReplyTarget.role||"student"}}:{}),
       createdAt:serverTimestamp()
     });
     field.value="";
+    supportReplyTarget=null;
+    const replyPreview=$("supportReplyPreview");if(replyPreview){replyPreview.classList.add("hidden");replyPreview.innerHTML="";}
     const snap=await getDocs(query(collection(db,"supportMessages"),orderBy("createdAt","desc"),limit(SUPPORT_PAGE_SIZE)));
     const latestDocs=snap.docs,latestIds=new Set(latestDocs.map(d=>d.id));
     const retained=supportMessages.filter(m=>!latestIds.has(m.id));
