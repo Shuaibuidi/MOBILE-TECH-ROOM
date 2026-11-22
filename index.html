@@ -288,7 +288,7 @@ button:hover{transform:none!important}
 @media(max-width:420px){.media-file-grid{grid-template-columns:1fr;gap:9px}.media-file-card{min-height:100px;padding:11px}.media-file-icon,.media-file-thumb{width:68px;height:68px}.media-file-card{grid-template-columns:68px minmax(0,1fr)}}
 .student-lesson-media{margin:12px 0;padding:0;background:transparent;border:0;overflow:visible}
 .media-lightbox-audio{display:block;width:min(100%,620px);margin:20px auto}
-.media-pdf-container{width:100%;max-height:calc(100dvh - 115px);overflow:auto;overscroll-behavior:contain;background:#263548;border-radius:10px;padding:10px;box-sizing:border-box}.media-pdf-pages{display:flex;flex-direction:column;align-items:center;gap:14px}.media-pdf-page{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 3px 14px #0008;border-radius:2px}.media-pdf-container .muted{color:#fff}
+.media-pdf-container{width:100%;max-height:calc(100dvh - 115px);overflow:auto;overscroll-behavior:contain;background:#263548;border-radius:10px;padding:10px;box-sizing:border-box}.media-pdf-pages{display:flex;flex-direction:column;align-items:center;gap:14px}.media-pdf-page{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 3px 14px #0008;border-radius:2px}.media-pdf-container .muted{color:#fff}.lesson-document-inner{max-width:1000px}.lesson-document-pages{max-height:calc(100dvh - 120px)}.lesson-pdf-source{box-sizing:border-box;width:760px;max-width:100%;padding:24px 30px;background:#fff;color:#202938;font-family:Arial,sans-serif;line-height:1.55}.lesson-pdf-source h1{font-size:26px;color:#183451;border-bottom:2px solid #d7e1ec;padding-bottom:12px}.lesson-pdf-source h2{font-size:19px;color:#214e76;margin-top:20px}.lesson-pdf-source p{margin:8px 0}.lesson-pdf-meta{color:#64748b;font-size:12px}.lesson-pdf-source table{border-collapse:collapse;width:100%;margin:12px 0}.lesson-pdf-source td,.lesson-pdf-source th{border:1px solid #9aa8b8;padding:7px}.lesson-pdf-source img{max-width:100%;height:auto}.lesson-pdf-source blockquote{border-left:4px solid #7c9ab8;padding:8px 14px;background:#f1f5f9}.lesson-pdf-source ul,.lesson-pdf-source ol{padding-left:26px}.lesson-word-editor-shell{border:1px solid #385675;border-radius:12px;padding:12px;background:#0b1a2c;margin:12px 0}.lesson-word-editor-heading{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px}.lesson-word-editor{min-height:420px;max-height:none;overflow:auto;background:#fff!important;color:#202938!important;border-radius:4px!important;padding:24px!important;font-family:Arial,sans-serif;line-height:1.55}.lesson-word-editor:empty:before{content:attr(data-placeholder);color:#8492a6}.lesson-word-editor img{max-width:100%;height:auto}.lesson-word-editor table{border-collapse:collapse;width:100%}.lesson-word-editor td,.lesson-word-editor th{border:1px solid #8898aa;padding:8px}.editor-toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.editor-toolbar button{min-width:36px;padding:6px 9px}.editor-toolbar select{max-width:140px}
 @media(max-width:420px){.media-file-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.media-file-card{min-height:108px;padding:8px}.media-file-thumb{height:64px}.media-file-name{font-size:11px}}
 
 /* =========================================================
@@ -1892,6 +1892,37 @@ function downloadCertificate(b){
  w.document.open();w.document.write(a+safe(name)+z+safe(course)+end);w.document.close();
 }
 
+async function loadHtmlToPdfLibrary(){
+  if(window.html2pdf)return window.html2pdf;
+  if(window.__mtrHtml2PdfLoading)return window.__mtrHtml2PdfLoading;
+  window.__mtrHtml2PdfLoading=new Promise((resolve,reject)=>{
+    const script=document.createElement("script");script.src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";script.async=true;
+    script.onload=()=>window.html2pdf?resolve(window.html2pdf):reject(new Error("Document renderer did not initialise."));
+    script.onerror=()=>reject(new Error("Document renderer could not load. Check your internet connection."));
+    document.head.append(script);
+  });
+  try{return await window.__mtrHtml2PdfLoading;}catch(error){window.__mtrHtml2PdfLoading=null;throw error;}
+}
+async function openWrittenLesson(lesson){
+  document.getElementById("lessonMediaViewer")?.remove();
+  const viewer=document.createElement("div");viewer.id="lessonMediaViewer";viewer.className="media-lightbox lesson-document-viewer";
+  const inner=document.createElement("div");inner.className="media-lightbox-inner lesson-document-inner";
+  const close=document.createElement("button");close.type="button";close.className="media-lightbox-close";close.textContent="✕ Close";
+  let pdfUrl="";const cleanup=()=>{if(pdfUrl)URL.revokeObjectURL(pdfUrl);viewer.remove();};close.addEventListener("click",cleanup);
+  const title=document.createElement("h3");title.className="media-lightbox-title";title.textContent=lesson.title||"Written lesson";
+  const status=document.createElement("p");status.className="muted";status.style.cssText="color:white;text-align:center;padding:12px";status.textContent="Preparing your lesson…";
+  const pages=document.createElement("div");pages.className="media-pdf-container lesson-document-pages";
+  inner.append(close,title,status,pages);viewer.append(inner);document.body.append(viewer);
+  try{
+    const html2pdf=await loadHtmlToPdfLibrary();
+    const paper=document.createElement("article");paper.className="lesson-pdf-source";
+    paper.innerHTML='<h1>'+safe(lesson.title||"Written lesson")+'</h1>'+(lesson.topic?'<p class="lesson-pdf-meta">'+safe(lesson.topic)+'</p>':'')+(lesson.section?'<p class="lesson-pdf-meta">'+safe(lesson.section)+'</p>':'')+(lesson.learningOutcomes?'<section class="lesson-pdf-outcomes"><h2>What you will learn</h2>'+formatLessonContent(lesson.learningOutcomes)+'</section>':'')+'<section class="lesson-pdf-content">'+formatLessonContent(lesson.content||"")+'</section>';
+    const result=await html2pdf().set({margin:[12,12,14,12],filename:"lesson.pdf",image:{type:"jpeg",quality:.96},html2canvas:{scale:1.5,useCORS:true,backgroundColor:"#ffffff",logging:false},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:["css","legacy"]}}).from(paper).outputPdf("blob");
+    if(!result||!result.size)throw new Error("The lesson document could not be prepared.");
+    pdfUrl=URL.createObjectURL(result);status.remove();await renderLessonPdf(pdfUrl,pages,lesson.title||"Written lesson");
+  }catch(error){status.textContent=error.message||"This written lesson could not be opened. Please try again.";console.warn("Written lesson PDF generation failed:",error);}
+}
+
 async function loadPdfJsLibrary(){
   if(window.pdfjsLib)return window.pdfjsLib;
   if(window.__mtrPdfJsLoading)return window.__mtrPdfJsLoading;
@@ -1948,13 +1979,7 @@ async function renderLessonPdf(pdfUrl,container,mediaTitle){
     documentPdf.cleanup();
   }catch(error){
     status.textContent=(error&&error.message?error.message:"PDF could not be displayed.")+" You can try downloading the file instead.";
-    const download=document.createElement("a");
-    download.href=pdfUrl;
-    download.download=(mediaTitle||"lesson").replace(/[^a-z0-9._-]/gi,"_")+".pdf";
-    download.textContent="Download PDF";
-    download.className="btn";
-    download.style.cssText="display:block;text-align:center;margin:8px auto;color:white";
-    container.append(download);
+    // Student viewer intentionally has no download or print controls.
     throw error;
   }
 }
@@ -2178,9 +2203,9 @@ async function uploadLessonMedia(file,courseId,onProgress=()=>{}){
 
 function formatLessonContent(value){
   const raw=String(value||"");
-  if(!/[<](p|div|h1|h2|h3|strong|b|em|i|u|blockquote|ul|ol|li|span|font)(\s|>)/i.test(raw)) return safe(raw).replace(/\n/g,"<br>");
+  if(!/[<](p|div|h1|h2|h3|strong|b|em|i|u|blockquote|ul|ol|li|span|font|table|img)(\s|>)/i.test(raw)) return safe(raw).replace(/\n/g,"<br>");
   const doc=new DOMParser().parseFromString(raw,"text/html");
-  const allowed=new Set(["P","DIV","H1","H2","H3","STRONG","B","EM","I","U","BLOCKQUOTE","UL","OL","LI","BR","SPAN","A"]);
+  const allowed=new Set(["P","DIV","H1","H2","H3","STRONG","B","EM","I","U","BLOCKQUOTE","UL","OL","LI","BR","SPAN","A","TABLE","THEAD","TBODY","TR","TD","TH","IMG","HR"]);
   const safeStyle=(el)=>{
     const styles=[];
     const color=el.style?.color||"";
@@ -2214,6 +2239,8 @@ function formatLessonContent(value){
       }
       if(!allowed.has(tag)){out+=clean(child);continue;}
       if(tag==="A"){const href=child.getAttribute("href")||"";let parsed;try{parsed=new URL(href,location.href);}catch(_){out+=clean(child);continue;}if(!["http:","https:"].includes(parsed.protocol)){out+=clean(child);continue;}out+=`<a href="${safe(parsed.href)}" target="_blank" rel="noopener noreferrer">${clean(child)}</a>`;continue;}
+      if(tag==="IMG"){const src=child.getAttribute("src")||"";let parsed;try{parsed=new URL(src,location.href);}catch(_){continue;}if(!["http:","https:"].includes(parsed.protocol))continue;out+=`<img src="${safe(parsed.href)}" alt="${safe(child.getAttribute("alt")||"Lesson image")}" style="max-width:100%;height:auto" loading="lazy">`;continue;}
+      if(tag==="HR"){out+="<hr>";continue;}
       out+=`<${tag.toLowerCase()}${safeStyle(child)}>${clean(child)}</${tag.toLowerCase()}>`;
     }
     return out;
@@ -3072,8 +3099,8 @@ function bindLessonFormControls({accessId=null,priceFieldId=null,priceId=null,ty
   if(access)access.addEventListener("change",update);update();
 }
 
-function bindRichTextEditor(editorId,toolbarId){const editor=$(editorId),toolbar=$(toolbarId);if(!editor||!toolbar)return;toolbar.querySelectorAll('[data-rich-command],[data-rich-link]').forEach(button=>{button.addEventListener('mousedown',e=>e.preventDefault());button.onclick=()=>{editor.focus();if(button.dataset.richLink){const url=prompt('Paste the full website link (https://...)');if(!url)return;let parsed;try{parsed=new URL(url.trim());}catch(_){alert('Please enter a valid web link starting with https://');return;}if(!['http:','https:'].includes(parsed.protocol)){alert('Only http:// and https:// links are allowed.');return;}document.execCommand('createLink',false,parsed.href);return;}document.execCommand(button.dataset.richCommand,false,null);};});const bindSelect=(id,command)=>{const el=$(id);if(el)el.onchange=()=>{editor.focus();document.execCommand(command,false,el.value);};};bindSelect(toolbarId+'Style','formatBlock');bindSelect(toolbarId+'Font','fontName');bindSelect(toolbarId+'Size','fontSize');const color=$(toolbarId+'Color'),highlight=$(toolbarId+'Highlight');if(color)color.oninput=()=>{editor.focus();document.execCommand('foreColor',false,color.value);};if(highlight)highlight.oninput=()=>{editor.focus();document.execCommand('hiliteColor',false,highlight.value);};}
-function richEditorToolbar(prefix){return '<div class="editor-toolbar" id="'+prefix+'Toolbar"><select id="'+prefix+'ToolbarStyle"><option value="P">Paragraph</option><option value="H1">Title</option><option value="H2">Heading</option><option value="H3">Small heading</option><option value="BLOCKQUOTE">Quote</option></select><select id="'+prefix+'ToolbarFont"><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option><option value="Verdana">Verdana</option></select><select id="'+prefix+'ToolbarSize"><option value="2">Small</option><option value="3" selected>Normal</option><option value="4">Large</option><option value="5">Extra large</option></select><button type="button" class="secondary" data-rich-command="bold"><b>B</b></button><button type="button" class="secondary" data-rich-command="italic"><i>I</i></button><button type="button" class="secondary" data-rich-command="underline"><u>U</u></button><button type="button" class="secondary" data-rich-command="insertUnorderedList">• List</button><label class="muted">Text</label><input id="'+prefix+'ToolbarColor" type="color" value="#202938"><label class="muted">Highlight</label><input id="'+prefix+'ToolbarHighlight" type="color" value="#fff2a8"></div>';}
+function bindRichTextEditor(editorId,toolbarId){const editor=$(editorId),toolbar=$(toolbarId);if(!editor||!toolbar)return;toolbar.querySelectorAll('[data-rich-command],[data-rich-link],[data-rich-image],[data-rich-table]').forEach(button=>{button.addEventListener('mousedown',e=>e.preventDefault());button.onclick=()=>{editor.focus();if(button.dataset.richLink){const url=prompt('Paste the full website link (https://...)');if(!url)return;let parsed;try{parsed=new URL(url.trim());}catch(_){alert('Please enter a valid web link starting with https://');return;}if(!['http:','https:'].includes(parsed.protocol)){alert('Only http:// and https:// links are allowed.');return;}document.execCommand('createLink',false,parsed.href);return;}if(button.dataset.richImage){const url=prompt('Paste an image URL (https://...)');if(!url)return;let parsed;try{parsed=new URL(url.trim());}catch(_){alert('Please enter a valid image URL.');return;}if(!['http:','https:'].includes(parsed.protocol)){alert('Only http:// and https:// links are allowed.');return;}document.execCommand('insertHTML',false,'<p><img src="'+parsed.href.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" alt="Lesson image" style="max-width:100%;height:auto"></p>');return;}if(button.dataset.richTable){const rows=Math.min(12,Math.max(1,Number(prompt('Number of rows (1-12):','3'))||3));const cols=Math.min(8,Math.max(1,Number(prompt('Number of columns (1-8):','3'))||3));let table='<table border="1" style="border-collapse:collapse;width:100%"><tbody>';for(let r=0;r<rows;r++){table+='<tr>';for(let c=0;c<cols;c++)table+='<td style="padding:8px;border:1px solid #777">&nbsp;</td>';table+='</tr>';}table+='</tbody></table><p></p>';document.execCommand('insertHTML',false,table);return;}document.execCommand(button.dataset.richCommand,false,null);};});const bindSelect=(id,command)=>{const el=$(id);if(el)el.onchange=()=>{editor.focus();document.execCommand(command,false,el.value);};};bindSelect(toolbarId+'Style','formatBlock');bindSelect(toolbarId+'Font','fontName');bindSelect(toolbarId+'Size','fontSize');const color=$(toolbarId+'Color'),highlight=$(toolbarId+'Highlight');if(color)color.oninput=()=>{editor.focus();document.execCommand('foreColor',false,color.value);};if(highlight)highlight.oninput=()=>{editor.focus();document.execCommand('hiliteColor',false,highlight.value);};}
+function richEditorToolbar(prefix){return '<div class="editor-toolbar" id="'+prefix+'Toolbar"><select id="'+prefix+'ToolbarStyle"><option value="P">Paragraph</option><option value="H1">Title</option><option value="H2">Heading</option><option value="H3">Small heading</option><option value="BLOCKQUOTE">Quote</option></select><select id="'+prefix+'ToolbarFont"><option value="Arial">Arial</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option><option value="Verdana">Verdana</option><option value="Tahoma">Tahoma</option><option value="Courier New">Courier New</option></select><select id="'+prefix+'ToolbarSize"><option value="2">Small</option><option value="3" selected>Normal</option><option value="4">Large</option><option value="5">Extra large</option><option value="6">Very large</option><option value="7">Huge</option></select><button type="button" class="secondary" data-rich-command="bold"><b>B</b></button><button type="button" class="secondary" data-rich-command="italic"><i>I</i></button><button type="button" class="secondary" data-rich-command="underline"><u>U</u></button><button type="button" class="secondary" data-rich-command="strikeThrough">S̶</button><button type="button" class="secondary" data-rich-command="insertUnorderedList">• List</button><button type="button" class="secondary" data-rich-command="insertOrderedList">1. List</button><button type="button" class="secondary" data-rich-command="justifyLeft">Left</button><button type="button" class="secondary" data-rich-command="justifyCenter">Center</button><button type="button" class="secondary" data-rich-command="justifyRight">Right</button><button type="button" class="secondary" data-rich-command="justifyFull">Justify</button><button type="button" class="secondary" data-rich-link="1">Link</button><button type="button" class="secondary" data-rich-image="1">Image URL</button><button type="button" class="secondary" data-rich-table="1">Insert Table</button><button type="button" class="secondary" data-rich-command="insertHorizontalRule">Line</button><label class="muted">Text</label><input id="'+prefix+'ToolbarColor" type="color" value="#202938"><label class="muted">Highlight</label><input id="'+prefix+'ToolbarHighlight" type="color" value="#fff2a8"></div>';}
 async function renderCourses(){
 page.innerHTML="<div class='panel'>Loading courses...</div>";
 try{
@@ -3249,7 +3276,7 @@ const renderReferenceMedia=(lesson)=>{
    if(lesson.mediaUrl&&["video","audio","image","pdf"].includes(type)){
      media=renderReferenceMedia(lesson);
    }
-   const body=type==="written"?`<div class="lesson-body">${formatLessonContent(lesson.content||"")}</div>`:"";
+   const body=type==="written"?`<div class="reference-written-row"><div class="reference-round-icon">▤</div><div class="reference-topic-content"><strong>Written Lesson</strong><p class="muted">Open the full lesson document to read.</p><button type="button" data-action="open-written-lesson" data-id="${safe(lesson.id)}">Open Lesson　›</button></div></div>`:"";
    const done=completed.includes(lesson.id);
    return `<li class="lesson-item reference-lesson-card student-published-lesson" data-student-lesson="${safe(lesson.id)}"><div class="reference-lesson-title-row"><div class="reference-round-icon">▣</div><div class="reference-lesson-title"><span>Lesson ${index+1}</span><h3>${safe(lesson.title||"Untitled lesson")}</h3></div><span class="reference-chevron">›</span></div>${lesson.topic?`<div class="reference-topic-row"><div class="reference-round-icon">☷</div><div class="reference-topic-content"><strong>Topic</strong><p>${safe(lesson.topic)}</p></div><span class="reference-chevron">›</span></div>`:""}${lesson.section?`<div class="reference-topic-row"><div class="reference-round-icon">§</div><div class="reference-topic-content"><strong>Section</strong><p>${safe(lesson.section)}</p></div></div>`:""}${lesson.learningOutcomes?`<div class="reference-topic-row"><div class="reference-round-icon">✓</div><div class="reference-topic-content"><strong>What you will learn</strong><p>${formatLessonContent(lesson.learningOutcomes)}</p></div></div>`:""}${lesson.resourceUrl&&/^https:\/\//i.test(lesson.resourceUrl)?`<div class="reference-topic-row"><div class="reference-round-icon">↗</div><div class="reference-topic-content"><strong>Video or Audio Link</strong><p><a class="lesson-resource-link" href="${safe(lesson.resourceUrl)}" target="_blank" rel="noopener noreferrer">Open Learning Link ↗</a></p></div></div>`:""}${body}${media}<div class="reference-next-row"><span class="reference-completion">${done?"✓ Lesson completed":"Continue your learning journey"}</span><button class="${done?"secondary":"student-lesson-done"}" data-action="student-complete" data-id="${safe(lesson.id)}">${done?"✓ Completed":index<lessons.length-1?"Next Lesson　›":"Complete Lesson　✓"}</button></div></li>`;
  };
@@ -3258,6 +3285,7 @@ const renderReferenceMedia=(lesson)=>{
  page.innerHTML+=certificateCard(selectedCourse,progressRecord);
  page.innerHTML+=supportContactPanel(true);
  page.onclick=async event=>{
+   const openButton=event.target.closest('[data-action="open-written-lesson"]');if(openButton){const lesson=lessons.find(item=>item.id===openButton.dataset.id);if(lesson)await openWrittenLesson(lesson);return;}
    const button=event.target.closest('[data-action="student-complete"]');if(!button)return;
    const lessonId=button.dataset.id;button.disabled=true;
    try{
@@ -3282,9 +3310,11 @@ let html=`
 if(isStaff()){
 html+=`
 <div class="panel">
-<h3>Add Another Lesson</h3>
+<h3>Create Written Lesson</h3>
+<p class="muted">Write and design your lesson like a Word document. Students will see it as a protected, page-by-page PDF-style lesson with no download button.</p>
 <form id="lessonForm">
-<input id="lessonTitle" placeholder="Lesson title" required>
+<label class="muted" for="lessonTitle">Lesson title</label>
+<input id="lessonTitle" placeholder="e.g. Introduction to Android Flashing" required>
 <label class="muted" for="lessonTopic">Topic</label>
 <input id="lessonTopic" placeholder="Enter the topic (e.g. Android Basics)" required>
 <label class="muted" for="lessonSection">Section</label>
@@ -3292,17 +3322,16 @@ html+=`
 <label class="muted" for="lessonOutcomes">What students will learn in this lesson</label>
 ${richEditorToolbar("lessonOutcomes")}
 <div id="lessonOutcomes" class="lesson-editor" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Describe the skills students will gain..."></div>
-<input id="lessonUrl" type="hidden">
-<div id="mediaLessonFields">
-<label class="muted" for="lessonFile">Upload lesson PDF only (maximum 50 MB)</label>
-<input id="lessonFile" type="file" accept=".pdf,application/pdf">
-<button type="button" class="secondary" id="uploadLessonFile">Upload PDF</button>
-<p id="uploadStatus" class="muted">Only PDF documents can be uploaded.</p>
+<label class="muted" for="lessonContent">Full written lesson</label>
+<div class="lesson-word-editor-shell">
+<div class="lesson-word-editor-heading"><strong>Lesson document editor</strong><span class="muted">Formatting • tables • images • page design</span></div>
+${richEditorToolbar("lessonContent")}
+<div id="lessonContent" class="lesson-editor lesson-word-editor" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Start writing your lesson here... Add headings, paragraphs, lists, tables, colours, links and images."></div>
 </div>
 <label class="muted" for="lessonResourceUrl">Video or Audio Link (Optional)</label>
 <input id="lessonResourceUrl" type="url" placeholder="Paste a YouTube, video or audio link">
-<small class="muted">Upload the PDF, then paste an online video or audio link for students.</small>
-<button type="submit">Save Lesson</button>
+<small class="muted">PDF uploads are replaced by written lessons. You can still attach a video or audio learning link.</small>
+<button type="submit">Save Written Lesson</button>
 </form>
 </div>`;
 }
@@ -3325,42 +3354,25 @@ ${isAdmin()?`<div class="actions reference-admin-actions"><button class="seconda
 if(lessons.length)html+="</ol>";
 
 page.innerHTML=html;
-if(isStaff())bindLessonFormControls({typeId:"lessonType",writtenId:"writtenLessonFields",mediaId:"mediaLessonFields",contentId:"lessonContent"});
 bindRichTextEditor("lessonOutcomes","lessonOutcomesToolbar");
-const uploadButton=$("uploadLessonFile");
-if(uploadButton)uploadButton.onclick=async()=>{
-  const file=$("lessonFile").files[0],status=$("uploadStatus");
-  if(!file){status.textContent="Please choose a PDF file first.";return;}
-  uploadButton.disabled=true;status.textContent="Uploading file... 0%";
-  try{
-    const result=await uploadLessonMedia(file,courseId,p=>status.textContent=`Uploading file... ${p}%`);
-    $("lessonUrl").value=result.mediaUrl;
-
-    status.textContent="Upload complete. Save Lesson to publish this material.";
-  }catch(error){status.textContent=(error.code?error.code+": ":"")+(error.message||"Upload failed. Please try again.");}
-  finally{uploadButton.disabled=false;}
-};
+bindRichTextEditor("lessonContent","lessonContentToolbar");
 const form=$("lessonForm");
 if(form)form.onsubmit=async e=>{
 e.preventDefault();
 try{
-const url=$("lessonUrl").value.trim(),resourceUrl=$("lessonResourceUrl").value.trim(),lessonType="pdf";
+const resourceUrl=$("lessonResourceUrl").value.trim(),content=$("lessonContent").innerHTML.trim();
 if(resourceUrl&&!/^https:\/\/.+/i.test(resourceUrl)){appMessage("Please enter a valid HTTPS learning link.","error");return;}
 if(!$("lessonOutcomes").innerText.trim()){appMessage("Describe what students will learn in this lesson.","error");return;}
-if(!url){appMessage("Please upload the lesson file before saving.","error");return;}
-if($("lessonFile").files.length&&!url){appMessage("Please upload the selected file before saving the lesson.","error");return;}
-if(url&&!/^https:\/\/.+/i.test(url)){
-appMessage("Please enter a valid HTTPS media link.","error");return;
-}
+if(!$("lessonContent").innerText.trim()){appMessage("Write the lesson content before saving.","error");return;}
+if(content.length>700000){appMessage("This lesson is too large. Please reduce the text or number of images and save again.","error");return;}
 await addDoc(collection(db,"courses",courseId,"lessons"),{
 title:$("lessonTitle").value.trim(),
 topic:$("lessonTopic").value.trim(),
 section:$("lessonSection").value.trim(),
 learningOutcomes:$("lessonOutcomes").innerHTML.trim(),
 lessonNumber:lessons.length+1,
-type:lessonType,
-content:"",
-mediaUrl:url,
+type:"written",
+content,
 resourceUrl:resourceUrl,
 createdBy:currentUser.uid,
 createdAt:serverTimestamp()
