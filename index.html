@@ -2009,6 +2009,20 @@ body.support-fullscreen-mode .support-chat-compose button{
  body.support-fullscreen-mode .support-chat-messages{padding:12px 9px 18px!important}
  body.support-fullscreen-mode .support-chat-compose{padding:8px 10px max(8px,env(safe-area-inset-bottom,0px))!important}
 }
+
+/* Keep the Community title bar inside the visible Android viewport while the keyboard is open. */
+body.support-fullscreen-mode #page{
+  top:var(--mtr-chat-vv-top,0px)!important;
+  bottom:auto!important;
+  height:var(--mtr-chat-vv-height,100dvh)!important;
+}
+body.support-fullscreen-mode .support-chat-header{
+  position:relative!important;
+  z-index:5!important;
+  flex:0 0 auto!important;
+  flex-shrink:0!important;
+}
+body.support-fullscreen-mode .support-chat-messages{min-height:0!important;}
 </style>
 </head>
 <body class="login-mode">
@@ -3163,7 +3177,32 @@ function startSupportLiveUpdates(){
     refreshSupportBadge();
   },error=>{console.warn("Live community chat updates failed:",error);appMessage("Live chat updates paused. Check your connection and reopen Support.","error");});
 }
+function syncSupportChatVisualViewport(){
+  if(!document.body.classList.contains("support-fullscreen-mode"))return;
+  const viewport=window.visualViewport;
+  const height=viewport&&viewport.height?viewport.height:window.innerHeight;
+  const top=viewport&&Number.isFinite(viewport.offsetTop)?viewport.offsetTop:0;
+  document.documentElement.style.setProperty("--mtr-chat-vv-height",Math.max(240,height)+"px");
+  document.documentElement.style.setProperty("--mtr-chat-vv-top",Math.max(0,top)+"px");
+}
+function installSupportChatViewportTracking(){
+  if(window.__mtrSupportViewportTracking)return;
+  window.__mtrSupportViewportTracking=true;
+  const update=()=>requestAnimationFrame(syncSupportChatVisualViewport);
+  window.addEventListener("resize",update,{passive:true});
+  if(window.visualViewport){
+    window.visualViewport.addEventListener("resize",update,{passive:true});
+    window.visualViewport.addEventListener("scroll",update,{passive:true});
+  }
+  document.addEventListener("focusin",event=>{
+    if(event.target&&event.target.id==="supportReplyText")update();
+  });
+  document.addEventListener("focusout",event=>{
+    if(event.target&&event.target.id==="supportReplyText")setTimeout(update,80);
+  });
+}
 async function renderLearningSupportRoom(){
+  installSupportChatViewportTracking();
   stopSupportLiveUpdates();
   page.innerHTML='<section class="support-chat-shell"><div class="support-chat-header"><div class="support-chat-avatar">💬</div><div class="support-chat-heading"><strong>Mobile Tech Room Community</strong><span>Loading conversation…</span></div></div></section>';
   try{
