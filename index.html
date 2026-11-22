@@ -1905,24 +1905,54 @@ async function loadHtmlToPdfLibrary(){
 }
 async function openWrittenLesson(lesson){
   document.getElementById("lessonMediaViewer")?.remove();
-  const viewer=document.createElement("div");viewer.id="lessonMediaViewer";viewer.className="media-lightbox lesson-document-viewer";
-  const inner=document.createElement("div");inner.className="media-lightbox-inner lesson-document-inner";
-  const close=document.createElement("button");close.type="button";close.className="media-lightbox-close";close.textContent="✕ Close";
-  let pdfUrl="";const cleanup=()=>{if(pdfUrl)URL.revokeObjectURL(pdfUrl);viewer.remove();};close.addEventListener("click",cleanup);
-  const title=document.createElement("h3");title.className="media-lightbox-title";title.textContent=lesson.title||"Written lesson";
-  const status=document.createElement("p");status.className="muted";status.style.cssText="color:white;text-align:center;padding:12px";status.textContent="Preparing your lesson…";
-  const pages=document.createElement("div");pages.className="media-pdf-container lesson-document-pages";
-  inner.append(close,title,status,pages);viewer.append(inner);document.body.append(viewer);
-  try{
-    const html2pdf=await loadHtmlToPdfLibrary();
-    const paper=document.createElement("article");paper.className="lesson-pdf-source";
-    paper.innerHTML='<h1>'+safe(lesson.title||"Written lesson")+'</h1>'+(lesson.topic?'<p class="lesson-pdf-meta">'+safe(lesson.topic)+'</p>':'')+(lesson.section?'<p class="lesson-pdf-meta">'+safe(lesson.section)+'</p>':'')+(lesson.learningOutcomes?'<section class="lesson-pdf-outcomes"><h2>What you will learn</h2>'+formatLessonContent(lesson.learningOutcomes)+'</section>':'')+'<section class="lesson-pdf-content">'+formatLessonContent(lesson.content||"")+'</section>';
-    const result=await html2pdf().set({margin:[12,12,14,12],filename:"lesson.pdf",image:{type:"jpeg",quality:.96},html2canvas:{scale:1.5,useCORS:true,backgroundColor:"#ffffff",logging:false},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:["css","legacy"]}}).from(paper).outputPdf("blob");
-    if(!result||!result.size)throw new Error("The lesson document could not be prepared.");
-    pdfUrl=URL.createObjectURL(result);status.remove();await renderLessonPdf(pdfUrl,pages,lesson.title||"Written lesson");
-  }catch(error){status.textContent=error.message||"This written lesson could not be opened. Please try again.";console.warn("Written lesson PDF generation failed:",error);}
+  const viewer=document.createElement("div");
+  viewer.id="lessonMediaViewer";
+  viewer.className="media-lightbox lesson-document-viewer";
+  viewer.style.cssText="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.88);display:flex;justify-content:center;align-items:stretch;padding:0;overflow:hidden";
+  const inner=document.createElement("div");
+  inner.className="media-lightbox-inner lesson-document-inner";
+  inner.style.cssText="position:relative;width:100%;max-width:900px;height:100%;overflow-y:auto;overflow-x:hidden;background:#e9edf2;padding:58px 10px 28px;box-sizing:border-box;-webkit-overflow-scrolling:touch";
+  const close=document.createElement("button");
+  close.type="button";
+  close.className="media-lightbox-close";
+  close.textContent="✕ Close";
+  close.style.cssText="position:fixed;z-index:2;top:10px;right:12px;background:#172033;color:#fff;border:0;border-radius:8px;padding:11px 16px;font-size:15px";
+  close.addEventListener("click",()=>viewer.remove());
+  const paper=document.createElement("article");
+  paper.className="lesson-pdf-source lesson-reading-paper";
+  paper.style.cssText="box-sizing:border-box;width:100%;max-width:794px;min-height:100%;margin:0 auto;background:#fff;color:#171717;padding:clamp(22px,5vw,58px);box-shadow:0 2px 14px rgba(0,0,0,.14);font-family:Arial,sans-serif;font-size:16px;line-height:1.65;overflow-wrap:anywhere";
+  const heading=document.createElement("h1");
+  heading.textContent=lesson.title||"Written lesson";
+  heading.style.cssText="color:#111827;font-size:clamp(24px,5vw,34px);line-height:1.2;margin:0 0 18px";
+  paper.append(heading);
+  if(lesson.topic||lesson.section){
+    const meta=document.createElement("div");
+    meta.style.cssText="color:#596579;font-size:13px;border-bottom:1px solid #e5e7eb;padding-bottom:14px;margin-bottom:22px";
+    meta.textContent=[lesson.topic,lesson.section].filter(Boolean).join(" • ");
+    paper.append(meta);
+  }
+  if(lesson.learningOutcomes){
+    const outcomes=document.createElement("section");
+    outcomes.style.cssText="background:#f3f7ff;border-left:4px solid #356ac3;padding:14px 16px;margin:0 0 24px;color:#172033";
+    const label=document.createElement("h2");
+    label.textContent="What you will learn";
+    label.style.cssText="font-size:19px;margin:0 0 8px";
+    const outcomeContent=document.createElement("div");
+    outcomeContent.innerHTML=formatLessonContent(lesson.learningOutcomes);
+    outcomes.append(label,outcomeContent);
+    paper.append(outcomes);
+  }
+  const content=document.createElement("section");
+  content.className="lesson-pdf-content";
+  content.innerHTML=formatLessonContent(lesson.content||"");
+  paper.append(content);
+  const style=document.createElement("style");
+  style.textContent="#lessonMediaViewer .lesson-reading-paper *{max-width:100%;box-sizing:border-box}#lessonMediaViewer .lesson-reading-paper img{height:auto;max-width:100%;object-fit:contain}#lessonMediaViewer .lesson-reading-paper table{width:100%;border-collapse:collapse;display:block;overflow-x:auto}#lessonMediaViewer .lesson-reading-paper td,#lessonMediaViewer .lesson-reading-paper th{border:1px solid #cbd5e1;padding:7px;text-align:left}#lessonMediaViewer .lesson-reading-paper h1,#lessonMediaViewer .lesson-reading-paper h2,#lessonMediaViewer .lesson-reading-paper h3{line-height:1.3}#lessonMediaViewer .lesson-reading-paper a{color:#175ac6;text-decoration:underline}";
+  inner.append(close,style,paper);
+  viewer.append(inner);
+  document.body.append(viewer);
 }
-
+ 
 async function loadPdfJsLibrary(){
   if(window.pdfjsLib)return window.pdfjsLib;
   if(window.__mtrPdfJsLoading)return window.__mtrPdfJsLoading;
