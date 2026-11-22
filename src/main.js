@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import admin from "firebase-admin";
 
 const APP_URL = "https://shuaibuidi.github.io/MOBILE-TECH-ROOM/";
+const PAYCHANGU_FUNCTION_URL = "https://starter-function-52z5.sgp.appwrite.run";
 const CURRENCY = "MWK";
 const PAYCHANGU_PAYMENT_URL = "https://api.paychangu.com/payment";
 const PAYCHANGU_VERIFY_URL = "https://api.paychangu.com/verify-payment/";
@@ -133,8 +134,8 @@ async function createCheckout({ req, res, log }) {
         email: String(user.email || decoded.email || ""),
         first_name: firstName,
         last_name: lastName,
-        callback_url: APP_URL + "?payment=return",
-        return_url: APP_URL + "?payment=cancelled",
+        callback_url: PAYCHANGU_FUNCTION_URL + "?action=webhook",
+        return_url: APP_URL + "?payment=return",
         tx_ref: txRef,
         customization: {
           title: "Mobile Tech Room",
