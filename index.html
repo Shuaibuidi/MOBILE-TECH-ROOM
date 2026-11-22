@@ -1868,6 +1868,58 @@ body.login-mode #authPanel:after{font-size:clamp(12px,1.8vw,15px)!important;padd
 .support-chat-unread-divider{display:flex;justify-content:center;margin:15px 0}
 .support-chat-unread-divider span{padding:5px 11px;border-radius:12px;background:#fff3cd;border:1px solid #e7d38c;color:#69500a;font-size:9px;font-weight:900;letter-spacing:.6px;box-shadow:0 1px 3px #0001}
 </style>
+
+<style id="support-chat-mobile-layout-fix">
+/* Keep the community conversation inside its own viewport and above fixed navigation. */
+.support-chat-shell{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+}
+.support-chat-history{flex:0 0 auto;position:relative;z-index:1}
+.support-chat-messages{
+  flex:1 1 auto;
+  min-width:0;
+  min-height:180px;
+  max-height:none;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+  scroll-behavior:auto;
+  padding-bottom:22px;
+}
+.support-chat-compose{
+  position:relative;
+  z-index:2;
+  flex:0 0 auto;
+  width:100%;
+  box-sizing:border-box;
+  padding-bottom:max(10px, env(safe-area-inset-bottom, 0px));
+}
+.support-chat-compose textarea{min-width:0;max-height:110px}
+@media(max-width:999px){
+  #page:has(.support-chat-shell){min-width:0}
+  .support-chat-shell{
+    height:clamp(380px, calc(100dvh - 550px), 900px);
+    max-height:calc(100dvh - 170px);
+    box-sizing:border-box;
+  }
+  .support-chat-messages{min-height:0;max-height:none!important}
+}
+@media(max-width:520px){
+  .support-chat-shell{margin:0!important}
+  .support-chat-messages{padding:12px 8px 24px!important}
+  .support-chat-compose{padding:9px 9px max(10px, env(safe-area-inset-bottom, 0px))!important}
+}
+@media(min-width:1000px){
+  .support-chat-shell{min-height:560px}
+  .support-chat-messages{max-height:65vh}
+}
+</style>
+
 </head>
 <body class="login-mode">
 
