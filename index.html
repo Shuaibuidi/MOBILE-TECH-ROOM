@@ -3845,7 +3845,7 @@ try{
    html+="<label class='muted'>Assessment and certificate</label><textarea id='overviewAssessment' placeholder='Explain quizzes, practical work, final assessment and certificate requirements'></textarea>";
    
    html+="<label class='muted'>Course access</label><select id='courseAccess'><option value='free'>Free</option><option value='paid'>Paid</option></select>";
-   html+="<div id='coursePriceField' class='hidden'><label class='muted'>Course fee (MK)</label><input id='coursePrice' type='number' min='1' step='1' placeholder='e.g. 25000'></div>";
+   html+="<div id='coursePriceField' class='hidden'><label class='muted'>Course fee Monthly (MK)</label><input id='coursePrice' type='number' min='1' step='1' placeholder='e.g. 25000'></div>";
    html+="<button type='submit'>Save Course Information</button></form></section>";
    html+="<section class='panel'><h3>Lessons</h3><p class='muted'>Choose a saved course, then add a lesson. Saving a lesson will not overwrite course information.</p><form id='lessonOnlyForm'>";
    html+="<label class='muted'>Choose course</label><select id='lessonCourseSelect' required><option value=''>Choose a course</option>"+courses.map(c=>"<option value='"+safe(c.id)+"'>"+safe(c.title)+"</option>").join("")+"</select>";
@@ -4506,7 +4506,7 @@ const translations={
 "Course access":"Mwayi wolowa muphunziro",
 "Free":"Zaulere",
 "Paid":"Lolipidwa",
-"Course fee (MK)":"Ndalama za phunziro (MK)",
+"Course fee Monthly (MK)":"Ndalama za phunziro pamwezi (MK)",
 "e.g. 25000":"mwachitsanzo, 25000",
 "Save Course Information":"Sungani Zambiri za Phunziro",
 "Lessons":"Maphunziro",
