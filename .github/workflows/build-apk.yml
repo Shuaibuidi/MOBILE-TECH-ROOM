@@ -63,13 +63,25 @@ jobs:
           npx esbuild www/app.js --bundle --format=esm --platform=browser --target=es2020 '--external:https://*' --outfile=www/app.bundle.js
           rm www/app.js
 
-      - name: Create Android project
+      - name: Create Android project using the existing app identity
         run: |
-          npx cap init "Mobile Tech Room" "com.shuaibuidi.mobiletechroom" --web-dir www
+          # This workflow builds the bundled app. Move the TypeScript config out of
+          # Capacitor's config lookup so cap add does not try to initialise over it.
+          mv capacitor.config.ts capacitor.config.ts.source
+          cat > capacitor.config.json <<'JSON'
+          {
+            "appId": "mw.siatech.mobiletechroom",
+            "appName": "Mobile Tech Room",
+            "webDir": "www"
+          }
+          JSON
           npx cap add android
 
       - name: Generate Android app icon
-        run: npx capacitor-assets generate --android
+        run: |
+          mkdir -p assets
+          cp Mobile_Tech_Room_icon.png assets/icon.png
+          npx capacitor-assets generate --android
 
       - name: Synchronize native plugins
         run: npx cap sync android
