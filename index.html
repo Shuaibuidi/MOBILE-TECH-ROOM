@@ -1845,6 +1845,10 @@ body.login-mode #authPanel:after{font-size:clamp(12px,1.8vw,15px)!important;padd
 .support-chat-history button:disabled{opacity:.55}
 .support-chat-header{background:#075e54!important}
 </style>
+<style id="support-unread-divider-theme">
+.support-chat-unread-divider{display:flex;justify-content:center;margin:15px 0}
+.support-chat-unread-divider span{padding:5px 11px;border-radius:12px;background:#fff3cd;border:1px solid #e7d38c;color:#69500a;font-size:9px;font-weight:900;letter-spacing:.6px;box-shadow:0 1px 3px #0001}
+</style>
 </head>
 <body class="login-mode">
 
@@ -2928,8 +2932,20 @@ function renderSupportMessages(){
     const at=a.createdAt?.toMillis?.()||0,bt=b.createdAt?.toMillis?.()||0;
     return at-bt;
   });
+  const lastRead=supportReadState?.lastReadAt;
+  let unreadDividerAdded=false;
+  const rendered=ordered.map(message=>{
+    const unread=message.senderId!==currentUser.uid&&message.createdAt&&
+      (!lastRead||message.createdAt.toMillis()>lastRead.toMillis());
+    let divider="";
+    if(unread&&!unreadDividerAdded){
+      divider='<div class="support-chat-unread-divider"><span>NEW / UNREAD MESSAGES</span></div>';
+      unreadDividerAdded=true;
+    }
+    return divider+supportMessageMarkup(message);
+  }).join("");
   area.innerHTML=ordered.length
-    ?ordered.map(supportMessageMarkup).join("")
+    ?rendered
     :'<div class="support-chat-empty">👋 Welcome! Start the conversation with the Mobile Tech Room community.</div>';
   area.scrollTop=area.scrollHeight;
 }
