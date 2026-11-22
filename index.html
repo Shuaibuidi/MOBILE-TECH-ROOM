@@ -3149,7 +3149,6 @@ try{
    const access=$("courseAccess"),priceField=$("coursePriceField"),price=$("coursePrice");
    const syncPrice=()=>{if(access&&priceField){const paid=access.value==="paid";priceField.classList.toggle("hidden",!paid);if(price)price.required=paid;}};
    access?.addEventListener("change",syncPrice);syncPrice();
-   bindRichTextEditor("lessonOutcomes","lessonOutcomesToolbar");
    let savedCourseId="";
    const courseInfoSelect=$("courseInfoSelect");
    courseInfoSelect.onchange=()=>{
