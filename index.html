@@ -2694,59 +2694,6 @@ input::placeholder,textarea::placeholder{color:#9aaac0!important}
 </style></head><body><main class="sheet"><header class="brand"><div class="brand-name">MOBILE TECH ROOM</div><div class="brand-tag">LEARN • REPAIR • INNOVATE</div></header>
 <p class="kicker">MOBILE TECH LESSON</p><h1>${safe(cleanTitle)}</h1><article>${content}</article></main>
 
-<!-- Mobile navigation: show exactly four complete items; swipe horizontally for the rest. -->
-<style>
-@media (max-width:999px){
-  #mobileBottomNav{
-    display:flex!important;
-    flex-direction:row!important;
-    flex-wrap:nowrap!important;
-    justify-content:flex-start!important;
-    align-items:stretch!important;
-    gap:6px!important;
-    overflow-x:auto!important;
-    overflow-y:hidden!important;
-    overscroll-behavior-x:contain!important;
-    -webkit-overflow-scrolling:touch!important;
-    scroll-snap-type:x proximity!important;
-    scrollbar-width:none!important;
-    padding:8px 9px calc(8px + env(safe-area-inset-bottom,0px))!important;
-  }
-  #mobileBottomNav::-webkit-scrollbar{display:none!important}
-  #mobileBottomNav button{
-    flex:0 0 calc((100% - 18px)/4)!important;
-    width:calc((100% - 18px)/4)!important;
-    min-width:calc((100% - 18px)/4)!important;
-    max-width:calc((100% - 18px)/4)!important;
-    min-height:66px!important;
-    height:auto!important;
-    padding:7px 4px!important;
-    margin:0!important;
-    overflow:visible!important;
-    white-space:normal!important;
-    text-align:center!important;
-    scroll-snap-align:start!important;
-    line-height:1.2!important;
-  }
-  #mobileBottomNav button .bottom-nav-icon{
-    flex:0 0 auto!important;
-    line-height:1.1!important;
-  }
-  #mobileBottomNav button > span:last-child{
-    display:block!important;
-    width:100%!important;
-    max-width:100%!important;
-    white-space:normal!important;
-    overflow:visible!important;
-    text-overflow:clip!important;
-    overflow-wrap:anywhere!important;
-    word-break:normal!important;
-    font-size:clamp(9px,2.8vw,11px)!important;
-    line-height:1.2!important;
-  }
-}
-</style>
-
 </body></html>`;
 
   // Capacitor Android: use the native Android Print Framework, not window.print().
@@ -4618,6 +4565,53 @@ document.addEventListener("mtr-language-change",e=>{if(!e.detail)return;});
 window.MTRLanguage={get:()=>language,set:setLanguage};
 })();
 </script>
+
+
+<!-- Mobile navigation: four visible items, with the remaining items available by horizontal swipe. -->
+<style id="mobile-four-item-navigation">
+@media (max-width:999px){
+  #navigation{display:none!important}
+  #mobileBottomNav{
+    display:flex!important;position:fixed!important;
+    left:0!important;right:0!important;bottom:0!important;top:auto!important;
+    z-index:10000!important;box-sizing:border-box!important;
+    width:100%!important;max-width:100vw!important;
+    flex-direction:row!important;flex-wrap:nowrap!important;
+    align-items:stretch!important;justify-content:flex-start!important;
+    gap:0!important;margin:0!important;
+    padding:8px 9px calc(8px + env(safe-area-inset-bottom,0px))!important;
+    overflow-x:auto!important;overflow-y:hidden!important;
+    overscroll-behavior-x:contain!important;-webkit-overflow-scrolling:touch!important;
+    scroll-snap-type:x mandatory!important;scrollbar-width:none!important;
+    background:#fff!important;border-top:1px solid #dce7f5!important;
+    box-shadow:0 -8px 28px rgba(10,35,70,.18)!important;
+  }
+  #mobileBottomNav::-webkit-scrollbar{display:none!important}
+  #mobileBottomNav button{
+    box-sizing:border-box!important;flex:0 0 25%!important;
+    width:25%!important;min-width:25%!important;max-width:25%!important;
+    min-height:66px!important;height:auto!important;
+    display:flex!important;flex-direction:column!important;
+    align-items:center!important;justify-content:center!important;
+    gap:4px!important;margin:0!important;padding:7px 3px!important;
+    overflow:visible!important;white-space:normal!important;
+    text-align:center!important;line-height:1.2!important;scroll-snap-align:start!important;
+    border:1px solid transparent!important;border-radius:13px!important;
+    background:#edf4ff!important;color:#174a8b!important;
+    box-shadow:none!important;font-size:11px!important;font-weight:800!important;
+  }
+  #mobileBottomNav button.active{background:linear-gradient(135deg,#075bea,#078de8)!important;color:#fff!important;border-color:#075bea!important}
+  #mobileBottomNav .bottom-nav-icon{display:block!important;flex:0 0 auto!important;font-size:23px!important;line-height:1!important}
+  #mobileBottomNav button > span:last-child{
+    display:block!important;width:100%!important;max-width:100%!important;
+    white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
+    overflow-wrap:anywhere!important;word-break:normal!important;
+    font-size:clamp(9px,2.8vw,11px)!important;line-height:1.2!important;
+  }
+  body{padding-bottom:calc(91px + env(safe-area-inset-bottom,0px))!important}
+}
+@media(min-width:1000px){#mobileBottomNav{display:none!important}}
+</style>
 
 </body>
 </html>
