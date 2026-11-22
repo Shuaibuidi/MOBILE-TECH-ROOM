@@ -211,7 +211,7 @@ async function handleWebhook({ req, res, log }) {
     String(data.tx_ref || "") === txRef &&
     String(data.currency || "").toUpperCase() === payment.currency &&
     Number.isFinite(verifiedAmount) &&
-    verifiedAmount >= Number(payment.amount);
+    verifiedAmount === Number(payment.amount);
 
   if (!isValid) {
     log("PayChangu transaction verification did not match expected payment: " + txRef);
