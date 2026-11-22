@@ -1169,16 +1169,20 @@ hr{border-color:#263f60!important}
   #navigation button{flex:0 0 auto!important;min-width:125px!important}
   .mobile-bottom-nav{
     position:fixed!important;left:0!important;right:0!important;bottom:0!important;z-index:3000!important;
-    display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
-    gap:0!important;padding:8px 8px calc(8px + env(safe-area-inset-bottom))!important;
+    display:flex!important;flex-direction:row!important;align-items:stretch!important;justify-content:flex-start!important;
+    gap:4px!important;padding:8px 8px calc(8px + env(safe-area-inset-bottom))!important;
+    overflow-x:auto!important;overflow-y:hidden!important;white-space:nowrap!important;
+    -webkit-overflow-scrolling:touch!important;scrollbar-width:none!important;
     background:rgba(255,255,255,.98)!important;border-top:1px solid #dce7f5!important;
     box-shadow:0 -6px 22px rgba(15,45,85,.10)!important;
   }
+  .mobile-bottom-nav::-webkit-scrollbar{display:none!important}
   .mobile-bottom-nav button{
-    display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
-    gap:2px!important;min-width:0!important;min-height:55px!important;margin:0!important;padding:5px 2px!important;
+    display:flex!important;flex:0 0 76px!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+    gap:2px!important;min-width:76px!important;min-height:55px!important;margin:0!important;padding:5px 3px!important;
+    white-space:normal!important;text-align:center!important;line-height:1.15!important;overflow:hidden!important;
     background:transparent!important;color:#243b5b!important;border:0!important;border-radius:10px!important;
-    box-shadow:none!important;font-size:11px!important;font-weight:700!important;
+    box-shadow:none!important;font-size:10px!important;font-weight:700!important;
   }
   .mobile-bottom-nav button.active{background:#edf4ff!important;color:#075bea!important}
   .bottom-nav-icon{font-size:23px!important;line-height:1.15!important;font-weight:900!important}
@@ -4457,10 +4461,11 @@ await changeUser(id,{role:"student",status:"approved"},"Instructor permissions r
 
 <!-- English / Chichewa language support -->
 <style>
-#mtrLanguageControl{position:fixed;right:14px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:200000;display:flex;align-items:center;gap:7px;padding:8px 10px;background:#061a31;border:1px solid #28b9df;border-radius:14px;box-shadow:0 8px 24px #0008;color:#fff;font:700 12px Arial,sans-serif}
+#mtrLanguageControl{position:fixed;right:14px;bottom:16px;z-index:200000;display:flex;align-items:center;gap:7px;padding:8px 10px;background:#061a31;border:1px solid #28b9df;border-radius:14px;box-shadow:0 8px 24px #0008;color:#fff;font:700 12px Arial,sans-serif;max-width:calc(100vw - 20px)}
 #mtrLanguageControl label{white-space:nowrap}
-#mtrLanguageControl select{width:auto;min-width:112px;margin:0;padding:8px 26px 8px 9px;background:#102b49;color:#fff;border:1px solid #3989b7;border-radius:9px;font-size:12px}
-@media(max-width:420px){#mtrLanguageControl{right:9px;bottom:calc(10px + env(safe-area-inset-bottom));padding:6px 8px}#mtrLanguageControl select{min-width:98px}}
+#mtrLanguageControl select{width:auto;min-width:112px;max-width:46vw;margin:0;padding:8px 26px 8px 9px;background:#102b49;color:#fff;border:1px solid #3989b7;border-radius:9px;font-size:12px}
+@media(max-width:999px){#mtrLanguageControl{right:10px;bottom:calc(82px + env(safe-area-inset-bottom));padding:7px 9px}}
+@media(max-width:420px){#mtrLanguageControl{right:9px;bottom:calc(78px + env(safe-area-inset-bottom));padding:6px 8px;gap:5px}#mtrLanguageControl label{font-size:11px}#mtrLanguageControl select{min-width:94px;font-size:11px}}
 </style>
 <script>
 (function(){
@@ -4475,7 +4480,70 @@ const translations={
 "Quiz":"Mafunso Oyesa","Exam":"Mayeso","Questions":"Mafunso","Question":"Funso","Answers":"Mayankho","Answer":"Yankho","Submit Answer":"Tumizani Yankho","Submit Quiz":"Tumizani Mayeso","Your Score":"Zotsatira Zanu","Retake Quiz":"Yesaninso","Time Remaining":"Nthawi Yotsala","No quizzes available.":"Palibe mayeso omwe alipo.",
 "Learning Support Room":"Chipinda cha Thandizo la Maphunziro","Ask a Question":"Funsani Funso","Send Message":"Tumizani Uthenga","Type your message...":"Lembani uthenga wanu...","No messages yet.":"Palibe mauthenga pano.","Load older messages":"Onetsani mauthenga akale","Close Chat":"Tsekani Chat","Pinned":"Yakhomedwa","Resolved":"Yathetsedwa","Unresolved":"Sinathe kuthetsedwa","Reply":"Yankhani","Send":"Tumizani",
 "Payment":"Malipiro","Pay Now":"Lipirani Tsopano","Payment successful":"Malipiro achitika bwino","Payment failed":"Malipiro alephera","Payment Instructions":"Malangizo a Malipiro","Price":"Mtengo","Free":"Zaulere","Paid":"Zolipidwa","MK":"MK",
-"Dashboard totals could not be refreshed:":"Zambiri za tsamba lalikulu zalephera kusinthidwa:","Only the administrator can edit lessons.":"Ndi woyang'anira yekha amene angasinthe maphunziro.","Only the administrator can delete lessons.":"Ndi woyang'anira yekha amene angachotse maphunziro.","Only the administrator can edit lesson topics.":"Ndi woyang'anira yekha amene angasinthe mitu ya maphunziro.","Please enter a valid HTTPS learning link.":"Chonde lembani ulalo wolondola wa HTTPS.","Write the lesson content before saving.":"Lembani zomwe zili muphunziro musanasunge.","This lesson is too large. Please reduce the text or number of images.":"Phunziroli ndi lalikulu kwambiri. Chepetsani mawu kapena zithunzi."
+"Dashboard totals could not be refreshed:":"Zambiri za tsamba lalikulu zalephera kusinthidwa:","Only the administrator can edit lessons.":"Ndi woyang'anira yekha amene angasinthe maphunziro.","Only the administrator can delete lessons.":"Ndi woyang'anira yekha amene angachotse maphunziro.","Only the administrator can edit lesson topics.":"Ndi woyang'anira yekha amene angasinthe mitu ya maphunziro.","Please enter a valid HTTPS learning link.":"Chonde lembani ulalo wolondola wa HTTPS.","Write the lesson content before saving.":"Lembani zomwe zili muphunziro musanasunge.","This lesson is too large. Please reduce the text or number of images.":"Phunziroli ndi lalikulu kwambiri. Chepetsani mawu kapena zithunzi.",
+"Language / Chinenero":"Chinenero","Choose language":"Sankhani chinenero",
+"Courses and Lessons":"Maphunziro ndi Mitu yake",
+"Course information and lesson content are managed and saved separately.":"Zambiri za maphunziro ndi zomwe zili m'maphunziro zimasamalidwa ndi kusungidwa mosiyana.",
+"Course Information":"Zambiri za Phunziro",
+"Create or update the course details here. Saving this form does not create or change any lesson.":"Pangani kapena sinthani zambiri za phunziro pano. Kusunga fomuyi sikupanga kapena kusintha phunziro lililonse.",
+"Choose course to edit (or create a new one)":"Sankhani phunziro loti musinthe (kapena pangani latsopano)",
+"＋ Create new course":"＋ Pangani phunziro latsopano",
+"Course name":"Dzina la phunziro",
+"Course description":"Kufotokozera za phunziro",
+"e.g. Phone Flashing and Unlocking":"mwachitsanzo, Kukonzanso ndi Kutsegula Mafoni",
+"Explain what this course is about and who it is for":"Fotokozani zomwe phunziroli likuphunzitsa komanso anthu amene liyenera kuwathandiza",
+"Student Learning Support":"Thandizo la Ophunzira",
+"How students will learn":"Mmene ophunzira adzaphunzirire",
+"Explain notes, practical demonstrations, video links and assignments":"Fotokozani za zolemba, ziwonetsero za ntchito, maulalo a makanema ndi ntchito zophunzira",
+"Skills students will gain":"Maluso amene ophunzira adzapeze",
+"List the practical skills and knowledge students will gain":"Lembani maluso ndi chidziwitso chimene ophunzira adzapeze",
+"Course requirements":"Zofunikira pa phunziro",
+"Explain what students need before joining":"Fotokozani zomwe ophunzira ayenera kukhala nazo asanayambe",
+"Assessment and certificate":"Mayeso ndi Satifiketi",
+"Explain quizzes, practical work, final assessment and certificate requirements":"Fotokozani za mafunso oyesa, ntchito zenizeni, mayeso omaliza ndi zofunikira zopezera satifiketi",
+"Course access":"Mwayi wolowa muphunziro",
+"Free":"Zaulere",
+"Paid":"Lolipidwa",
+"Course fee (MK)":"Ndalama za phunziro (MK)",
+"e.g. 25000":"mwachitsanzo, 25000",
+"Save Course Information":"Sungani Zambiri za Phunziro",
+"Lessons":"Maphunziro",
+"Choose a saved course, then add a lesson. Saving a lesson will not overwrite course information.":"Sankhani phunziro lomwe lasungidwa, kenako onjezani phunziro laling'ono. Kusunga phunziro laling'ono sikusintha zambiri za phunziro lalikulu.",
+"Choose course":"Sankhani phunziro",
+"Choose a course":"Sankhani phunziro",
+"Lesson title":"Mutu wa phunziro",
+"e.g. Introduction to Phone Flashing":"mwachitsanzo, Chiyambi cha Kukonzanso Mafoni",
+"Topic":"Mutu",
+"e.g. Flashing basics":"mwachitsanzo, Zoyambira pa kukonzanso mafoni",
+"Section":"Gawo",
+"e.g. Introduction, Tools, Practical Steps":"mwachitsanzo, Chiyambi, Zida, Njira Zogwirira Ntchito",
+"What students will learn in this lesson":"Zomwe ophunzira adzaphunzire muphunziroli",
+"Describe the skills and knowledge students will gain...":"Fotokozani maluso ndi chidziwitso chimene ophunzira adzapeze...",
+"Full written lesson":"Phunziro lonse lolembedwa",
+"Formatting • tables • images • page design":"Kapangidwe ka mawu • matebulo • zithunzi • masanjidwe a tsamba",
+"Start writing your lesson here...":"Yambani kulemba phunziro lanu pano...",
+"Video or Audio Link (Optional)":"Ulalo wa Kanema kapena Audio (ngati mukufuna)",
+"Paste a YouTube, video or audio link":"Ikani ulalo wa YouTube, kanema kapena audio",
+"PDF uploads have been replaced with written lessons. Students read a protected PDF-style version inside the app.":"Kuyika ma PDF kwasinthidwa kukhala maphunziro olembedwa. Ophunzira amawerenga maphunzirowa mkati mwa pulogalamuyi m'njira yotetezeka.",
+"Save Written Lesson":"Sungani Phunziro Lolembedwa",
+"Explore Courses":"Onani Maphunziro",
+"Read the course information before enrolling. Lesson materials remain locked until payment is confirmed.":"Werengani zambiri za phunziro musanalembetse. Zophunzirira zimatsegulidwa pokhapokha malipiro atatsimikiziridwa.",
+"No courses are available yet.":"Palibe maphunziro omwe alipo pano.",
+"More Courses":"Maphunziro Ena",
+"View Course":"Onani Phunziro",
+"Enter the course name.":"Lembani dzina la phunziro.",
+"Enter a valid course fee.":"Lembani ndalama zolondola za phunziro.",
+"Course":"Phunziro",
+"Home":"Kunyumba",
+"Dashboard":"Mwachidule",
+"Students":"Ophunzira",
+"Quizzes":"Mafunso",
+"Support":"Thandizo",
+"Progress":"Chitukuko",
+"About":"Za Pulogalamuyi",
+"Account":"Akaunti",
+"Notifications":"Zidziwitso"
+
 };
 const reverse=new Map(Object.entries(translations).map(([en,ny])=>[ny,en]));
 let language=localStorage.getItem(KEY)==="ny"?"ny":"en";
