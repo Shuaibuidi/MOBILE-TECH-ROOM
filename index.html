@@ -1626,6 +1626,40 @@ footer{color:#71839a!important}
 .quiz-student-submit{width:100%;max-width:420px;display:block;margin:20px auto 4px!important;padding:15px 20px!important;border-radius:14px!important;background:linear-gradient(100deg,#2449b5,#5275e8)!important;box-shadow:0 9px 20px rgba(49,91,214,.2)!important;font-size:15px!important;font-weight:850!important}.quiz-student-back{border-radius:11px!important}
 @media(max-width:520px){.quiz-options-editor{grid-template-columns:1fr}.quiz-student-hero{padding:19px!important;border-radius:18px!important}.quiz-student-question{padding:14px!important}.quiz-answer{padding:12px!important;font-size:14px!important}}
 
+
+/* Lightweight course-based Learning Support Room */
+.support-hero{background:linear-gradient(130deg,#123c70,#087f8c);border:1px solid #278da0;border-radius:16px;padding:22px;margin-bottom:14px}
+.support-hero h2{font-size:clamp(23px,5vw,30px);margin:7px 0;color:#fff}
+.support-hero p{margin:0;color:#d9f5f4;line-height:1.55}
+.support-eyebrow{font-size:11px;letter-spacing:1.5px;font-weight:800;color:#a8f0e7}
+.support-room-panel{padding:clamp(13px,3vw,20px)}
+.support-room-intro{padding:12px 14px;margin:12px 0;background:#203954;border:1px solid #405675;border-radius:10px}
+.support-room-intro p{margin:5px 0 0}
+.support-compose{padding:14px;margin:14px 0;background:#142943;border:1px solid #385879;border-radius:12px}
+.support-compose label,.support-room-panel>label{display:block;font-weight:700;margin-top:8px}
+.support-compose textarea{min-height:85px}
+.support-compose button{width:100%;margin:8px 0 0;min-height:45px}
+.support-list-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:22px}
+.support-list-heading h3{margin:0}
+.support-question-card{background:#203954;border:1px solid #405675;border-radius:12px;padding:14px;margin:11px 0;overflow-wrap:anywhere}
+.support-question-card h4,.support-question-card h3{margin:8px 0;color:#fff}
+.support-question-card p,.support-reply p{white-space:pre-wrap;line-height:1.55;overflow-wrap:anywhere}
+.support-question-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.support-author{font-weight:800;color:#8ce9dc}
+.support-date{font-size:11px;color:#b9c8d9}
+.support-question-meta,.support-admin-tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.support-resolved{background:#155d49!important;color:#b9ffe4!important}
+.support-question-card>button{width:100%;margin:8px 0 2px}
+.support-admin-tools{margin-top:8px}
+.support-admin-tools button{flex:1}
+.support-empty{text-align:center;padding:25px 12px;background:#203954;border:1px dashed #55708f;border-radius:12px}
+.support-empty>span{font-size:30px}
+.support-reply{padding:12px;margin:9px 0;border-radius:10px;background:#203954;border:1px solid #405675}
+.support-admin-reply{border-color:#2b9b8b;background:#193d4a}
+.support-thread-question{border-color:#328e9a}
+.support-loading{min-height:150px}
+@media(max-width:520px){.support-hero{padding:17px}.support-question-card{padding:12px}.support-date{font-size:10px}}
+
 </style>
 <style>
 .quiz-card,.quiz-question-editor,.quiz-question{background:#08264b;border:1px solid #1b5689;border-radius:12px;padding:14px;margin:12px 0}
@@ -1819,7 +1853,7 @@ onAuthStateChanged,signOut,updateProfile
 import {
 getFirestore,doc,getDoc,setDoc,collection,
 getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,
-query,where
+query,where,orderBy,limit
 } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 
 
@@ -2712,11 +2746,11 @@ page.innerHTML=`<div class="panel">Unable to load account: ${safe(e.message)}</d
 
 function buildNavigation(){
 let tabs=[];
-if(isAdmin())tabs=["dashboard","students","lessons","quizzes","notifications","account"];
+if(isAdmin())tabs=["dashboard","students","lessons","quizzes","support","notifications","account"];
 else if(isInstructor())tabs=["dashboard","lessons","quizzes"];
-else if(isStudent())tabs=["dashboard","lessons","quizzes"];
+else if(isStudent())tabs=["dashboard","lessons","quizzes","support"];
 
-const labels={dashboard:"⌂  Dashboard",students:"♙  Students",lessons:"▣  My Courses",quizzes:"☑  Quizzes & Exams",notifications:"🔔  Notifications",account:"◉  Account"};
+const labels={dashboard:"⌂  Dashboard",students:"♙  Students",lessons:"▣  My Courses",quizzes:"☑  Quizzes & Exams",notifications:"🔔  Notifications",support:"💬  Learning Support",account:"◉  Account"};
 $("navigation").innerHTML=tabs.map(t=>
 `<button class="${currentTab===t?"active":"secondary"}" data-tab="${t}">${labels[t]||t}</button>`
 ).join("");
@@ -2726,8 +2760,8 @@ $("navigation").innerHTML=tabs.map(t=>
 const bottomNav=$("mobileBottomNav");
 if(bottomNav){
   const mobileTabs=isAdmin()
-    ? [["dashboard","⌂","Dashboard"],["students","♙","Students"],["lessons","▣","Courses"],["quizzes","☑","Quizzes"],["notifications","♧","Alerts"],["account","◉","Account"]]
-    : [["dashboard","⌂","Home"],["lessons","▣","Courses"],["quizzes","☑","Quizzes"],["progress","▥","Progress"],["about","ⓘ","About"]];
+    ? [["dashboard","⌂","Dashboard"],["students","♙","Students"],["lessons","▣","Courses"],["quizzes","☑","Quizzes"],["support","💬","Support"],["notifications","♧","Alerts"],["account","◉","Account"]]
+    : [["dashboard","⌂","Home"],["lessons","▣","Courses"],["quizzes","☑","Quizzes"],["support","💬","Support"],["progress","▥","Progress"],["about","ⓘ","About"]];
   bottomNav.innerHTML=mobileTabs.map(([tab,icon,label])=>
     `<button type="button" data-dashboard-tab="${tab}" aria-label="${label}"><span class="bottom-nav-icon">${icon}</span><span>${label}</span></button>`
   ).join("");
@@ -2777,6 +2811,143 @@ function applyGlobalCourseSearch(){
   candidates.forEach(item=>item.classList.toggle("hidden",!!term&&!item.innerText.toLowerCase().includes(term)));
 }
 
+
+let supportCourseId="";
+let supportQuestionId="";
+
+function supportDate(value){
+  try{
+    const date=value?.toDate?value.toDate():value?.seconds?new Date(value.seconds*1000):value?new Date(value):null;
+    return date&&!Number.isNaN(date.getTime())?date.toLocaleString():"Just now";
+  }catch(_){return "Just now";}
+}
+function supportAuthorLabel(item){
+  return item.role==="admin"?"Admin":(item.authorName||"Student");
+}
+async function getSupportCourses(){
+  await loadCourses();
+  if(isAdmin())return courses;
+  if(!isStudent())return [];
+  const snap=await getDocs(collection(db,"users",currentUser.uid,"enrollments"));
+  const active=new Set(snap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
+  return courses.filter(c=>c.accessType!=="paid"||active.has(c.id));
+}
+async function renderLearningSupportRoom(){
+  page.innerHTML='<section class="panel support-loading"><h2>💬 Learning Support Room</h2><p class="muted">Loading your course support rooms…</p></section>';
+  try{
+    const available=await getSupportCourses();
+    if(!currentUser||( !isAdmin()&&!isStudent()))return;
+    if(!available.length){
+      page.innerHTML='<section class="panel"><h2>💬 Learning Support Room</h2><p class="muted">There are no available course rooms yet. Enrol in a course to join its learning discussions.</p></section>';
+      return;
+    }
+    if(!supportCourseId||!available.some(c=>c.id===supportCourseId))supportCourseId=available[0].id;
+    page.innerHTML=`
+      <section class="support-hero">
+        <span class="support-eyebrow">LEARN TOGETHER</span>
+        <h2>💬 Learning Support Room</h2>
+        <p>Ask questions, share solutions and get help from the admin and fellow students.</p>
+      </section>
+      <section class="panel support-room-panel">
+        <label for="supportCourseSelect">Choose a course discussion</label>
+        <select id="supportCourseSelect">${available.map(c=>'<option value="'+safe(c.id)+'" '+(c.id===supportCourseId?'selected':'')+'>'+safe(c.title)+'</option>').join("")}</select>
+        <div class="support-room-intro"><strong>${safe(available.find(c=>c.id===supportCourseId)?.title||"Course discussion")}</strong><p class="muted">Keep questions related to this course so everyone can find useful answers.</p></div>
+        <form id="supportQuestionForm" class="support-compose">
+          <label for="supportQuestionTitle">Your question</label>
+          <input id="supportQuestionTitle" maxlength="120" placeholder="e.g. How do I identify the phone test point?" required>
+          <label for="supportQuestionBody">Explain what you need help with</label>
+          <textarea id="supportQuestionBody" maxlength="2500" rows="4" placeholder="Describe the lesson or step you are having difficulty with…" required></textarea>
+          <button type="submit">Post Question</button>
+        </form>
+        <div class="support-list-heading"><h3>Course discussions</h3><span class="tag">Latest 30</span></div>
+        <div id="supportQuestionList" class="support-question-list"><p class="muted">Loading discussions…</p></div>
+      </section>`;
+    $("supportCourseSelect").addEventListener("change",async e=>{supportCourseId=e.target.value;supportQuestionId="";await renderLearningSupportRoom();});
+    await loadSupportQuestions();
+  }catch(error){
+    page.innerHTML='<section class="panel"><h2>Learning Support Room</h2><p class="error">Could not load support rooms: '+safe(error.message)+'</p><p class="muted">If this is a permissions error, the Firebase Firestore security rules need to allow approved course members and the admin to use the support area.</p><button class="secondary" data-action="retry-support">Try Again</button></section>';
+  }
+}
+async function loadSupportQuestions(){
+  const target=$("supportQuestionList");if(!target||!supportCourseId)return;
+  target.innerHTML='<p class="muted">Loading discussions…</p>';
+  const q=query(collection(db,"courses",supportCourseId,"supportQuestions"),orderBy("createdAt","desc"),limit(30));
+  const snap=await getDocs(q);
+  const items=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{
+    if(!!a.pinned!==!!b.pinned)return a.pinned?-1:1;
+    const at=a.createdAt?.toMillis?.()||0,bt=b.createdAt?.toMillis?.()||0;return bt-at;
+  });
+  if(!items.length){target.innerHTML='<div class="support-empty"><span>💡</span><strong>No questions yet</strong><p class="muted">Be the first to start a helpful discussion for this course.</p></div>';return;}
+  target.innerHTML=items.map(item=>`
+    <article class="support-question-card">
+      <div class="support-question-top"><span class="support-author">${safe(supportAuthorLabel(item))}</span><span class="support-date">${safe(supportDate(item.createdAt))}</span></div>
+      <h4>${safe(item.title||"Student question")}</h4>
+      <p>${safe(item.body||"")}</p>
+      <div class="support-question-meta">${item.pinned?'<span class="tag">📌 Pinned</span>':""}<span class="tag ${item.resolved?'support-resolved':''}">${item.resolved?"✓ Answered":"Open question"}</span></div>
+      <button type="button" data-action="support-open-question" data-id="${safe(item.id)}">Open discussion &amp; replies →</button>
+      ${isAdmin()?'<div class="support-admin-tools"><button type="button" class="secondary" data-action="support-pin" data-id="'+safe(item.id)+'" data-pinned="'+(item.pinned?'true':'false')+'">'+(item.pinned?'Unpin':'Pin')+'</button><button type="button" class="secondary" data-action="support-resolve" data-id="'+safe(item.id)+'" data-resolved="'+(item.resolved?'true':'false')+'">'+(item.resolved?'Reopen':'Mark answered')+'</button></div>':""}
+    </article>`).join("");
+}
+async function renderSupportQuestion(questionId){
+  supportQuestionId=questionId;
+  const base=doc(db,"courses",supportCourseId,"supportQuestions",questionId);
+  const snap=await getDoc(base);
+  if(!snap.exists()){appMessage("This discussion is no longer available.","warning");await loadSupportQuestions();return;}
+  const item={id:snap.id,...snap.data()};
+  const replySnap=await getDocs(query(collection(base,"replies"),orderBy("createdAt","asc"),limit(50)));
+  const replies=replySnap.docs.map(d=>({id:d.id,...d.data()}));
+  const repliesHtml=replies.length?replies.map(r=>`
+    <article class="support-reply ${r.role==='admin'?'support-admin-reply':''}">
+      <div class="support-question-top"><strong>${safe(supportAuthorLabel(r))}</strong><span class="support-date">${safe(supportDate(r.createdAt))}</span></div>
+      <p>${safe(r.text||"")}</p>
+    </article>`).join(""):'<p class="muted">No replies yet. Be the first to help.</p>';
+  page.innerHTML=`
+    <section class="support-hero"><span class="support-eyebrow">COURSE DISCUSSION</span><h2>💬 Learning Support Room</h2><p>Learn from questions and answers shared by your course community.</p></section>
+    <section class="panel support-room-panel">
+      <button type="button" class="secondary" data-action="support-back">← All discussions</button>
+      <article class="support-question-card support-thread-question">
+        <div class="support-question-top"><span class="support-author">${safe(supportAuthorLabel(item))}</span><span class="support-date">${safe(supportDate(item.createdAt))}</span></div>
+        <h3>${safe(item.title||"Student question")}</h3><p>${safe(item.body||"")}</p>
+        <div class="support-question-meta">${item.pinned?'<span class="tag">📌 Pinned</span>':""}<span class="tag ${item.resolved?'support-resolved':''}">${item.resolved?"✓ Answered":"Open question"}</span></div>
+      </article>
+      <h3>Replies (${replies.length})</h3><div class="support-replies">${repliesHtml}</div>
+      <form id="supportReplyForm" class="support-compose">
+        <label for="supportReplyText">Write a helpful reply</label>
+        <textarea id="supportReplyText" maxlength="2000" rows="3" placeholder="Share an explanation or helpful steps…" required></textarea>
+        <button type="submit">Send Reply</button>
+      </form>
+      ${isAdmin()?'<div class="support-admin-tools"><button type="button" class="secondary" data-action="support-pin" data-id="'+safe(item.id)+'" data-pinned="'+(item.pinned?'true':'false')+'">'+(item.pinned?'Unpin question':'Pin question')+'</button><button type="button" class="secondary" data-action="support-resolve" data-id="'+safe(item.id)+'" data-resolved="'+(item.resolved?'true':'false')+'">'+(item.resolved?'Reopen question':'Mark as answered')+'</button></div>':""}
+    </section>`;
+}
+document.addEventListener("submit",async event=>{
+  const form=event.target;
+  if(form.id!=="supportQuestionForm"&&form.id!=="supportReplyForm")return;
+  event.preventDefault();
+  const submit=form.querySelector('button[type="submit"]');if(submit){submit.disabled=true;submit.textContent=form.id==="supportQuestionForm"?"Posting…":"Sending…";}
+  try{
+    if(form.id==="supportQuestionForm"){
+      const title=$("supportQuestionTitle").value.trim(),body=$("supportQuestionBody").value.trim();
+      if(!title||!body)throw new Error("Enter both a question title and its details.");
+      await addDoc(collection(db,"courses",supportCourseId,"supportQuestions"),{
+        title,body,courseId:supportCourseId,authorId:currentUser.uid,
+        authorName:profile?.fullName||currentUser.displayName||currentUser.email||"Student",
+        role:isAdmin()?"admin":"student",pinned:false,resolved:false,createdAt:serverTimestamp()
+      });
+      form.reset();appMessage("Your question has been posted.","success");await loadSupportQuestions();
+    }else{
+      const textValue=$("supportReplyText").value.trim();if(!textValue)throw new Error("Write a reply first.");
+      const base=doc(db,"courses",supportCourseId,"supportQuestions",supportQuestionId);
+      await addDoc(collection(base,"replies"),{
+        text:textValue,authorId:currentUser.uid,
+        authorName:profile?.fullName||currentUser.displayName||currentUser.email||"Student",
+        role:isAdmin()?"admin":"student",createdAt:serverTimestamp()
+      });
+      await renderSupportQuestion(supportQuestionId);
+    }
+  }catch(error){appMessage(error.message||"Could not send your message.","error");}
+  finally{if(submit){submit.disabled=false;submit.textContent=form.id==="supportQuestionForm"?"Post Question":"Send Reply";}}
+});
+
 async function showTab(tab){
 currentTab=tab;
 buildNavigation();
@@ -2786,6 +2957,7 @@ selectedCourse=null;
 if(tab==="dashboard")await renderDashboard();
 if(tab==="lessons")await renderCourses();
 if(tab==="quizzes")await renderQuizzes();
+if(tab==="support"&&(isAdmin()||isStudent()))await renderLearningSupportRoom();
 if(tab==="students"&&isAdmin())await renderUsers("student");
 if(tab==="instructors"&&isAdmin())await renderUsers("instructor");
 if(tab==="progress")await renderProgress();
@@ -3700,6 +3872,21 @@ const id=b.dataset.id;
 
 try{
 if(action==="manage-instructors"&&isAdmin()){await renderUsers("instructor");return;}
+if(action==="retry-support"&&(isAdmin()||isStudent())){await renderLearningSupportRoom();return;}
+if(action==="support-back"){supportQuestionId="";await renderLearningSupportRoom();return;}
+if(action==="support-open-question"&&(isAdmin()||isStudent())){await renderSupportQuestion(id);return;}
+if(action==="support-pin"&&isAdmin()){
+ const ref=doc(db,"courses",supportCourseId,"supportQuestions",id);
+ await updateDoc(ref,{pinned:b.dataset.pinned!=="true"});
+ if(supportQuestionId===id)await renderSupportQuestion(id);else await loadSupportQuestions();
+ return;
+}
+if(action==="support-resolve"&&isAdmin()){
+ const ref=doc(db,"courses",supportCourseId,"supportQuestions",id);
+ await updateDoc(ref,{resolved:b.dataset.resolved!=="true"});
+ if(supportQuestionId===id)await renderSupportQuestion(id);else await loadSupportQuestions();
+ return;
+}
 if(action==="download-lesson-pdf"){downloadLessonPdf(b);return;}
 if(action==="download-certificate"){downloadCertificate(b);return;}
 if(action==="view-media"||action==="open-secure-media"){
