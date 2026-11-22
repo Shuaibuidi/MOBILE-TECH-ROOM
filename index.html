@@ -3442,6 +3442,7 @@ page.innerHTML=`
 </form></section>`;
 bindRichTextEditor("editLessonOutcomes","editLessonOutcomesToolbar");
 bindRichTextEditor("editLessonContent","editLessonContentToolbar");
+page.querySelector('[data-action="back-course-lessons"]')?.addEventListener("click",()=>renderLessons(courseId));
 $("editWrittenLessonForm").onsubmit=async event=>{
 event.preventDefault();
 const content=$("editLessonContent").innerHTML.trim(),resourceUrl=$("editLessonResourceUrl").value.trim();
