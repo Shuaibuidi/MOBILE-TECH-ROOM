@@ -2677,6 +2677,8 @@ authMessage("Password reset email sent. Check your inbox.");
 };
 
 $("logoutButton").onclick=async()=>{
+  stopSupportLiveUpdates();
+  stopSupportBadgeUpdates();
   // Clear the old account immediately, before Firebase finishes signing out.
   authStateGeneration++;
   currentUser=null;profile=null;selectedCourse=null;courses=[];users=[];currentTab="dashboard";
@@ -2699,6 +2701,8 @@ if(user){
 // A new account must finish writing its Firestore profile before auth-state checks run.
 if(registrationInProgress)return;
 if(!user){
+stopSupportLiveUpdates();
+stopSupportBadgeUpdates();
 document.body.classList.add("login-mode");
 profile=null;selectedCourse=null;courses=[];users=[];currentTab="dashboard";
 $("page").innerHTML="";$("navigation").innerHTML="";$("globalCourseSearch").value="";$("appMessage").innerHTML="";document.getElementById("lessonMediaViewer")?.remove();
@@ -2931,6 +2935,7 @@ function startSupportBadgeUpdates(){
   const badgeQuery=query(collection(db,"supportMessages"),orderBy("createdAt","desc"),limit(500));
   supportBadgeUnsubscribe=onSnapshot(badgeQuery,async snap=>{
     try{
+      if(!currentUser||currentUser.uid!==supportBadgeListenerUid)return;
       const stateSnap=await getDoc(supportStateRef());
       const lastRead=stateSnap.exists()?stateSnap.data().lastReadAt:null;
       const count=snap.docs.filter(d=>{
@@ -2941,6 +2946,10 @@ function startSupportBadgeUpdates(){
       applySupportBadgeCount(count);
     }catch(error){console.warn("Could not refresh unread Support count:",error);}
   },error=>console.warn("Support unread listener:",error));
+}
+function stopSupportBadgeUpdates(){
+  if(supportBadgeUnsubscribe){supportBadgeUnsubscribe();supportBadgeUnsubscribe=null;}
+  supportBadgeListenerUid="";
 }
 async function markSupportMessagesRead(){
   await setDoc(supportStateRef(),{lastReadAt:serverTimestamp()},{merge:true});
