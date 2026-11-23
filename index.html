@@ -2167,16 +2167,27 @@ async function handlePayChanguReturn(){
 
 async function requestCourseProgress(courseId,lessonId=null){
  if(!currentUser)throw new Error("Please sign in to save your learning progress.");
+ const key="mtr_progress_"+currentUser.uid+"_"+courseId;
+ const readLocal=()=>{try{const ids=JSON.parse(localStorage.getItem(key)||"[]");return Array.isArray(ids)?ids:[];}catch(_){return[];}};
+ if(!navigator.onLine){const ids=readLocal();if(lessonId&&!ids.includes(lessonId)){ids.push(lessonId);localStorage.setItem(key,JSON.stringify(ids));}return {success:true,completedLessonIds:ids,offline:true};}
  const token=await currentUser.getIdToken(),action=lessonId?"complete-lesson":"course-progress";
  const url="https://starter-function-9cke.sgp.appwrite.run/?action="+action+"&courseId="+encodeURIComponent(courseId);
- const response=await fetch(url,{method:lessonId?"POST":"GET",headers:{Authorization:"Bearer "+token,...(lessonId?{"Content-Type":"application/json"}:{})},...(lessonId?{body:JSON.stringify({courseId,lessonId})}:{})});
- let data={};try{data=await response.json();}catch(_){}
- if(!response.ok||!data.success)throw new Error(data.error||"Course progress could not be saved.");return data;
+ try{
+  const response=await fetch(url,{method:lessonId?"POST":"GET",headers:{Authorization:"Bearer "+token,...(lessonId?{"Content-Type":"application/json"}:{})},...(lessonId?{body:JSON.stringify({courseId,lessonId})}:{})});
+  let data={};try{data=await response.json();}catch(_){}
+  if(!response.ok||!data.success)throw new Error(data.error||"Course progress could not be saved.");
+  if(Array.isArray(data.completedLessonIds))localStorage.setItem(key,JSON.stringify(data.completedLessonIds));
+  return data;
+ }catch(error){
+  if(lessonId){const ids=readLocal();if(!ids.includes(lessonId))ids.push(lessonId);localStorage.setItem(key,JSON.stringify(ids));return {success:true,completedLessonIds:ids,offline:true};}
+  if(!navigator.onLine)return {success:true,completedLessonIds:readLocal(),offline:true};
+  throw error;
+ }
 }
 async function getCourseProgress(courseId){
  let p=await requestCourseProgress(courseId),key="mtr_progress_"+currentUser.uid+"_"+courseId,old=[];
  try{old=JSON.parse(localStorage.getItem(key)||"[]");}catch(_){}
- if(Array.isArray(old)&&old.length){for(const id of old)if(typeof id==="string"&&!p.completedLessonIds.includes(id))p=await requestCourseProgress(courseId,id);localStorage.removeItem(key);p=await requestCourseProgress(courseId);}
+ if(Array.isArray(old)&&old.length&&navigator.onLine){for(const id of old)if(typeof id==="string"&&!p.completedLessonIds.includes(id))p=await requestCourseProgress(courseId,id);localStorage.removeItem(key);p=await requestCourseProgress(courseId);}
  return p;
 }
 function certificateCard(course,p){
