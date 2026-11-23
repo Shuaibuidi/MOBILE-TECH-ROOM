@@ -4359,7 +4359,7 @@ if(action==="view-media"||action==="open-secure-media"){
   const mediaType=b.dataset.mediaType||"",mediaTitle=b.dataset.mediaTitle||"Lesson media";
   const secureAudio=action==="open-secure-media"&&mediaType==="audio";
   const courseId=b.dataset.courseId||selectedCourse?.id||"";
-  if(action==="open-secure-media"&&!secureAudio){if(!navigator.onLine){const saved=await getOfflineLessonRecord(courseId,b.closest("[data-student-lesson]")?.dataset.studentLesson||"");if(!saved?.mediaBlob)throw new Error("This media has not been saved for offline use yet.");mediaUrl=URL.createObjectURL(saved.mediaBlob);}else mediaUrl=await requestSecureLessonMedia(mediaUrl,courseId);}
+  if(action==="open-secure-media"&&(!navigator.onLine||!secureAudio)){if(!navigator.onLine){const saved=await getOfflineLessonRecord(courseId,b.closest("[data-student-lesson]")?.dataset.studentLesson||"");if(!saved?.mediaBlob)throw new Error("This media has not been saved for offline use yet.");mediaUrl=URL.createObjectURL(saved.mediaBlob);}else if(!secureAudio)mediaUrl=await requestSecureLessonMedia(mediaUrl,courseId);}
   if(!/^(https:\/\/.+|blob:)/i.test(mediaUrl)){appMessage("This media link is not valid.","error");return;}
   document.getElementById("lessonMediaViewer")?.remove();
   const viewer=document.createElement("div");
@@ -4377,7 +4377,7 @@ if(action==="view-media"||action==="open-secure-media"){
     video.addEventListener("error",()=>appMessage("This video could not be played. Please check the uploaded file.","error"));
   }else if(mediaType==="audio"){
     const audio=document.createElement("audio");audio.className="media-lightbox-audio";audio.controls=true;audio.autoplay=true;audio.preload="auto";inner.append(audio);
-    if(secureAudio){
+    if(secureAudio&&!mediaUrl.startsWith("blob:")){
       const loading=document.createElement("p");loading.className="muted";loading.textContent="Connecting to audio…";inner.append(loading);
       streamSecureLessonAudio(mediaUrl,courseId,audio).then(()=>loading.remove()).catch(error=>{loading.textContent=error.message||"Audio could not be loaded.";appMessage(loading.textContent,"error");});
     }else audio.src=mediaUrl;
