@@ -3,14 +3,12 @@ name: Build Mobile Tech Room Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
-      - 'capacitor.config.ts'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/build-android.yml'
+      - 'index.html'
       - 'Mobile_Tech_Room_icon.png'
-      - 'www/**'
+      - '.github/workflows/build-android.yml'
 
 permissions:
   contents: read
@@ -19,36 +17,66 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
+      - name: Checkout app source
         uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Create Android project
-        run: npx cap add android
-
-      - name: Generate Android launcher icons from shop logo
-        run: |
-          mkdir -p assets
-          cp Mobile_Tech_Room_icon.png assets/icon.png
-          npx capacitor-assets generate --android
-
-      - name: Sync Capacitor
-        run: npx cap sync android
-
-      - name: Set up Java
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
 
-      - name: Build debug APK
+      - name: Install Capacitor, native printer and build tools
+        run: |
+          npm init -y
+          npm install @capacitor/core@7 @capacitor/android@7 @capgo/capacitor-printer@7 esbuild@0.25
+          npm install --save-dev @capacitor/cli@7 @capacitor/assets
+
+      - name: Package the same local app used by the website
+        run: |
+          mkdir -p www resources
+          cp index.html www/index.html
+          cp Mobile_Tech_Room_icon.png resources/icon.png
+          node <<'NODE'
+          const fs = require('fs');
+          const file = 'www/index.html';
+          let html = fs.readFileSync(file, 'utf8');
+          const match = html.match(/<script type="module">([\\s\\S]*?)<\\/script>/i);
+          if (!match) throw new Error('Could not find the app module script in index.html');
+          fs.writeFileSync('www/app.js', match[1]);
+          html = html.replace(match[0], '<script type="module" src="./app.bundle.js"></script>');
+          fs.writeFileSync(file, html);
+          NODE
+          npx esbuild www/app.js --bundle --format=esm --platform=browser --target=es2020 '--external:https://*' --outfile=www/app.bundle.js
+          rm www/app.js
+
+      - name: Configure Capacitor for a bundled local app
+        run: |
+          if [ -f capacitor.config.ts ]; then mv capacitor.config.ts capacitor.config.ts.source; fi
+          cat > capacitor.config.json <<'JSON'
+          {
+            "appId": "mw.siatech.mobiletechroom",
+            "appName": "Mobile Tech Room",
+            "webDir": "www"
+          }
+          JSON
+          npx cap add android
+
+      - name: Generate Android app icon
+        run: |
+          mkdir -p assets
+          cp Mobile_Tech_Room_icon.png assets/icon.png
+          npx capacitor-assets generate --android
+
+      - name: Synchronize native plugins
+        run: npx cap sync android
+
+      - name: Build APK
         working-directory: android
         run: |
           chmod +x gradlew
