@@ -3840,9 +3840,10 @@ function richEditorToolbar(prefix){return '<div class="editor-toolbar" id="'+pre
 async function renderCourses(){
 page.innerHTML="<div class='panel'>Loading courses...</div>";
 try{
- await loadCourses();
- const enrollmentPromise=isStudent()?getDocs(collection(db,"users",currentUser.uid,"enrollments")):Promise.resolve(null);
- const enrollmentSnap=await enrollmentPromise;
+ const [_,enrollmentSnap]=await Promise.all([
+  loadCourses(),
+  isStudent()?getDocs(collection(db,"users",currentUser.uid,"enrollments")):Promise.resolve(null)
+ ]);
  let html="<div class='panel'><h2>Courses and Lessons</h2><p class='muted'>Course information and lesson content are managed and saved separately.</p>";
  if(isStaff()){
    html+="<section class='panel'><h3>Course Information</h3><p class='muted'>Create or update the course details here. Saving this form does not create or change any lesson.</p><form id='courseInfoForm'>";
@@ -3946,8 +3947,6 @@ async function renderCourseDetails(id){
  const course=courses.find(item=>item.id===id);
  if(!course){appMessage("Course not found.","error");return;}
  selectedCourse=course;
- let lessons=[];try{const snap=await getDocs(collection(db,"courses",id,"lessons"));lessons=snap.docs.map(d=>d.data()).sort((a,b)=>(a.lessonNumber||0)-(b.lessonNumber||0));}catch(_){}
- const lines=String(course.curriculum||"").split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
  const info=(v)=>v?formatLessonContent(v):"<p class='muted'>The instructor will add this information.</p>";
  let html="<div class='panel'><button class='secondary' data-action='back-courses'>← All Courses</button><h2>"+safe(course.title)+"</h2>"+info(course.description)+"<p><strong>Duration:</strong> "+safe(course.duration||"3 months (12 weeks)")+"</p></div>";
  html+="<div class='panel'><h3>How students will learn</h3>"+info(course.learningMethod)+"</div><div class='panel'><h3>Skills students will gain</h3>"+info(course.learningOutcomes)+"</div><div class='panel'><h3>Course requirements</h3>"+info(course.requirements)+"</div><div class='panel'><h3>Assessment and certificate</h3>"+info(course.assessment)+"</div>";
@@ -4004,6 +4003,7 @@ async function getCourseLessonsFast(courseId){
 async function renderLessons(courseId){
 page.innerHTML="<div class='panel'>Loading lessons...</div>";
 try{
+const progressPromise=isStudent()?getCourseProgress(courseId).catch(error=>({completedLessonIds:[],__progressError:error})):Promise.resolve(null);
 let lessons=[];try{lessons=await getCourseLessonsFast(courseId);}catch(networkError){lessons=await getOfflineLessons(courseId);if(!lessons.length)throw networkError;appMessage("Offline mode: showing lessons saved on this device.","warning");}lessons.sort((a,b)=>{const at=a.createdAt?.toMillis?.()??0,bt=b.createdAt?.toMillis?.()??0;return at-bt;});
 const renderReferenceMedia=(lesson)=>{
   const type=lesson.type||"written", url=lesson.mediaUrl||"", title=lesson.title||"Lesson media";
@@ -4015,7 +4015,7 @@ const renderReferenceMedia=(lesson)=>{
  
  if(isStudent()){
  if(!lessons.length){page.innerHTML=`<div class="panel"><button class="secondary" data-action="back-courses">← Courses</button><h2>${safe(selectedCourse.title)}</h2><p class="muted">Your instructor has not added lessons yet.</p></div>${supportContactPanel(true)}`;return;}
- const progressRecord=await getCourseProgress(courseId);
+ const progressRecord=await progressPromise||{completedLessonIds:[]};
  let completed=progressRecord.completedLessonIds||[];
  const renderStudentLesson=(lesson,index)=>{
    const type=lesson.type||"written";
