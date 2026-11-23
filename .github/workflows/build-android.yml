@@ -2,6 +2,13 @@ name: Build Mobile Tech Room Android APK
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'index.html'
+      - 'Mobile_Tech_Room_icon.png'
+      - '.github/workflows/build-android.yml'
   push:
     branches:
       - main
@@ -16,8 +23,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout app source
+      - name: Get repository files
         uses: actions/checkout@v4
 
       - name: Set up Node.js
@@ -37,7 +45,7 @@ jobs:
           npm install @capacitor/core@7 @capacitor/android@7 @capgo/capacitor-printer@7 esbuild@0.25
           npm install --save-dev @capacitor/cli@7 @capacitor/assets
 
-      - name: Package the same local app used by the website
+      - name: Prepare app and bundle native printer
         run: |
           mkdir -p www resources
           cp index.html www/index.html
@@ -55,7 +63,7 @@ jobs:
           npx esbuild www/app.js --bundle --format=esm --platform=browser --target=es2020 '--external:https://*' --outfile=www/app.bundle.js
           rm www/app.js
 
-      - name: Configure Capacitor for a bundled local app
+      - name: Create Android project using the existing app identity
         run: |
           if [ -f capacitor.config.ts ]; then mv capacitor.config.ts capacitor.config.ts.source; fi
           cat > capacitor.config.json <<'JSON'
