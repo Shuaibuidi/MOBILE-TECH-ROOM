@@ -49,6 +49,7 @@ jobs:
         run: |
           mkdir -p www resources
           cp index.html www/index.html
+          cp offline-sw.js www/offline-sw.js
           cp Mobile_Tech_Room_icon.png resources/icon.png
           node <<'NODE'
           const fs = require('fs');
