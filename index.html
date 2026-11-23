@@ -3988,10 +3988,23 @@ async function getOfflineLessons(courseId){const db=await openOfflineLessonDB();
 async function getOfflineLessonRecord(courseId,lessonId){const db=await openOfflineLessonDB();return new Promise((resolve,reject)=>{const tx=db.transaction("lessons","readonly"),req=tx.objectStore("lessons").get((currentUser?.uid||"")+"|"+courseId+"|"+lessonId);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error||new Error("Offline lesson could not be read."));tx.oncomplete=()=>db.close();});}
 async function downloadLessonForOffline(courseId,lesson,button){if(!currentUser){appMessage("Please sign in before downloading lessons.","error");return;}const original=button?.textContent||"↓ Save for offline";if(button){button.disabled=true;button.textContent="Saving…";}try{let mediaBlob=null;const mediaType=lesson.type||"written";if(lesson.mediaUrl&&["video","audio","image","pdf"].includes(mediaType)){const parsed=new URL(lesson.mediaUrl);let response;if(parsed.hostname.endsWith(".appwrite.io")||parsed.hostname.endsWith(".appwrite.network")){const pathParts=parsed.pathname.split("/").filter(Boolean);const filesIndex=pathParts.indexOf("files");const fileId=filesIndex>=0?pathParts[filesIndex+1]:"";const validMediaPath=filesIndex>=0&&["view","download"].includes(pathParts[filesIndex+2])&&filesIndex+3===pathParts.length;if(!validMediaPath||!fileId)throw new Error("This lesson media link is not supported for offline download.");const token=await currentUser.getIdToken(),query=new URLSearchParams({fileId:decodeURIComponent(fileId),courseId,stream:"1",mediaUrl:lesson.mediaUrl});response=await fetch("https://starter-function-9cke.sgp.appwrite.run?"+query.toString(),{headers:{Authorization:"Bearer "+token}});}else response=await fetch(lesson.mediaUrl,{mode:"cors"});if(!response.ok)throw new Error("Lesson media could not be downloaded. Check your connection and try again.");mediaBlob=await response.blob();if(!mediaBlob.size)throw new Error("The lesson media file is empty.");}await saveOfflineLesson(courseId,lesson,mediaBlob,mediaType);if(button){button.disabled=false;button.textContent="✓ Saved offline";}appMessage("Lesson saved for offline learning.","success");}catch(error){if(button){button.disabled=false;button.textContent=original;}appMessage(error.message||"Lesson could not be saved offline.","error");}}
 
+const courseLessonReadCache=new Map();
+async function getCourseLessonsFast(courseId){
+ const cached=courseLessonReadCache.get(courseId);
+ if(cached&&Date.now()-cached.savedAt<45000)return cached.lessons;
+ if(cached?.pending)return cached.pending;
+ const pending=getDocs(collection(db,"courses",courseId,"lessons")).then(snap=>{
+  const lessons=snap.docs.map(d=>({id:d.id,...d.data()}));
+  courseLessonReadCache.set(courseId,{savedAt:Date.now(),lessons});
+  return lessons;
+ }).catch(error=>{courseLessonReadCache.delete(courseId);throw error;});
+ courseLessonReadCache.set(courseId,{savedAt:0,pending});
+ return pending;
+}
 async function renderLessons(courseId){
 page.innerHTML="<div class='panel'>Loading lessons...</div>";
 try{
-let lessons=[];try{const snap=await getDocs(collection(db,"courses",courseId,"lessons"));lessons=snap.docs.map(d=>({id:d.id,...d.data()}));}catch(networkError){lessons=await getOfflineLessons(courseId);if(!lessons.length)throw networkError;appMessage("Offline mode: showing lessons saved on this device.","warning");}lessons.sort((a,b)=>{const at=a.createdAt?.toMillis?.()??0,bt=b.createdAt?.toMillis?.()??0;return at-bt;});
+let lessons=[];try{lessons=await getCourseLessonsFast(courseId);}catch(networkError){lessons=await getOfflineLessons(courseId);if(!lessons.length)throw networkError;appMessage("Offline mode: showing lessons saved on this device.","warning");}lessons.sort((a,b)=>{const at=a.createdAt?.toMillis?.()??0,bt=b.createdAt?.toMillis?.()??0;return at-bt;});
 const renderReferenceMedia=(lesson)=>{
   const type=lesson.type||"written", url=lesson.mediaUrl||"", title=lesson.title||"Lesson media";
   if(!url||!["video","audio","image","pdf"].includes(type))return "";
