@@ -3640,6 +3640,19 @@ function renderAdminAccount(){
   page.innerHTML=`<section class="panel"><h2>Account Information</h2><p class="muted">Your administrator account details.</p><div class="card"><strong>Name</strong><p>${safe(name)}</p></div><div class="card"><strong>Role</strong><p><span class="tag">${safe(role.toUpperCase())}</span></p></div><div class="card"><strong>Email</strong><p>${safe(currentUser?.email||"Not available")}</p></div><hr><h3>Account Management</h3><p class="muted">Manage instructor accounts and permissions from here.</p><button type="button" data-action="manage-instructors">Manage Instructors</button></section>`;
 }
 
+async function getStudentActiveEnrollmentIds(){
+ if(!currentUser||!isStudent())return new Set();
+ const cacheKey="mtr_enrollments_"+currentUser.uid;
+ try{
+  const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
+  if(cached&&Array.isArray(cached.ids)&&Date.now()-cached.savedAt<45000)return new Set(cached.ids);
+ }catch(_){}
+ const snap=await getDocs(collection(db,"users",currentUser.uid,"enrollments"));
+ const ids=snap.docs.filter(item=>item.data().status==="active").map(item=>item.id);
+ try{localStorage.setItem(cacheKey,JSON.stringify({savedAt:Date.now(),ids}));}catch(_){}
+ return new Set(ids);
+}
+
 async function renderDashboard(){
   page.innerHTML=`<div class="panel">Loading your learning centre...</div>`;
   const name=profile?.fullName||currentUser?.displayName||currentUser?.email||"Learner";
@@ -3648,12 +3661,8 @@ async function renderDashboard(){
   if(isStudent()){
     try{
       const studentId=currentUser.uid;
-      const [_,enrollmentSnap]=await Promise.all([
-        loadCourses(),
-        getDocs(collection(db,"users",studentId,"enrollments"))
-      ]);
+      const [_,activeIds]=await Promise.all([loadCourses(),getStudentActiveEnrollmentIds()]);
       if(currentUser?.uid!==studentId)return;
-      const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
       const available=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
       const locked=courses.filter(c=>c.accessType==="paid"&&!activeIds.has(c.id));
       const courseNumbers=getCourseNumberMap(courses);
@@ -3745,10 +3754,9 @@ async function renderDashboard(){
 async function renderProgress(){
   page.innerHTML="<div class='panel'>Loading your progress...</div>";
   try{
-    const enrollmentPromise=isStudent()?getDocs(collection(db,"users",currentUser.uid,"enrollments")):Promise.resolve(null);
-    const [,enrollmentSnap]=await Promise.all([loadCourses(),enrollmentPromise]);
+    const enrollmentPromise=isStudent()?getStudentActiveEnrollmentIds():Promise.resolve(new Set());
+    const [,activeIds]=await Promise.all([loadCourses(),enrollmentPromise]);
     if(isStudent()){
-      const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
       const visible=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
       const rows=await Promise.all(visible.map(async c=>{
         let total=0,done=0,progress=null;
@@ -3847,9 +3855,9 @@ function richEditorToolbar(prefix){return '<div class="editor-toolbar" id="'+pre
 async function renderCourses(){
 page.innerHTML="<div class='panel'>Loading courses...</div>";
 try{
- const [_,enrollmentSnap]=await Promise.all([
+ const [_,activeIds]=await Promise.all([
   loadCourses(),
-  isStudent()?getDocs(collection(db,"users",currentUser.uid,"enrollments")):Promise.resolve(null)
+  isStudent()?getStudentActiveEnrollmentIds():Promise.resolve(new Set())
  ]);
  let html="<div class='panel'><h2>Courses and Lessons</h2><p class='muted'>Course information and lesson content are managed and saved separately.</p>";
  if(isStaff()){
@@ -3878,7 +3886,6 @@ try{
  }
  html+="</div>";
  if(isStudent()){
-   const activeIds=new Set(enrollmentSnap.docs.filter(d=>d.data().status==="active").map(d=>d.id));
    const available=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
    const locked=courses.filter(c=>c.accessType==="paid"&&!activeIds.has(c.id));
     const courseNumbers=getCourseNumberMap(courses);
