@@ -3448,24 +3448,30 @@ function quizQuestionEditor(q={},i=0){
  for(let n=0;n<4;n++)h+='<option value="'+n+'" '+(Number(q.correctIndex||0)===n?"selected":"")+'>Option '+String.fromCharCode(65+n)+'</option>';
  return h+'</select></div>';
 }
-async function renderQuizzes(){
+async function renderQuizzes(forceRefresh=false, freshData=null){
  page.innerHTML="<div class='panel'>Loading quizzes...</div>";
  try{
-  const staff=isStaff();
-  const cacheKey = "mtr_quiz_list_" + currentUser.uid + "_" + (profile?.role || "user");
-  let data = null;
+  const staff=isStaff(), cacheUid=currentUser.uid;
+  const cacheKey = "mtr_quiz_list_" + cacheUid + "_" + (profile?.role || "user");
+  let data = null, cachedData = null;
   try {
    const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
-   if (cached && Date.now() - cached.savedAt < 120000 && cached.data?.success) data = cached.data;
+   // Keep a same-account quiz list available for fast reopening. The list contains
+   // metadata only; quiz-get and quiz-submit still enforce live server permissions.
+   if (cached && Date.now() - cached.savedAt < 86400000 && cached.data?.success) cachedData = cached.data;
   } catch (_) {}
-  if (data) { if(staff) await loadCourses(); }
-  else {
+  if (freshData?.success) {
+   data = freshData;
+  } else if (cachedData && !forceRefresh) {
+   data = cachedData;
+   if(staff) await loadCourses();
+  } else {
    const [,fresh] = await Promise.all([staff?loadCourses():Promise.resolve(),callQuizApi("quiz-list")]);
    data = fresh;
    try { localStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), data })); } catch (_) {}
   }
   const items=data.quizzes||[];
-  let h='<section class="dashboard-hero"><p class="uppercase-accent">ASSESSMENT CENTRE</p><h2>Quizzes &amp; Exams</h2><p>Multiple-choice tests, automatic marking and results.</p></section>';
+  let h='<section data-quiz-page class="dashboard-hero"><p class="uppercase-accent">ASSESSMENT CENTRE</p><h2>Quizzes &amp; Exams</h2><p>Multiple-choice tests, automatic marking and results.</p></section>';
   if(staff&&courses.length){
    h+='<section class="panel"><h2 id="quizEditorHeading">Create a Quiz</h2><form id="quizForm"><label class="muted">Course</label><select id="quizCourse">';
    courses.forEach(c=>h+='<option value="'+safe(c.id)+'">'+safe(c.title)+'</option>');
@@ -3478,6 +3484,14 @@ async function renderQuizzes(){
    h+='</article>';
   });
   page.innerHTML=h;
+  if(cachedData && !forceRefresh){
+   // Revalidate quietly after showing the cached list, then refresh the visible
+   // quiz page only if the learner is still viewing it.
+   Promise.all([staff?loadCourses():Promise.resolve(),callQuizApi("quiz-list")]).then(([,fresh])=>{
+    try{localStorage.setItem(cacheKey,JSON.stringify({savedAt:Date.now(),data:fresh}));}catch(_){}
+    if(currentUser?.uid===cacheUid && page.querySelector("[data-quiz-page]")) renderQuizzes(true,fresh).catch(()=>{});
+   }).catch(()=>{});
+  }
   if(staff&&courses.length){
    let editing="";
    const area=$("quizQuestionEditors"),form=$("quizForm");
