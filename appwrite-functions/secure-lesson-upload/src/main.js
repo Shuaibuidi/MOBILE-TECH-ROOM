@@ -495,6 +495,8 @@ function validateQuizInput(body) {
 }
 
 async function handleQuizzes({ req, res, log, error }) {
+  const requestStartedAt = Date.now();
+  let firebaseInitMs = 0, tokenVerificationMs = 0, profileReadMs = 0;
   try {
     if (req.method === "OPTIONS") return res.text("", 204, headers());
     const action = String(req.query?.action || "");
@@ -506,12 +508,18 @@ async function handleQuizzes({ req, res, log, error }) {
 
     const token = bearer(req);
     if (!token) return json(res, { success: false, error: "Please sign in to use quizzes." }, 401);
+    const firebaseInitStartedAt = Date.now();
     const { auth, db } = getFirebase();
+    firebaseInitMs = Date.now() - firebaseInitStartedAt;
     let decoded;
+    const tokenVerificationStartedAt = Date.now();
     try { decoded = await auth.verifyIdToken(token); }
     catch { return json(res, { success: false, error: "Your sign-in has expired. Please sign in again." }, 401); }
+    finally { tokenVerificationMs = Date.now() - tokenVerificationStartedAt; }
 
+    const profileReadStartedAt = Date.now();
     const userSnap = await db.collection("users").doc(decoded.uid).get();
+    profileReadMs = Date.now() - profileReadStartedAt;
     if (!userSnap.exists) return json(res, { success: false, error: "Account profile not found." }, 403);
     const user = userSnap.data() || {};
     if (user.status !== "approved" || !["admin", "instructor", "student"].includes(user.role)) {
@@ -608,6 +616,9 @@ async function handleQuizzes({ req, res, log, error }) {
           createdAt: quiz.createdAt?.toDate ? quiz.createdAt.toDate().toISOString() : null
         }));
       if (typeof log === "function") {
+        log("quiz-list timing: firebase init=" + firebaseInitMs + "ms; token verification=" +
+          tokenVerificationMs + "ms; profile read=" + profileReadMs + "ms; total request=" +
+          (Date.now() - requestStartedAt) + "ms");
         log("quiz-list timing: course/enrollment reads=" +
           (quizReadStartedAt - courseReadStartedAt) + "ms; courses=" + courseMap.size +
           "; accessibleCourses=" + accessibleCourseIds.length);
