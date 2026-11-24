@@ -494,7 +494,9 @@ function validateQuizInput(body) {
   return { courseId, title, description, status, questions };
 }
 
-async function handleQuizzes({ req, res, error }) {
+async function handleQuizzes({ req, res, log, error }) {
+  const requestStartedAt = Date.now();
+  let firebaseInitMs = 0, tokenVerificationMs = 0, profileReadMs = 0;
   try {
     if (req.method === "OPTIONS") return res.text("", 204, headers());
     const action = String(req.query?.action || "");
@@ -506,12 +508,18 @@ async function handleQuizzes({ req, res, error }) {
 
     const token = bearer(req);
     if (!token) return json(res, { success: false, error: "Please sign in to use quizzes." }, 401);
+    const firebaseInitStartedAt = Date.now();
     const { auth, db } = getFirebase();
+    firebaseInitMs = Date.now() - firebaseInitStartedAt;
     let decoded;
+    const tokenVerificationStartedAt = Date.now();
     try { decoded = await auth.verifyIdToken(token); }
     catch { return json(res, { success: false, error: "Your sign-in has expired. Please sign in again." }, 401); }
+    finally { tokenVerificationMs = Date.now() - tokenVerificationStartedAt; }
 
+    const profileReadStartedAt = Date.now();
     const userSnap = await db.collection("users").doc(decoded.uid).get();
+    profileReadMs = Date.now() - profileReadStartedAt;
     if (!userSnap.exists) return json(res, { success: false, error: "Account profile not found." }, 403);
     const user = userSnap.data() || {};
     if (user.status !== "approved" || !["admin", "instructor", "student"].includes(user.role)) {
@@ -543,29 +551,60 @@ async function handleQuizzes({ req, res, error }) {
     };
 
     if (action === "quiz-list") {
-      const reads = [
-        db.collection("courses").get(),
-        db.collection("quizzes").limit(300).get()
-      ];
-      // Read a student's enrolments once, rather than making a separate Firestore
-      // request for every paid course during quiz-list rendering.
-      if (user.role === "student") reads.push(
-        db.collection("users").doc(decoded.uid).collection("enrollments").get()
-      );
-      const [courseSnap, quizSnap, enrollmentSnap] = await Promise.all(reads);
-      const courseMap = new Map(courseSnap.docs.map(item => [item.id, { id: item.id, ...item.data() }]));
+      const listStartedAt = Date.now();
+      // Fetch only courses this role can potentially see. This avoids reading the
+      // entire courses collection for ordinary student and instructor requests.
+      const coursesRef = db.collection("courses");
+      let coursesQuery = coursesRef;
+      if (user.role === "student") {
+        coursesQuery = coursesRef.where("status", "==", "published");
+      } else if (user.role === "instructor") {
+        coursesQuery = coursesRef.where("createdBy", "==", decoded.uid);
+      }
+
+      const courseReadStartedAt = Date.now();
+      const enrollmentPromise = user.role === "student"
+        ? db.collection("users").doc(decoded.uid).collection("enrollments").get()
+        : Promise.resolve(null);
+      const [courseSnap, enrollmentSnap] = await Promise.all([
+        coursesQuery.get(),
+        enrollmentPromise
+      ]);
+      const courseMap = new Map(courseSnap.docs.map(item => [
+        item.id, { id: item.id, ...item.data() }
+      ]));
       const enrollmentIds = new Set((enrollmentSnap?.docs || [])
-        .filter(item => item.data()?.status === "active").map(item => item.id));
-      const accessible = new Set(Array.from(courseMap.values())
+        .filter(item => item.data()?.status === "active")
+        .map(item => item.id));
+      const accessibleCourseIds = Array.from(courseMap.values())
         .filter(course => {
           if (user.role === "admin") return true;
           if (user.role === "instructor") return course.createdBy === decoded.uid;
           if (user.role !== "student" || user.status !== "approved" || course.status !== "published") return false;
           return course.accessType !== "paid" || enrollmentIds.has(course.id);
-        }).map(course => course.id));
-      const quizzes = quizSnap.docs
+        })
+        .map(course => course.id);
+
+      // Firestore "in" queries support up to 30 values. Query quizzes only for
+      // accessible courses instead of scanning the first 300 quiz documents.
+      // Keep the previous maximum response size of 300 quizzes.
+      const quizBatches = [];
+      for (let i = 0; i < accessibleCourseIds.length; i += 30) {
+        const courseIds = accessibleCourseIds.slice(i, i + 30);
+        quizBatches.push(
+          db.collection("quizzes")
+            .where("courseId", "in", courseIds)
+            .limit(300)
+            .get()
+        );
+      }
+      const quizReadStartedAt = Date.now();
+      const quizSnapshots = await Promise.all(quizBatches);
+      const quizReadDuration = Date.now() - quizReadStartedAt;
+      const quizDocs = quizSnapshots.flatMap(snapshot => snapshot.docs).slice(0, 300);
+      const quizzes = quizDocs
         .map(item => ({ id: item.id, ...item.data() }))
-        .filter(quiz => accessible.has(String(quiz.courseId || "")) && (staff || quiz.status === "published"))
+        .filter(quiz => staff || quiz.status === "published")
         .map(quiz => ({
           id: quiz.id,
           courseId: String(quiz.courseId || ""),
@@ -576,6 +615,17 @@ async function handleQuizzes({ req, res, error }) {
           questionCount: Array.isArray(quiz.questions) ? quiz.questions.length : 0,
           createdAt: quiz.createdAt?.toDate ? quiz.createdAt.toDate().toISOString() : null
         }));
+      if (typeof log === "function") {
+        log("quiz-list timing: firebase init=" + firebaseInitMs + "ms; token verification=" +
+          tokenVerificationMs + "ms; profile read=" + profileReadMs + "ms; total request=" +
+          (Date.now() - requestStartedAt) + "ms");
+        log("quiz-list timing: course/enrollment reads=" +
+          (quizReadStartedAt - courseReadStartedAt) + "ms; courses=" + courseMap.size +
+          "; accessibleCourses=" + accessibleCourseIds.length);
+        log("quiz-list timing: quiz reads=" + quizReadDuration +
+          "ms; quizCount=" + quizzes.length + "; totalAfterProfile=" +
+          (Date.now() - listStartedAt) + "ms");
+      }
       return json(res, { success: true, quizzes });
     }
 
