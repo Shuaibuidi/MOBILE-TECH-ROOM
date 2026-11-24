@@ -2165,10 +2165,14 @@ async function handlePayChanguReturn(){
  }
 }
 
-async function requestCourseProgress(courseId,lessonId=null){
+async function requestCourseProgress(courseId,lessonId=null,force=false){
  if(!currentUser)throw new Error("Please sign in to save your learning progress.");
  const queueKey="mtr_progress_queue_"+currentUser.uid+"_"+courseId,cacheKey="mtr_progress_cache_"+currentUser.uid+"_"+courseId;
  const readIds=key=>{try{const ids=JSON.parse(localStorage.getItem(key)||"[]");return Array.isArray(ids)?ids:[];}catch(_){return[];}};
+ if(!lessonId&&!force&&navigator.onLine){
+  const cachedAt=Number(localStorage.getItem(cacheKey+"_at")||0);
+  if(cachedAt&&Date.now()-cachedAt<45000)return {success:true,completedLessonIds:readIds(cacheKey),cached:true};
+ }
  if(!navigator.onLine){const ids=[...new Set([...readIds(cacheKey),...readIds(queueKey)])];if(lessonId&&!ids.includes(lessonId)){ids.push(lessonId);localStorage.setItem(queueKey,JSON.stringify([...new Set([...readIds(queueKey),lessonId])]));}return {success:true,completedLessonIds:ids,offline:true};}
  const token=await currentUser.getIdToken(),action=lessonId?"complete-lesson":"course-progress";
  const url="https://starter-function-9cke.sgp.appwrite.run/?action="+action+"&courseId="+encodeURIComponent(courseId);
@@ -2176,7 +2180,10 @@ async function requestCourseProgress(courseId,lessonId=null){
   const response=await fetch(url,{method:lessonId?"POST":"GET",headers:{Authorization:"Bearer "+token,...(lessonId?{"Content-Type":"application/json"}:{})},...(lessonId?{body:JSON.stringify({courseId,lessonId})}:{})});
   let data={};try{data=await response.json();}catch(_){}
   if(!response.ok||!data.success)throw new Error(data.error||"Course progress could not be saved.");
-  if(!lessonId&&Array.isArray(data.completedLessonIds))localStorage.setItem(cacheKey,JSON.stringify(data.completedLessonIds));
+  if(Array.isArray(data.completedLessonIds)){
+   localStorage.setItem(cacheKey,JSON.stringify(data.completedLessonIds));
+   localStorage.setItem(cacheKey+"_at",String(Date.now()));
+  }
   return data;
  }catch(error){
   if(lessonId){const ids=readIds(queueKey);if(!ids.includes(lessonId))ids.push(lessonId);localStorage.setItem(queueKey,JSON.stringify(ids));return {success:true,completedLessonIds:[...new Set([...readIds(cacheKey),...ids])],offline:true};}
@@ -2187,7 +2194,7 @@ async function requestCourseProgress(courseId,lessonId=null){
 async function getCourseProgress(courseId){
  let p=await requestCourseProgress(courseId),key="mtr_progress_queue_"+currentUser.uid+"_"+courseId,old=[];
  try{old=JSON.parse(localStorage.getItem(key)||"[]");}catch(_){}
- if(Array.isArray(old)&&old.length&&navigator.onLine){for(const id of old)if(typeof id==="string"&&!(p.completedLessonIds||[]).includes(id))p=await requestCourseProgress(courseId,id);localStorage.removeItem(key);p=await requestCourseProgress(courseId);}
+ if(Array.isArray(old)&&old.length&&navigator.onLine){for(const id of old)if(typeof id==="string"&&!(p.completedLessonIds||[]).includes(id))p=await requestCourseProgress(courseId,id);localStorage.removeItem(key);p=await requestCourseProgress(courseId,null,true);}
  return p;
 }
 function certificateCard(course,p){
