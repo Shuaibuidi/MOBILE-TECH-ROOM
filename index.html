@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="mtr-auth-restoring">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101c32">
 <title>Mobile Tech Room</title>
 <style>
+/* Keep the login form hidden until Firebase has restored the saved session. */
+html.mtr-auth-restoring #authPanel{display:none!important}
 *{box-sizing:border-box}
 body{margin:0;background:#101c32;color:#fff;font-family:Arial,sans-serif}
 header{position:sticky;top:0;z-index:1000;background:#172943;padding:23px 17px 17px;text-align:center;border-bottom:1px solid #30445f}
@@ -2870,6 +2872,8 @@ document.addEventListener("mtr-language-change",async event=>{
 });
 
 onAuthStateChanged(auth,async user=>{
+// Firebase has now determined whether a saved login session exists.
+document.documentElement.classList.remove("mtr-auth-restoring");
 const generation=++authStateGeneration;
 currentUser=user;
 // A restored session should never flash the login form while its profile is being checked.
