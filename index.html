@@ -4003,6 +4003,7 @@ async function getCourseLessonsFast(courseId){
 async function renderLessons(courseId){
 page.innerHTML="<div class='panel'>Loading lessons...</div>";
 try{
+const progressUserId=currentUser?.uid;
 const progressPromise=isStudent()?getCourseProgress(courseId).catch(error=>({completedLessonIds:[],__progressError:error})):Promise.resolve(null);
 let lessons=[];try{lessons=await getCourseLessonsFast(courseId);}catch(networkError){lessons=await getOfflineLessons(courseId);if(!lessons.length)throw networkError;appMessage("Offline mode: showing lessons saved on this device.","warning");}lessons.sort((a,b)=>{const at=a.createdAt?.toMillis?.()??0,bt=b.createdAt?.toMillis?.()??0;return at-bt;});
 const renderReferenceMedia=(lesson)=>{
@@ -4015,8 +4016,11 @@ const renderReferenceMedia=(lesson)=>{
  
  if(isStudent()){
  if(!lessons.length){page.innerHTML=`<div class="panel"><button class="secondary" data-action="back-courses">← Courses</button><h2>${safe(selectedCourse.title)}</h2><p class="muted">Your instructor has not added lessons yet.</p></div>${supportContactPanel(true)}`;return;}
- const progressRecord=await progressPromise||{completedLessonIds:[]};
- let completed=progressRecord.completedLessonIds||[];
+ const progressKey="mtr_progress_cache_"+currentUser.uid+"_"+courseId;
+ const queueKey="mtr_progress_queue_"+currentUser.uid+"_"+courseId;
+ const readProgressIds=key=>{try{const value=JSON.parse(localStorage.getItem(key)||"[]");return Array.isArray(value)?value:[];}catch(_){return[];}};
+ let progressRecord={completedLessonIds:[...new Set([...readProgressIds(progressKey),...readProgressIds(queueKey)])]};
+ let completed=progressRecord.completedLessonIds;
  const renderStudentLesson=(lesson,index)=>{
    const type=lesson.type||"written";
    let media="";
@@ -4029,8 +4033,23 @@ const renderReferenceMedia=(lesson)=>{
  };
  const percent=Math.round(completed.filter(id=>lessons.some(l=>l.id===id)).length/lessons.length*100);
  page.innerHTML=`<section class="panel"><button class="secondary" data-action="back-courses">← All Courses</button><h2>${safe(selectedCourse.title)}</h2><p>${formatLessonContent(selectedCourse.description||"Follow the lessons in order and practise each skill safely.")}</p><div class="learning-progress-label"><strong>${completed.filter(id=>lessons.some(l=>l.id===id)).length} of ${lessons.length} lessons completed</strong><strong>${percent}%</strong></div><div class="learning-progress-track"><div class="learning-progress-fill" style="width:${percent}%"></div></div></section><section class="panel"><div class="student-course-heading"><h2>Lessons List</h2><span class="tag">${lessons.length} lessons</span></div><ol class="lesson-list">${lessons.map(renderStudentLesson).join("")}</ol></section>`;
- page.innerHTML+=certificateCard(selectedCourse,progressRecord);
- page.innerHTML+=supportContactPanel(true);
+ page.innerHTML+='<div data-course-certificate></div>'+supportContactPanel(true);
+ // Show lessons immediately, then update completion and certificate information in the background.
+ progressPromise.then(fresh=>{
+   if(currentUser?.uid!==progressUserId||currentTab!=="lessons"||selectedCourse?.id!==courseId)return;
+   progressRecord=fresh||{completedLessonIds:[]};
+   completed=progressRecord.completedLessonIds||[];
+   let count=0;
+   page.querySelectorAll("[data-student-lesson]").forEach(card=>{
+     const id=card.dataset.studentLesson,done=completed.includes(id),button=card.querySelector('[data-action="student-complete"]'),label=card.querySelector(".reference-completion");
+     if(done){count++;if(button){button.textContent="✓ Completed";button.classList.remove("student-lesson-done");button.classList.add("secondary");}if(label)label.textContent="✓ Lesson completed";}
+   });
+   count=completed.filter(id=>lessons.some(item=>item.id===id)).length;
+   const label=page.querySelector(".learning-progress-label");
+   if(label)label.innerHTML='<strong>'+count+' of '+lessons.length+' lessons completed</strong><strong>'+Math.round(count/lessons.length*100)+'%</strong>';
+   const bar=page.querySelector(".learning-progress-fill");if(bar)bar.style.width=Math.round(count/lessons.length*100)+"%";
+   const certificate=page.querySelector("[data-course-certificate]");if(certificate)certificate.innerHTML=certificateCard(selectedCourse,progressRecord);
+ }).catch(error=>console.warn("Background lesson progress refresh failed:",error));
  page.onclick=async event=>{
    const offlineButton=event.target.closest('[data-action="save-lesson-offline"]');if(offlineButton){const lesson=lessons.find(item=>item.id===offlineButton.dataset.id);if(lesson)await downloadLessonForOffline(courseId,lesson,offlineButton);return;}
    const openButton=event.target.closest('[data-action="open-written-lesson"]');if(openButton){const lesson=lessons.find(item=>item.id===openButton.dataset.id);if(lesson)await openWrittenLesson(lesson);return;}
@@ -4585,16 +4604,53 @@ const reverse=new Map(Object.entries(translations).map(([en,ny])=>[ny,en]));
 let language=localStorage.getItem(KEY)==="ny"?"ny":"en";
 let observer=null;
 function exact(value){const trimmed=value.trim();if(!trimmed)return value;const translated=language==="ny"?translations[trimmed]:reverse.get(trimmed);if(!translated)return value;return value.replace(trimmed,translated);}
-function skipNode(node){const el=node.parentElement;if(!el)return true;return !!el.closest("script,style,textarea,input,select,option,.lesson-body,.lesson-editor,[contenteditable=true],[data-no-translate],#mtrLanguageControl");}
-function translateTree(root){const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){if(skipNode(node))continue;const next=exact(node.nodeValue);if(next!==node.nodeValue)node.nodeValue=next;}if(root.querySelectorAll){root.querySelectorAll("input[placeholder],textarea[placeholder],[aria-label],[title]").forEach(el=>{["placeholder","aria-label","title"].forEach(attr=>{const v=el.getAttribute(attr);if(v){const n=exact(v);if(n!==v)el.setAttribute(attr,n);}});});}}
-function apply(){language=localStorage.getItem(KEY)==="ny"?"ny":"en";document.documentElement.lang=language==="ny"?"ny":"en";if(observer)observer.disconnect();translateTree(document.body);if(observer)observer.observe(document.body,{childList:true,subtree:true,characterData:true});const control=document.getElementById("mtrLanguageSelect");if(control)control.value=language;}
+const skipTextSelector="script,style,textarea,input,select,option,.lesson-body,.lesson-editor,[contenteditable=true],[data-no-translate],#mtrLanguageControl";
+const skipSubtreeSelector="script,style,.lesson-body,.lesson-editor,[contenteditable=true],[data-no-translate],#mtrLanguageControl";
+function skipNode(node){const el=node.parentElement;if(!el)return true;return !!el.closest(skipTextSelector);}
+function translateAttributes(el){if(!el||el.nodeType!==Node.ELEMENT_NODE)return;["placeholder","aria-label","title"].forEach(attr=>{const v=el.getAttribute(attr);if(v){const n=exact(v);if(n!==v)el.setAttribute(attr,n);}});}
+function translateTree(root){
+ if(!root||root.nodeType!==Node.ELEMENT_NODE||root.matches(skipSubtreeSelector))return;
+ translateAttributes(root);
+ const walker=document.createTreeWalker(root,NodeFilter.SHOW_ELEMENT|NodeFilter.SHOW_TEXT,{
+  acceptNode(node){
+   if(node.nodeType===Node.ELEMENT_NODE){
+    if(node!==root&&node.matches(skipSubtreeSelector))return NodeFilter.FILTER_REJECT;
+    return NodeFilter.FILTER_SKIP;
+   }
+   return skipNode(node)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT;
+  }
+ });
+ let node;
+ while((node=walker.nextNode())){
+  if(node.nodeType===Node.TEXT_NODE){const next=exact(node.nodeValue);if(next!==node.nodeValue)node.nodeValue=next;}
+  else translateAttributes(node);
+ }
+}
+function apply(){
+ language=localStorage.getItem(KEY)==="ny"?"ny":"en";
+ document.documentElement.lang=language==="ny"?"ny":"en";
+ if(observer)observer.disconnect();
+ translateTree(document.body);
+ // English is the default. Avoid scanning every screen mutation when translation is not needed.
+ if(observer&&language==="ny")observer.observe(document.body,{childList:true,subtree:true,characterData:true});
+ const control=document.getElementById("mtrLanguageSelect");if(control)control.value=language;
+}
 function setLanguage(next){language=next==="ny"?"ny":"en";localStorage.setItem(KEY,language);apply();document.dispatchEvent(new CustomEvent("mtr-language-change",{detail:{language}}));}
 function syncControlVisibility(){const box=document.getElementById("mtrLanguageControl");if(!box)return;const loginVisible=document.body.classList.contains("login-mode")&&!document.getElementById("authPanel")?.classList.contains("hidden");box.style.display=loginVisible?"flex":"none";}
 function mount(){if(!document.body)return;let box=document.getElementById("mtrLanguageControl");if(!box){box=document.createElement("div");box.id="mtrLanguageControl";box.innerHTML='<label for="mtrLanguageSelect">🌐 Language / Chinenero</label><select id="mtrLanguageSelect" aria-label="Choose language"><option value="en">🇬🇧 English</option><option value="ny">🇲🇼 Chichewa</option></select>';document.body.appendChild(box);box.querySelector("select").addEventListener("change",e=>setLanguage(e.target.value));}box.querySelector("select").value=language;apply();syncControlVisibility();const authObserver=new MutationObserver(syncControlVisibility);["authPanel","appPanel"].forEach(id=>{const el=document.getElementById(id);if(el)authObserver.observe(el,{attributes:true,attributeFilter:["class"]});});const bodyObserver=new MutationObserver(syncControlVisibility);bodyObserver.observe(document.body,{attributes:true,attributeFilter:["class"]});}
 document.addEventListener("mtr-language-ready",e=>{if(e.detail&&e.detail.language)setLanguage(e.detail.language);});
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",mount);else mount();
-observer=new MutationObserver(records=>{for(const record of records){if(record.type==="childList")record.addedNodes.forEach(n=>{if(n.nodeType===Node.TEXT_NODE){if(!skipNode(n)){const v=exact(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v;}}else if(n.nodeType===Node.ELEMENT_NODE)translateTree(n);});else if(record.type==="characterData"&&!skipNode(record.target)){const v=exact(record.target.nodeValue);if(v!==record.target.nodeValue)record.target.nodeValue=v;}}});
-if(document.body)observer.observe(document.body,{childList:true,subtree:true,characterData:true});
+observer=new MutationObserver(records=>{
+ if(language!=="ny")return;
+ for(const record of records){
+  if(record.type==="childList")record.addedNodes.forEach(node=>{
+   if(node.nodeType===Node.TEXT_NODE){if(!skipNode(node)){const value=exact(node.nodeValue);if(value!==node.nodeValue)node.nodeValue=value;}}
+   else if(node.nodeType===Node.ELEMENT_NODE)translateTree(node);
+  });
+  else if(record.type==="characterData"&&!skipNode(record.target)){const value=exact(record.target.nodeValue);if(value!==record.target.nodeValue)record.target.nodeValue=value;}
+ }
+});
+if(document.body&&language==="ny")observer.observe(document.body,{childList:true,subtree:true,characterData:true});
 document.addEventListener("mtr-language-change",e=>{if(!e.detail)return;});
 window.MTRLanguage={get:()=>language,set:setLanguage};
 })();
