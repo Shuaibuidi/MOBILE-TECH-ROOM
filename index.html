@@ -3504,7 +3504,11 @@ async function renderQuizzes(){
     else if(del){if(!confirm("Delete this quiz?"))return;try{await callQuizApi("quiz-delete","POST",{quizId:del.dataset.quizDelete});try{localStorage.removeItem(cacheKey);}catch(_){}await renderQuizzes();}catch(err){appMessage(err.message,"error");}}
     else if(res)await renderQuizResults(res.dataset.quizResults);
    };
-  }else{page.addEventListener("pointerdown",e=>{const b=e.target.closest("[data-quiz-take]");if(b)prefetchStudentQuiz(b.dataset.quizTake).catch(()=>{});},{passive:true});page.addEventListener("focusin",e=>{const b=e.target.closest("[data-quiz-take]");if(b)prefetchStudentQuiz(b.dataset.quizTake).catch(()=>{});});page.onclick=async e=>{const b=e.target.closest("[data-quiz-take]");if(b){b.disabled=true;b.textContent="Opening…";await renderStudentQuiz(b.dataset.quizTake);}};}
+  }else{
+   // Preload quiz questions while the learner views the quiz list, not after the tap.
+   items.forEach(q=>{if(q.id)prefetchStudentQuiz(q.id).catch(()=>{});});
+   page.onclick=async e=>{const b=e.target.closest("[data-quiz-take]");if(b){b.disabled=true;b.textContent="Opening…";await renderStudentQuiz(b.dataset.quizTake);}};
+  }
  }catch(err){page.innerHTML='<section class="panel error">Could not load quizzes: '+safe(err.message)+'</section>';}
 }
 const studentQuizPrefetches = new Map();
