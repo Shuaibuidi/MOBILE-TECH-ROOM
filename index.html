@@ -3658,16 +3658,39 @@ function renderAdminAccount(){
   page.innerHTML=`<section class="panel"><h2>Account Information</h2><p class="muted">Your administrator account details.</p><div class="card"><strong>Name</strong><p>${safe(name)}</p></div><div class="card"><strong>Role</strong><p><span class="tag">${safe(role.toUpperCase())}</span></p></div><div class="card"><strong>Email</strong><p>${safe(currentUser?.email||"Not available")}</p></div><hr><h3>Account Management</h3><p class="muted">Manage instructor accounts and permissions from here.</p><button type="button" data-action="manage-instructors">Manage Instructors</button></section>`;
 }
 
-async function getStudentActiveEnrollmentIds(){
+let studentEnrollmentRefreshPromise=null;
+let studentEnrollmentRefreshUid="";
+async function getStudentActiveEnrollmentIds(options={}){
  if(!currentUser||!isStudent())return new Set();
- const cacheKey="mtr_enrollments_"+currentUser.uid;
- try{
-  const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
-  if(cached&&Array.isArray(cached.ids)&&Date.now()-cached.savedAt<45000)return new Set(cached.ids);
- }catch(_){}
- const snap=await getDocs(collection(db,"users",currentUser.uid,"enrollments"));
+ const uid=currentUser.uid,cacheKey="mtr_enrollments_"+uid;
+ let cached=null;
+ try{cached=JSON.parse(localStorage.getItem(cacheKey)||"null");}catch(_){}
+ if(cached&&Array.isArray(cached.ids)){
+  const age=Date.now()-Number(cached.savedAt||0);
+  if(age<45000)return new Set(cached.ids);
+  // Home and Courses may use the last same-account enrollment snapshot for the
+  // first paint. The live Firestore read below refreshes it in the background.
+  if(options.allowStale){
+   if(!studentEnrollmentRefreshPromise||studentEnrollmentRefreshUid!==uid){
+    studentEnrollmentRefreshUid=uid;
+    studentEnrollmentRefreshPromise=(async()=>{
+     try{
+      const snap=await getDocs(collection(db,"users",uid,"enrollments"));
+      const ids=snap.docs.filter(item=>item.data().status==="active").map(item=>item.id);
+      if(currentUser?.uid===uid){
+       try{localStorage.setItem(cacheKey,JSON.stringify({savedAt:Date.now(),ids}));}catch(_){}
+       if(currentTab==="dashboard"||currentTab==="lessons")await showTab(currentTab);
+      }
+     }catch(error){console.warn("Enrollment background refresh failed:",error);}
+     finally{studentEnrollmentRefreshPromise=null;studentEnrollmentRefreshUid="";}
+    })();
+   }
+   return new Set(cached.ids);
+  }
+ }
+ const snap=await getDocs(collection(db,"users",uid,"enrollments"));
  const ids=snap.docs.filter(item=>item.data().status==="active").map(item=>item.id);
- try{localStorage.setItem(cacheKey,JSON.stringify({savedAt:Date.now(),ids}));}catch(_){}
+ if(currentUser?.uid===uid){try{localStorage.setItem(cacheKey,JSON.stringify({savedAt:Date.now(),ids}));}catch(_){}}
  return new Set(ids);
 }
 
@@ -3679,7 +3702,7 @@ async function renderDashboard(){
   if(isStudent()){
     try{
       const studentId=currentUser.uid;
-      const [_,activeIds]=await Promise.all([loadCourses(),getStudentActiveEnrollmentIds()]);
+      const [_,activeIds]=await Promise.all([loadCourses(),getStudentActiveEnrollmentIds({allowStale:true})]);
       if(currentUser?.uid!==studentId)return;
       const available=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
       const locked=courses.filter(c=>c.accessType==="paid"&&!activeIds.has(c.id));
@@ -3767,7 +3790,7 @@ async function renderDashboard(){
 async function renderProgress(){
   page.innerHTML="<div class='panel'>Loading your progress...</div>";
   try{
-    const enrollmentPromise=isStudent()?getStudentActiveEnrollmentIds():Promise.resolve(new Set());
+    const enrollmentPromise=isStudent()?getStudentActiveEnrollmentIds({allowStale:true}):Promise.resolve(new Set());
     const [,activeIds]=await Promise.all([loadCourses(),enrollmentPromise]);
     if(isStudent()){
       const visible=courses.filter(c=>c.accessType!=="paid"||activeIds.has(c.id));
