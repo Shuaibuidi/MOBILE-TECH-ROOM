@@ -2213,46 +2213,93 @@ async function openWrittenLesson(lesson){
   const viewer=document.createElement("div");
   viewer.id="lessonMediaViewer";
   viewer.className="media-lightbox lesson-document-viewer";
-  viewer.style.cssText="position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.88);display:flex;justify-content:center;align-items:stretch;padding:0;overflow:hidden";
+  viewer.style.cssText="position:fixed;inset:0;z-index:10000;background:rgba(7,18,35,.92);display:flex;justify-content:center;align-items:stretch;padding:0;overflow:hidden";
   const inner=document.createElement("div");
   inner.className="media-lightbox-inner lesson-document-inner";
-  inner.style.cssText="position:relative;width:100%;max-width:900px;height:100%;overflow-y:auto;overflow-x:hidden;background:#e9edf2;padding:58px 10px 28px;box-sizing:border-box;-webkit-overflow-scrolling:touch";
+  inner.style.cssText="position:relative;width:100%;max-width:900px;height:100%;overflow-y:auto;overflow-x:hidden;background:#edf1f7;padding:62px 10px 30px;box-sizing:border-box;-webkit-overflow-scrolling:touch";
   const close=document.createElement("button");
   close.type="button";
   close.className="media-lightbox-close";
   close.textContent="✕ Close";
-  close.style.cssText="position:fixed;z-index:2;top:10px;right:12px;background:#172033;color:#fff;border:0;border-radius:8px;padding:11px 16px;font-size:15px";
+  close.style.cssText="position:fixed;z-index:3;top:10px;right:12px;background:#102744;color:#fff;border:1px solid #31516f;border-radius:9px;padding:11px 16px;font-size:14px;box-shadow:0 4px 14px #0003";
   close.addEventListener("click",()=>viewer.remove());
+
   const paper=document.createElement("article");
   paper.className="lesson-pdf-source lesson-reading-paper";
-  paper.style.cssText="box-sizing:border-box;width:100%;max-width:794px;min-height:100%;margin:0 auto;background:#fff;color:#171717;padding:clamp(22px,5vw,58px);box-shadow:0 2px 14px rgba(0,0,0,.14);font-family:Arial,sans-serif;font-size:16px;line-height:1.65;overflow-wrap:anywhere";
+  paper.style.cssText="box-sizing:border-box;width:100%;max-width:794px;min-height:100%;margin:0 auto;background:#fff;color:#263244;padding:clamp(18px,4.5vw,42px);box-shadow:0 3px 18px rgba(20,40,70,.14);font-family:Arial,sans-serif;font-size:15px;line-height:1.68;overflow-wrap:anywhere";
+
+  const style=document.createElement("style");
+  style.textContent=`
+    #lessonMediaViewer .lesson-reading-paper *{max-width:100%;box-sizing:border-box}
+    #lessonMediaViewer .lesson-reading-paper .lesson-reading-banner{border-top:5px solid #102b4b;border-bottom:2px solid #1686b5;background:#f0f8fc;padding:15px 16px 13px;margin:0 0 22px}
+    #lessonMediaViewer .lesson-reading-paper .lesson-reading-kicker{font-size:10px;line-height:1.5;letter-spacing:1px;text-transform:uppercase;font-weight:800;color:#1680a8;margin:0 0 7px}
+    #lessonMediaViewer .lesson-reading-paper .lesson-reading-banner h1{font-size:clamp(22px,4.8vw,30px);line-height:1.2;color:#172d49;margin:0 0 7px}
+    #lessonMediaViewer .lesson-reading-paper .lesson-reading-subtitle{font-size:12px;color:#596579;margin:0}
+    #lessonMediaViewer .lesson-reading-paper .lesson-reading-meta{border-left:4px solid #173653;background:#f8fafc;border-top:1px solid #d5dce5;border-right:1px solid #d5dce5;border-bottom:1px solid #d5dce5;padding:10px 13px;margin:18px 0 22px}
+    #lessonMediaViewer .lesson-reading-paper .lesson-reading-meta strong{display:block;color:#1680a8;font-size:10px;letter-spacing:.7px;text-transform:uppercase;margin-bottom:4px}
+    #lessonMediaViewer .lesson-reading-paper .lesson-reading-meta span{font-size:14px;font-weight:700;color:#263b56}
+    #lessonMediaViewer .lesson-reading-paper .lesson-reading-intro{font-size:13px;color:#39465a;line-height:1.7;margin:0 0 20px}
+    #lessonMediaViewer .lesson-reading-paper .lesson-reading-outcomes{background:#f1f7fb;border-left:4px solid #1686b5;padding:13px 15px;margin:0 0 22px;color:#263244}
+    #lessonMediaViewer .lesson-reading-paper .lesson-reading-outcomes h2{font-size:16px;color:#173653;margin:0 0 8px}
+    #lessonMediaViewer .lesson-reading-paper .lesson-reading-content{font-size:14px;line-height:1.72;color:#263244}
+    #lessonMediaViewer .lesson-reading-paper .lesson-reading-content h1{font-size:23px;color:#173653;border-bottom:2px solid #1686b5;padding-bottom:8px;margin:24px 0 12px}
+    #lessonMediaViewer .lesson-reading-paper .lesson-reading-content h2{font-size:18px;color:#176b91;border-bottom:1px solid #c4dce8;padding-bottom:5px;margin:22px 0 10px}
+    #lessonMediaViewer .lesson-reading-paper .lesson-reading-content h3{font-size:16px;color:#315b85;margin:18px 0 8px}
+    #lessonMediaViewer .lesson-reading-paper p{margin:9px 0 13px}
+    #lessonMediaViewer .lesson-reading-paper ul,#lessonMediaViewer .lesson-reading-paper ol{padding-left:23px;margin:10px 0 15px}
+    #lessonMediaViewer .lesson-reading-paper li{padding-left:2px;margin:0 0 7px}
+    #lessonMediaViewer .lesson-reading-paper blockquote{border-left:4px solid #1686b5;background:#f1f7fb;padding:10px 14px;margin:14px 0;color:#34445a}
+    #lessonMediaViewer .lesson-reading-paper img{height:auto;max-width:100%;object-fit:contain}
+    #lessonMediaViewer .lesson-reading-paper table{width:100%;border-collapse:collapse;display:block;overflow-x:auto;margin:14px 0;font-size:12px}
+    #lessonMediaViewer .lesson-reading-paper th{background:#153453;color:#fff;font-weight:700}
+    #lessonMediaViewer .lesson-reading-paper td,#lessonMediaViewer .lesson-reading-paper th{border:1px solid #cbd5e1;padding:8px;text-align:left;vertical-align:top}
+    #lessonMediaViewer .lesson-reading-paper tr:nth-child(even) td{background:#f5f8fb}
+    #lessonMediaViewer .lesson-reading-paper a{color:#175ac6;text-decoration:underline;overflow-wrap:anywhere}
+    @media(min-width:700px){#lessonMediaViewer .lesson-reading-paper{padding:42px 52px!important;font-size:15px!important}#lessonMediaViewer .lesson-reading-content{font-size:14px}}
+    @media print{#lessonMediaViewer .lesson-reading-paper{box-shadow:none!important;margin:0!important}}
+  `;
+
+  const banner=document.createElement("header");
+  banner.className="lesson-reading-banner";
+  const kicker=document.createElement("p");
+  kicker.className="lesson-reading-kicker";
+  kicker.textContent="Mobile Tech Room • Learning Notes";
   const heading=document.createElement("h1");
   heading.textContent=lesson.title||"Written lesson";
-  heading.style.cssText="color:#111827;font-size:clamp(24px,5vw,34px);line-height:1.2;margin:0 0 18px";
-  paper.append(heading);
-  if(lesson.topic||lesson.section){
-    const meta=document.createElement("div");
-    meta.style.cssText="color:#596579;font-size:13px;border-bottom:1px solid #e5e7eb;padding-bottom:14px;margin-bottom:22px";
-    meta.textContent=[lesson.topic,lesson.section].filter(Boolean).join(" • ");
-    paper.append(meta);
-  }
+  const subtitle=document.createElement("p");
+  subtitle.className="lesson-reading-subtitle";
+  subtitle.textContent=selectedCourse?.title||"Student learning material";
+  banner.append(kicker,heading,subtitle);
+  paper.append(banner);
+
+  const meta=document.createElement("div");
+  meta.className="lesson-reading-meta";
+  const metaLabel=document.createElement("strong");
+  metaLabel.textContent="Lesson information";
+  const metaValue=document.createElement("span");
+  const details=[];
+  if(lesson.lessonNumber)details.push("Lesson "+lesson.lessonNumber);
+  if(lesson.section)details.push("Section: "+lesson.section);
+  if(lesson.topic)details.push("Topic: "+lesson.topic);
+  metaValue.textContent=details.length?details.join("  •  "):"Written lesson";
+  meta.append(metaLabel,metaValue);
+  paper.append(meta);
+
   if(lesson.learningOutcomes){
     const outcomes=document.createElement("section");
-    outcomes.style.cssText="background:#f3f7ff;border-left:4px solid #356ac3;padding:14px 16px;margin:0 0 24px;color:#172033";
+    outcomes.className="lesson-reading-outcomes";
     const label=document.createElement("h2");
     label.textContent="What you will learn";
-    label.style.cssText="font-size:19px;margin:0 0 8px";
     const outcomeContent=document.createElement("div");
     outcomeContent.innerHTML=formatLessonContent(lesson.learningOutcomes);
     outcomes.append(label,outcomeContent);
     paper.append(outcomes);
   }
   const content=document.createElement("section");
-  content.className="lesson-pdf-content";
+  content.className="lesson-pdf-content lesson-reading-content";
   content.innerHTML=formatLessonContent(lesson.content||"");
   paper.append(content);
-  const style=document.createElement("style");
-  style.textContent="#lessonMediaViewer .lesson-reading-paper *{max-width:100%;box-sizing:border-box}#lessonMediaViewer .lesson-reading-paper img{height:auto;max-width:100%;object-fit:contain}#lessonMediaViewer .lesson-reading-paper table{width:100%;border-collapse:collapse;display:block;overflow-x:auto}#lessonMediaViewer .lesson-reading-paper td,#lessonMediaViewer .lesson-reading-paper th{border:1px solid #cbd5e1;padding:7px;text-align:left}#lessonMediaViewer .lesson-reading-paper h1,#lessonMediaViewer .lesson-reading-paper h2,#lessonMediaViewer .lesson-reading-paper h3{line-height:1.3}#lessonMediaViewer .lesson-reading-paper a{color:#175ac6;text-decoration:underline}";
+
   inner.append(close,style,paper);
   viewer.append(inner);
   document.body.append(viewer);
