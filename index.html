@@ -3673,33 +3673,28 @@ async function renderDashboard(){
       <section class="panel"><div class="student-course-heading"><h2>Our Courses</h2><button data-dashboard-tab="lessons">View All Courses →</button></div><p class="muted">Choose your technical path and learn at your own pace.</p><div class="course-grid">${cards||`<p class="muted">Your instructors have not published courses yet. Please check again soon.</p>`}</div></section>
       ${locked.length?`<section class="panel"><h3>More Courses</h3><p class="muted">Paid courses become available after administrator approval.</p>${locked.map(c=>`<span class="tag">🔒 ${safe(c.title)}</span>`).join("")}</section>`:""}
       <section class="panel"><h3>Learn with every format</h3><div class="course-quick-stats"><div class="course-quick-stat"><strong>▶</strong><span>Video lessons</span></div><div class="course-quick-stat"><strong>♫</strong><span>Audio tutorials</span></div><div class="course-quick-stat"><strong>PDF</strong><span>Guides &amp; manuals</span></div></div><p class="muted">Study with videos, listen to audio explanations, read PDF manuals and inspect pictures or diagrams inside each lesson.</p></section>${supportContactPanel()}`;
-      // Load lesson totals and progress after the dashboard is already visible.
-      Promise.all(available.map(async c=>{
-        try{
-          const [lessonSnap,progress]=await Promise.all([
-            getDocs(collection(db,"courses",c.id,"lessons")),
-            getCourseProgress(c.id)
-          ]);
-          return {course:c,count:lessonSnap.size,progress};
-        }catch(_){return {course:c,count:0,progress:null};}
-      })).then(results=>{
-        if(currentUser?.uid!==studentId||currentTab!=="dashboard")return;
-        let totalLessons=0,completedLessons=0;
-        results.forEach(({course,count,progress})=>{
-          const done=progress?.completedLessonIds?.length||0;
-          totalLessons+=count;completedLessons+=done;
-          const bar=Array.from(page.querySelectorAll("[data-progress-bar]")).find(el=>el.dataset.progressBar===course.id);
-          const label=Array.from(page.querySelectorAll("[data-progress-label]")).find(el=>el.dataset.progressLabel===course.id);
-          const slot=Array.from(page.querySelectorAll("[data-certificate-slot]")).find(el=>el.dataset.certificateSlot===course.id);
-          if(bar)bar.style.width=(count?Math.round(done/count*100):0)+"%";
-          if(label)label.textContent=done+"/"+count+" lessons completed";
-          if(slot&&progress?.certificateId)slot.innerHTML=certificateCard(course,progress);
-        });
-        const total=page.querySelector("[data-dashboard-total-lessons]");
-        const percent=page.querySelector("[data-dashboard-progress]");
-        if(total)total.textContent=String(totalLessons);
-        if(percent)percent.textContent=(totalLessons?Math.min(100,Math.round(completedLessons/totalLessons*100)):0)+"%";
-      }).catch(error=>console.warn("Background dashboard progress update failed:",error));
+      // Use only data already in memory/local storage on the dashboard. The previous
+      // version launched two remote reads per course (lesson count + progress), competing
+      // with the screen the learner actually opens next.
+      let cachedTotal=0,cachedCompleted=0,hasCachedLessons=false;
+      available.forEach(course=>{
+        const lessonEntry=courseLessonReadCache.get(course.id);
+        const lessons=lessonEntry?.lessons;
+        const progressKey="mtr_progress_cache_"+studentId+"_"+course.id;
+        const queueKey="mtr_progress_queue_"+studentId+"_"+course.id;
+        const readIds=key=>{try{const value=JSON.parse(localStorage.getItem(key)||"[]");return Array.isArray(value)?value:[];}catch(_){return[];}};
+        const doneIds=[...new Set([...readIds(progressKey),...readIds(queueKey)])];
+        const count=Array.isArray(lessons)?lessons.length:null;
+        const done=count===null?0:doneIds.filter(id=>lessons.some(lesson=>lesson.id===id)).length;
+        const bar=page.querySelector('[data-progress-bar="'+CSS.escape(course.id)+'"]');
+        const label=page.querySelector('[data-progress-label="'+CSS.escape(course.id)+'"]');
+        if(count!==null){hasCachedLessons=true;cachedTotal+=count;cachedCompleted+=done;if(bar)bar.style.width=(count?Math.round(done/count*100):0)+"%";if(label)label.textContent=done+"/"+count+" lessons completed";}
+        else if(label)label.textContent="Open course to view learning progress";
+      });
+      const total=page.querySelector("[data-dashboard-total-lessons]");
+      const percent=page.querySelector("[data-dashboard-progress]");
+      if(total)total.textContent=hasCachedLessons?String(cachedTotal):"—";
+      if(percent)percent.textContent=hasCachedLessons?(cachedTotal?Math.min(100,Math.round(cachedCompleted/cachedTotal*100)):0)+"%":"—";
       return;
     }catch(error){appMessage("Could not load your learning dashboard: "+error.message,"error");}
   }
@@ -3949,6 +3944,7 @@ try{
        if(resourceUrl&&!/^https:\/\/.+/i.test(resourceUrl)){appMessage("Please enter a valid HTTPS learning link.","error");return;}
        const existing=await getDocs(collection(db,"courses",courseId,"lessons"));
        await addDoc(collection(db,"courses",courseId,"lessons"),{title:$("lessonTitle").value.trim(),topic:$("lessonTopic").value.trim(),section:$("lessonSection").value.trim(),learningOutcomes:$("lessonOutcomes").innerHTML.trim(),lessonNumber:existing.size+1,type:"written",content,mediaUrl:"",resourceUrl,createdBy:currentUser.uid,createdAt:serverTimestamp()});
+       invalidateCourseLessonsCache(courseId);
        appMessage("Written lesson saved successfully. Course information was not changed.","success");
        invalidateCoursesCache();await loadCourses();await renderCourses();
      }catch(error){appMessage("Could not save lesson: "+error.message,"error");}
@@ -4002,9 +3998,10 @@ async function getOfflineLessonRecord(courseId,lessonId){const db=await openOffl
 async function downloadLessonForOffline(courseId,lesson,button){if(!currentUser){appMessage("Please sign in before downloading lessons.","error");return;}const original=button?.textContent||"↓ Save for offline";if(button){button.disabled=true;button.textContent="Saving…";}try{let mediaBlob=null;const mediaType=lesson.type||"written";if(lesson.mediaUrl&&["video","audio","image","pdf"].includes(mediaType)){const parsed=new URL(lesson.mediaUrl);let response;if(parsed.hostname.endsWith(".appwrite.io")||parsed.hostname.endsWith(".appwrite.network")){const pathParts=parsed.pathname.split("/").filter(Boolean);const filesIndex=pathParts.indexOf("files");const fileId=filesIndex>=0?pathParts[filesIndex+1]:"";const validMediaPath=filesIndex>=0&&["view","download"].includes(pathParts[filesIndex+2])&&filesIndex+3===pathParts.length;if(!validMediaPath||!fileId)throw new Error("This lesson media link is not supported for offline download.");const token=await currentUser.getIdToken(),query=new URLSearchParams({fileId:decodeURIComponent(fileId),courseId,stream:"1",mediaUrl:lesson.mediaUrl});response=await fetch("https://starter-function-9cke.sgp.appwrite.run?"+query.toString(),{headers:{Authorization:"Bearer "+token}});}else response=await fetch(lesson.mediaUrl,{mode:"cors"});if(!response.ok)throw new Error("Lesson media could not be downloaded. Check your connection and try again.");mediaBlob=await response.blob();if(!mediaBlob.size)throw new Error("The lesson media file is empty.");}await saveOfflineLesson(courseId,lesson,mediaBlob,mediaType);if(button){button.disabled=false;button.textContent="✓ Saved offline";}appMessage("Lesson saved for offline learning.","success");}catch(error){if(button){button.disabled=false;button.textContent=original;}appMessage(error.message||"Lesson could not be saved offline.","error");}}
 
 const courseLessonReadCache=new Map();
+function invalidateCourseLessonsCache(courseId){courseLessonReadCache.delete(courseId);}
 async function getCourseLessonsFast(courseId){
  const cached=courseLessonReadCache.get(courseId);
- if(cached&&Date.now()-cached.savedAt<45000)return cached.lessons;
+ if(cached&&Date.now()-cached.savedAt<300000)return cached.lessons;
  if(cached?.pending)return cached.pending;
  const pending=getDocs(collection(db,"courses",courseId,"lessons")).then(snap=>{
   const lessons=snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -4017,8 +4014,8 @@ async function getCourseLessonsFast(courseId){
 async function renderLessons(courseId){
 page.innerHTML="<div class='panel'>Loading lessons...</div>";
 try{
-const progressUserId=currentUser?.uid;
-const progressPromise=isStudent()?getCourseProgress(courseId).catch(error=>({__progressError:error})):Promise.resolve(null);
+// Lesson progress is read from the local completion cache below. Do not start an unused
+// remote progress request here; it competes with the Firestore lesson download.
 let lessons=[];try{lessons=await getCourseLessonsFast(courseId);}catch(networkError){lessons=await getOfflineLessons(courseId);if(!lessons.length)throw networkError;appMessage("Offline mode: showing lessons saved on this device.","warning");}lessons.sort((a,b)=>{const at=a.createdAt?.toMillis?.()??0,bt=b.createdAt?.toMillis?.()??0;return at-bt;});
 const renderReferenceMedia=(lesson)=>{
   const type=lesson.type||"written", url=lesson.mediaUrl||"", title=lesson.title||"Lesson media";
@@ -4160,6 +4157,7 @@ resourceUrl:resourceUrl,
 createdBy:currentUser.uid,
 createdAt:serverTimestamp()
 });
+invalidateCourseLessonsCache(courseId);
 appMessage("Lesson saved successfully.");
 await renderLessons(courseId);
 }catch(e){appMessage("Could not save lesson: "+(e.code?e.code+": ":"")+e.message,"error")}
@@ -4241,6 +4239,7 @@ if(content.length>700000){appMessage("This lesson is too large. Please reduce th
 if(resourceUrl&&!/^https:\/\/.+/i.test(resourceUrl)){appMessage("Please enter a valid HTTPS learning link.","error");return;}
 try{
 await updateDoc(ref,{title:$("editLessonTitle").value.trim(),topic:$("editLessonTopic").value.trim(),section:$("editLessonSection").value.trim(),learningOutcomes:$("editLessonOutcomes").innerHTML.trim(),type:"written",content,resourceUrl});
+invalidateCourseLessonsCache(courseId);
 appMessage("Written lesson updated successfully.");
 await renderLessons(courseId);
 }catch(error){appMessage("Could not update lesson: "+error.message,"error");}
@@ -4254,6 +4253,7 @@ return;
 if(!confirm("Delete this lesson?"))return;
 try{
 await deleteDoc(doc(db,"courses",selectedCourse.id,"lessons",id));
+invalidateCourseLessonsCache(selectedCourse.id);
 appMessage("Lesson deleted.");
 await renderLessons(selectedCourse.id);
 }catch(e){appMessage(e.message,"error")}
