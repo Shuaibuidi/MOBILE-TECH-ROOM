@@ -4018,7 +4018,7 @@ async function renderLessons(courseId){
 page.innerHTML="<div class='panel'>Loading lessons...</div>";
 try{
 const progressUserId=currentUser?.uid;
-const progressPromise=isStudent()?getCourseProgress(courseId).catch(error=>({completedLessonIds:[],__progressError:error})):Promise.resolve(null);
+const progressPromise=isStudent()?getCourseProgress(courseId).catch(error=>({__progressError:error})):Promise.resolve(null);
 let lessons=[];try{lessons=await getCourseLessonsFast(courseId);}catch(networkError){lessons=await getOfflineLessons(courseId);if(!lessons.length)throw networkError;appMessage("Offline mode: showing lessons saved on this device.","warning");}lessons.sort((a,b)=>{const at=a.createdAt?.toMillis?.()??0,bt=b.createdAt?.toMillis?.()??0;return at-bt;});
 const renderReferenceMedia=(lesson)=>{
   const type=lesson.type||"written", url=lesson.mediaUrl||"", title=lesson.title||"Lesson media";
@@ -4051,6 +4051,7 @@ const renderReferenceMedia=(lesson)=>{
  // Show lessons immediately, then update completion and certificate information in the background.
  progressPromise.then(fresh=>{
    if(currentUser?.uid!==progressUserId||currentTab!=="lessons"||selectedCourse?.id!==courseId)return;
+   if(fresh?.__progressError){console.warn("Background lesson progress refresh failed:",fresh.__progressError);return;}
    progressRecord=fresh||{completedLessonIds:[]};
    completed=progressRecord.completedLessonIds||[];
    let count=0;
