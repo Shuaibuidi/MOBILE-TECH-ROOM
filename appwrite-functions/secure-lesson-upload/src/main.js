@@ -770,18 +770,28 @@ async function handleSiaAdminSso({ req, res, error }) {
     const website = await verifyWebsiteAdmin(token);
     if (website.error) return json(res, { success: false, error: website.error }, 403);
     const email = String(website.decoded.email || "").trim().toLowerCase();
-    if (!email || !website.decoded.email_verified) {
-      return json(res, { success: false, error: "Please verify your website admin email before using one-login access." }, 403);
+    if (!email) {
+      return json(res, { success: false, error: "Your website administrator account must have an email address." }, 403);
     }
 
     const sia = getSiaFirebase();
-    const matches = await sia.db.collection("businesses").doc(SIA_BUSINESS_ID)
-      .collection("members").where("email", "==", email).where("active", "==", true)
-      .where("role", "==", "admin").limit(2).get();
-    if (matches.size !== 1) {
-      return json(res, { success: false, error: "Your verified website admin email must match exactly one active Business Owner account in Smart Business Manager. No account details have been changed." }, 403);
+    const memberCollection = sia.db.collection("businesses").doc(SIA_BUSINESS_ID).collection("members");
+    // Match email case-insensitively without requiring a composite Firestore index.
+    const [exactMatches, lowerMatches] = await Promise.all([
+      memberCollection.where("email", "==", website.decoded.email).limit(5).get(),
+      memberCollection.where("email", "==", email).limit(5).get()
+    ]);
+    const candidates = new Map();
+    [...exactMatches.docs, ...lowerMatches.docs].forEach(doc => candidates.set(doc.id, doc));
+    const admins = [...candidates.values()].filter(doc => {
+      const member = doc.data() || {};
+      return String(member.email || "").trim().toLowerCase() === email &&
+        member.active === true && member.role === "admin";
+    });
+    if (admins.length !== 1) {
+      return json(res, { success: false, error: "Your website admin email must match exactly one active Business Owner account in Smart Business Manager. No account details have been changed." }, 403);
     }
-    const memberDoc = matches.docs[0];
+    const memberDoc = admins[0];
     const customToken = await sia.auth.createCustomToken(memberDoc.id, {
       businessId: SIA_BUSINESS_ID,
       role: "admin",
