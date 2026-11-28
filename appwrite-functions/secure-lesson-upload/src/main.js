@@ -757,6 +757,43 @@ async function verifyWebsiteAdmin(token) {
   return { auth, db, decoded };
 }
 
+
+async function handleSiaAdminSso({ req, res, error }) {
+  try {
+    if (req.method === "OPTIONS") return res.text("", 204, headers());
+    if (req.method !== "POST") return json(res, { success: false, error: "Use POST." }, 405);
+    const token = bearer(req);
+    if (!token) return json(res, { success: false, error: "Please sign in to the website first." }, 401);
+
+    // Verify the website identity and approved admin role before looking up the matching
+    // active Business Owner account in the separate Smart Business Manager Firebase project.
+    const website = await verifyWebsiteAdmin(token);
+    if (website.error) return json(res, { success: false, error: website.error }, 403);
+    const email = String(website.decoded.email || "").trim().toLowerCase();
+    if (!email || !website.decoded.email_verified) {
+      return json(res, { success: false, error: "Please verify your website admin email before using one-login access." }, 403);
+    }
+
+    const sia = getSiaFirebase();
+    const matches = await sia.db.collection("businesses").doc(SIA_BUSINESS_ID)
+      .collection("members").where("email", "==", email).where("active", "==", true)
+      .where("role", "==", "admin").limit(2).get();
+    if (matches.size !== 1) {
+      return json(res, { success: false, error: "Your verified website admin email must match exactly one active Business Owner account in Smart Business Manager. No account details have been changed." }, 403);
+    }
+    const memberDoc = matches.docs[0];
+    const customToken = await sia.auth.createCustomToken(memberDoc.id, {
+      businessId: SIA_BUSINESS_ID,
+      role: "admin",
+      ssoSource: "sia-digital-vision"
+    });
+    return json(res, { success: true, customToken });
+  } catch (e) {
+    error(e?.stack || String(e));
+    return json(res, { success: false, error: "One-login could not be started securely. Please use your normal Business Manager login for now." }, 500);
+  }
+}
+
 async function handleSiaSyncStock({ req, res, error }) {
   try {
     if (req.method === "OPTIONS") return res.text("", 204, headers());
@@ -936,6 +973,7 @@ async function handleSiaConfirmOrder({ req, res, error }) {
 }
 
 export default async (context) => {
+  if (context.req.query?.action === "sia-admin-sso") return handleSiaAdminSso(context);
   if (context.req.query?.action === "sia-sync-stock") return handleSiaSyncStock(context);
   if (context.req.query?.action === "sia-confirm-order") return handleSiaConfirmOrder(context);
   if (context.req.query?.action === "quiz-list" || context.req.query?.action === "quiz-get" || context.req.query?.action === "quiz-create" || context.req.query?.action === "quiz-update" || context.req.query?.action === "quiz-delete" || context.req.query?.action === "quiz-submit" || context.req.query?.action === "quiz-results") return handleQuizzes(context);
