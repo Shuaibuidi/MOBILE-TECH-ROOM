@@ -34,6 +34,23 @@ The response preserves the existing browser contract: `success`, `mediaUrl`, `fi
 
 Uploads are created with private file permissions (`permissions: []`). The website sends the signed-in Firebase ID token to this function. The function checks account approval, lesson/course association, instructor ownership and active paid-course enrollment before streaming the file bytes. The browser receives an in-memory Blob URL, not an Appwrite token URL. Do not enable public read permissions on the bucket or its files.
 
+## S I A Business website bridge
+
+The existing function also exposes two additional POST actions. This reuses the current function slot; do not create another Appwrite Function.
+
+Add this additional server-side Function variable in Appwrite:
+
+- `SIA_BUSINESS_SERVICE_ACCOUNT_JSON`: the service-account JSON for Firebase project `smart-business-manager-f319f`.
+
+Keep the existing `FIREBASE_SERVICE_ACCOUNT_JSON` variable for the `mobile-tech-room` Firebase project. Both values must be added privately in the Appwrite Function Variables tab. Never commit either JSON value to GitHub or place it in browser code.
+
+Routes:
+
+- `POST /?action=sia-sync-stock`: accepts the signed-in Smart Business Manager administrator's Firebase ID token and a stock item ID, name, quantity, selling price, low-stock threshold and active flag. It writes only public catalogue fields to `mobile-tech-room/catalogueItems`; it does not publish buying price, internal quantity reports, expenses, salaries or profits.
+- `POST /?action=sia-confirm-order`: accepts an approved website administrator's Firebase ID token and a website order ID. It verifies the order and linked catalogue item, decrements the original S I A Business stock document, and creates an idempotent `website-order-{orderId}` sales transaction including cost and profit. It then updates the website order and public availability.
+
+The bridge uses the existing S I A Business ID `7RqIYO3IDSVCYex1LsDo6rDw5V33`. It publishes items from the `stock` collection only; it does not publish the separate `spareParts` collection.
+
 ## Important
 
 Deploy this using the existing `secure-lesson-upload` function; do not create a second function. Ensure the server-side Appwrite API key has the `files.read` and `files.write` permissions required for private file retrieval and uploads. The new media path no longer needs `tokens.write`. Do not change the PayChangu function or website upload URL.
