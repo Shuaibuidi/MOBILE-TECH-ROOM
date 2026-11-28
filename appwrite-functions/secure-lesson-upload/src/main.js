@@ -715,7 +715,222 @@ async function handleQuizzes({ req, res, error }) {
   }
 }
 
+
+// S I A BUSINESS bridge routes. These are deliberately separate from the
+// lesson-upload, lesson-media, quiz, notification and course-progress handlers.
+const SIA_BUSINESS_ID = "7RqIYO3IDSVCYex1LsDo6rDw5V33";
+const SIA_CATALOGUE_PREFIX = "sia-stock-";
+
+function getSiaFirebase() {
+  const raw = process.env.SIA_BUSINESS_SERVICE_ACCOUNT_JSON;
+  if (!raw) throw new Error("Missing SIA_BUSINESS_SERVICE_ACCOUNT_JSON.");
+  let app;
+  try { app = admin.app("sia-business-bridge"); }
+  catch {
+    app = admin.initializeApp({ credential: admin.credential.cert(JSON.parse(raw)) }, "sia-business-bridge");
+  }
+  return { auth: admin.auth(app), db: admin.firestore(app) };
+}
+
+async function verifySiaBusinessAdmin(token) {
+  const { auth, db } = getSiaFirebase();
+  let decoded;
+  try { decoded = await auth.verifyIdToken(token); }
+  catch { return { error: "Your Smart Business Manager sign-in has expired. Please sign in again." }; }
+  const member = await db.doc("businesses/" + SIA_BUSINESS_ID + "/members/" + decoded.uid).get();
+  if (!member.exists || member.data()?.active !== true || member.data()?.role !== "admin") {
+    return { error: "Only the approved S I A Business administrator can publish stock to the website." };
+  }
+  return { auth, db, decoded };
+}
+
+async function verifyWebsiteAdmin(token) {
+  const { auth, db } = getFirebase();
+  let decoded;
+  try { decoded = await auth.verifyIdToken(token); }
+  catch { return { error: "Your website sign-in has expired. Please sign in again." }; }
+  const profile = await db.collection("users").doc(decoded.uid).get();
+  const user = profile.exists ? profile.data() || {} : {};
+  if (user.role !== "admin" || user.status !== "approved") {
+    return { error: "Only an approved website administrator can confirm customer orders." };
+  }
+  return { auth, db, decoded };
+}
+
+async function handleSiaSyncStock({ req, res, error }) {
+  try {
+    if (req.method === "OPTIONS") return res.text("", 204, headers());
+    if (req.method !== "POST") return json(res, { success: false, error: "Use POST." }, 405);
+    const token = bearer(req);
+    if (!token) return json(res, { success: false, error: "Please sign in to Smart Business Manager." }, 401);
+    const verified = await verifySiaBusinessAdmin(token);
+    if (verified.error) return json(res, { success: false, error: verified.error }, 403);
+    const body = req.bodyJson || {};
+    const itemId = String(body.itemId || "").trim();
+    const name = String(body.name || "").trim().slice(0, 120);
+    const quantity = Number(body.quantity);
+    const sellingPrice = Number(body.sellingPrice);
+    const lowStockAt = Math.max(0, Math.floor(Number(body.lowStockAt ?? 5) || 0));
+    const active = body.active !== false;
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,140}$/.test(itemId) ||
+        (active && !name) || !Number.isInteger(quantity) || quantity < 0 ||
+        !Number.isFinite(sellingPrice) || sellingPrice < 0) {
+      return json(res, { success: false, error: "The stock details are invalid." }, 400);
+    }
+    const { db } = getFirebase();
+    const catalogueId = SIA_CATALOGUE_PREFIX + itemId;
+    const availability = quantity <= 0 ? "Out of stock" : quantity <= lowStockAt ? "Low stock" : "In stock";
+    const projection = {
+      name: name || "Unavailable product",
+      type: "product",
+      category: "Accessories Sales",
+      description: "Available from S I A TECH PRINT MEDIA.",
+      price: sellingPrice,
+      pricePerPage: null,
+      resellerPrice: null,
+      pricingMethod: "fixed",
+      imageData: null,
+      imageGallery: [],
+      availability,
+      stockTracked: true,
+      stockQuantity: quantity,
+      lowStockThreshold: lowStockAt,
+      active,
+      sourceSystem: "sia-business",
+      sourceCollection: "stock",
+      sourceItemId: itemId,
+      sourceBusinessId: SIA_BUSINESS_ID,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+    const ref = db.collection("catalogueItems").doc(catalogueId);
+    const existing = await ref.get();
+    if (!existing.exists) projection.createdAt = admin.firestore.FieldValue.serverTimestamp();
+    await ref.set(projection, { merge: true });
+    return json(res, { success: true, catalogueItemId: catalogueId, active, availability });
+  } catch (e) {
+    error(e?.stack || String(e));
+    return json(res, { success: false, error: "Stock could not be synchronised with the website. Please try again." }, 500);
+  }
+}
+
+async function handleSiaConfirmOrder({ req, res, error }) {
+  try {
+    if (req.method === "OPTIONS") return res.text("", 204, headers());
+    if (req.method !== "POST") return json(res, { success: false, error: "Use POST." }, 405);
+    const token = bearer(req);
+    if (!token) return json(res, { success: false, error: "Please sign in as the website administrator." }, 401);
+    const website = await verifyWebsiteAdmin(token);
+    if (website.error) return json(res, { success: false, error: website.error }, 403);
+    const orderId = String((req.bodyJson || {}).orderId || "").trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,140}$/.test(orderId)) {
+      return json(res, { success: false, error: "A valid order ID is required." }, 400);
+    }
+    const websiteOrderRef = website.db.collection("serviceOrders").doc(orderId);
+    const orderSnap = await websiteOrderRef.get();
+    if (!orderSnap.exists) return json(res, { success: false, error: "Customer order not found." }, 404);
+    const order = orderSnap.data() || {};
+    if (order.orderType !== "Product" || !order.catalogueItemId) {
+      return json(res, { success: false, error: "This order is not a stock product order." }, 400);
+    }
+    const catalogueRef = website.db.collection("catalogueItems").doc(String(order.catalogueItemId));
+    const catalogueSnap = await catalogueRef.get();
+    if (!catalogueSnap.exists) return json(res, { success: false, error: "The ordered catalogue item no longer exists." }, 404);
+    const catalogue = catalogueSnap.data() || {};
+    if (catalogue.sourceSystem !== "sia-business" ||
+        catalogue.sourceBusinessId !== SIA_BUSINESS_ID ||
+        catalogue.sourceCollection !== "stock" ||
+        !catalogue.sourceItemId) {
+      return json(res, { success: false, error: "This product is not linked to Smart Business Manager stock." }, 400);
+    }
+    if (order.stockDeducted === true) {
+      return json(res, { success: true, alreadyProcessed: true, message: "This order has already been recorded in business stock." });
+    }
+
+    const sia = getSiaFirebase();
+    const stockRef = sia.db.doc("businesses/" + SIA_BUSINESS_ID + "/stock/" + catalogue.sourceItemId);
+    const saleRef = sia.db.doc("businesses/" + SIA_BUSINESS_ID + "/transactions/website-order-" + orderId);
+    const quantity = Math.max(1, Math.floor(Number(order.quantity || 1)));
+    const unitPrice = Number(order.unitPrice ?? catalogue.price ?? 0);
+    if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+      return json(res, { success: false, error: "The order price is invalid." }, 400);
+    }
+
+    const saleResult = await sia.db.runTransaction(async tx => {
+      const [saleSnap, stockSnap] = await Promise.all([tx.get(saleRef), tx.get(stockRef)]);
+      if (!stockSnap.exists) throw new Error("The linked stock item no longer exists in Smart Business Manager.");
+      const stock = stockSnap.data() || {};
+      if (saleSnap.exists) {
+        return { remaining: Number(stock.quantity || 0), alreadyRecorded: true };
+      }
+      const available = Math.max(0, Math.floor(Number(stock.quantity || 0)));
+      if (available < quantity) throw new Error("INSUFFICIENT_STOCK: only " + available + " unit(s) remain.");
+      const unitCost = Math.max(0, Number(stock.buyingPrice || 0));
+      const total = quantity * unitPrice;
+      const cost = quantity * unitCost;
+      const remaining = available - quantity;
+      tx.update(stockRef, {
+        quantity: remaining,
+        lastSaleTxId: saleRef.id,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedBy: website.decoded.uid
+      });
+      tx.create(saleRef, {
+        itemId: catalogue.sourceItemId,
+        itemName: String(stock.name || catalogue.name || "Product").slice(0, 120),
+        quantity,
+        unitPrice,
+        unitCost,
+        total,
+        cost,
+        profit: total - cost,
+        customerName: String(order.customerName || "Website customer").slice(0, 100),
+        customerPhone: String(order.customerPhone || "").slice(0, 30),
+        workerUid: website.decoded.uid,
+        workerName: "Website Order",
+        type: "sale",
+        sourceType: "website_order",
+        sourceId: orderId,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        date: new Date().toISOString().slice(0, 10)
+      });
+      return { remaining, alreadyRecorded: false };
+    });
+
+    const remaining = saleResult.remaining;
+    const threshold = Math.max(0, Number(catalogue.lowStockThreshold ?? 3));
+    const availability = remaining <= 0 ? "Out of stock" : remaining <= threshold ? "Low stock" : "In stock";
+    await website.db.runTransaction(async tx => {
+      const [latestOrder, latestCatalogue] = await Promise.all([tx.get(websiteOrderRef), tx.get(catalogueRef)]);
+      if (!latestOrder.exists) throw new Error("Customer order no longer exists.");
+      if (latestOrder.data()?.stockDeducted === true) return;
+      tx.update(catalogueRef, { stockQuantity: remaining, availability, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+      tx.update(websiteOrderRef, {
+        status: "approved",
+        statusUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        statusHistory: admin.firestore.FieldValue.arrayUnion({ status: "approved", updatedAt: new Date().toISOString() }),
+        stockDeducted: true,
+        stockDeductedQuantity: quantity,
+        stockDeductedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    });
+    return json(res, {
+      success: true,
+      alreadyProcessed: saleResult.alreadyRecorded,
+      quantityDeducted: quantity,
+      remaining,
+      message: "Order approved and recorded in Smart Business Manager."
+    });
+  } catch (e) {
+    error(e?.stack || String(e));
+    const message = e instanceof Error ? e.message : "Order confirmation failed.";
+    return json(res, { success: false, error: message.startsWith("INSUFFICIENT_STOCK:") ? message : "The order could not be recorded in Smart Business Manager. Please try again." }, message.startsWith("INSUFFICIENT_STOCK:") ? 409 : 500);
+  }
+}
+
 export default async (context) => {
+  if (context.req.query?.action === "sia-sync-stock") return handleSiaSyncStock(context);
+  if (context.req.query?.action === "sia-confirm-order") return handleSiaConfirmOrder(context);
   if (context.req.query?.action === "quiz-list" || context.req.query?.action === "quiz-get" || context.req.query?.action === "quiz-create" || context.req.query?.action === "quiz-update" || context.req.query?.action === "quiz-delete" || context.req.query?.action === "quiz-submit" || context.req.query?.action === "quiz-results") return handleQuizzes(context);
   if (context.req.query?.action === "course-progress" || context.req.query?.action === "complete-lesson") return handleCourseProgress(context);
   if (context.req.query?.action === "admin-notifications" || context.req.query?.action === "registration-notification" || context.req.query?.action === "mark-notification-read") return handleAdminNotifications(context);
