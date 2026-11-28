@@ -804,6 +804,13 @@ async function handleSiaSyncStock({ req, res, error }) {
     };
     const ref = db.collection("catalogueItems").doc(catalogueId);
     const existing = await ref.get();
+    const previous = existing.exists ? existing.data() || {} : {};
+    // Preserve customer-facing photos and catalogue descriptions if the owner
+    // has already added them; inventory values always come from Smart Business Manager.
+    projection.category = String(previous.category || projection.category);
+    projection.description = String(previous.description || projection.description);
+    projection.imageData = previous.imageData || null;
+    projection.imageGallery = Array.isArray(previous.imageGallery) ? previous.imageGallery : [];
     if (!existing.exists) projection.createdAt = admin.firestore.FieldValue.serverTimestamp();
     await ref.set(projection, { merge: true });
     return json(res, { success: true, catalogueItemId: catalogueId, active, availability });
