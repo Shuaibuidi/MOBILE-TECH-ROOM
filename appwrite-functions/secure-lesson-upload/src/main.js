@@ -20,7 +20,7 @@ function getFirebase() {
     const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
     if (!raw) throw new Error("Missing FIREBASE_SERVICE_ACCOUNT_JSON.");
     const account = JSON.parse(raw);
-    if (!admin.apps.length) admin.initializeApp({ credential: admin.credential.cert(account) });
+    if (!admin.apps.some(app => app.name === "[DEFAULT]")) admin.initializeApp({ credential: admin.credential.cert(account) });
     firebaseReady = true;
   }
   return { auth: admin.auth(), db: admin.firestore() };
